@@ -10,7 +10,7 @@ export type ProblemHold = {
 }
 
 export type Problem = {
-  problemId: string
+  id: string
   gymId: string
   wallId: string
   wallVersionId: string
