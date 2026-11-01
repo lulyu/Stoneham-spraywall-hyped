@@ -94,8 +94,8 @@ The conditional DynamoDB write also protects against edits between read and writ
 
 The auth branch adds Cognito access-token authorization and ownership checks.
 See [auth permissions and rollout](auth.md). Anonymous reads remain public,
-writes require login, and DELETE is removed. This layer is not deployed until
-Google OAuth setup and real login tests are complete.
+writes require login, and DELETE is removed. This layer is deployed; initial
+real-user login verification and administrator assignment are pending.
 
 ## Build the Lambda bundle
 

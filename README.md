@@ -154,5 +154,5 @@ Validation:
 
 ## Cognito authentication branch
 
-See [authentication permissions and rollout](docs/auth.md). This layer is not
-yet deployed; Google OAuth configuration and live login tests are required.
+See [authentication permissions and rollout](docs/auth.md). The layer is deployed;
+real user login verification and initial administrator assignment remain pending.

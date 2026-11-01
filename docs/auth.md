@@ -1,7 +1,16 @@
-# Cognito authentication layer (not deployed yet)
+# Cognito authentication layer
 
-Production still runs the pre-auth release until Google OAuth is configured and
-the coordinated backend/frontend rollout is tested.
+The Cognito layer is deployed to production. Google OAuth configuration was read
+by CloudFormation from Secrets Manager through a dynamic reference. No OAuth
+secret is stored in the repository or Vite environment.
+
+Verified live: public reads, anonymous and forged-token writes rejected with 401,
+DELETE disabled with 405, authorized CORS preflight, mobile Sign in navigation to
+the configured Google client without a redirect error, and the Cognito logout
+return URL. CloudFormation reports UPDATE_COMPLETE; the Lambda artifact hash
+matches the deployed code. Real Google login, two-user ownership checks and first
+administrator assignment require user sign-in and remain pending. See
+`infra/cloudformation/production.json` for deployed identifiers.
 
 ## Permissions
 
@@ -62,7 +71,7 @@ Login expiry during editing reports a save error without a local-save fallback.
 User-facing identity and permissions come from the authenticated /v1/me endpoint.
 The frontend's visibility checks are convenience only; backend checks are mandatory.
 
-Tests currently cover backend ownership/auth context and frontend token headers.
+Tests cover backend ownership/auth context and frontend token headers.
 Real Google login and expired-session browser tests require the configured OAuth
 application and remain rollout gates. Do not deploy only the frontend before the
 backend authorization routes exist.
