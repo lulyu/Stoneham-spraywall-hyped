@@ -1,5 +1,10 @@
 # Local SAM2-assisted hold annotator
 
+> The current editor supports the full wall, existing-data edits and automatic
+> suggestions. See [the full-wall upgrade](sam2-full-wall-annotator.md). The
+> crop-only description below records the first version; the current default
+> storage path is `artifacts/full-wall-annotations/holds.json`.
+
 The tool serves a built React page and a Python SAM2 service from one origin.
 Only the top-left 2431 × 1838 crop is encoded. SAM2.1 Small is loaded once and the
 image features are reused across positive points, negative points and box prompts.

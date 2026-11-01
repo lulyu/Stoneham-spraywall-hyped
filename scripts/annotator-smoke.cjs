@@ -60,7 +60,7 @@ async function main() {
     assert(exported.holds.some(hold => hold.id === created.id))
     await page.getByRole('button', { name: 'Delete selected', exact: true }).click()
     await page.waitForFunction(id => ![...document.querySelectorAll('option')].some(o => o.value === id), created.id)
-    const invalid = await context.request.post(`${base}/api/sam2/predict`, { data: { points: [{ point: [1, 1], label: 1 }] } })
+    const invalid = await context.request.post(`${base}/api/sam2/predict`, { data: { points: [{ point: [1.1, 1.1], label: 1 }] } })
     assert.equal(invalid.status(), 400)
     const crossOrigin = await context.request.post(`${base}/api/sam2/predict`, { headers: { Origin: 'https://example.com' }, data: { points: [] } })
     assert.equal(crossOrigin.status(), 403)

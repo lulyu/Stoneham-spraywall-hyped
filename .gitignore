@@ -13,3 +13,5 @@ artifacts/*
 __pycache__/
 *.pyc
 models/
+!artifacts/sam2-full-wall-suggestions.jpg
+!artifacts/full-wall-annotator-mobile.png

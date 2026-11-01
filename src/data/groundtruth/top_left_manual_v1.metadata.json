@@ -1,0 +1,18 @@
+{
+  "file": "top_left_manual_v1.json",
+  "sha256": "06b29f62c6ef0cb72f1a29bfe04a54c46de301a1a81bc49cdf6366729e8b94fc",
+  "wallId": "stoneham-spraywall-v1",
+  "image_size": [
+    7292,
+    5514
+  ],
+  "region": [
+    0,
+    0,
+    2431,
+    1838
+  ],
+  "hold_count": 43,
+  "annotation_policy": "All fully visible holds in the top-left region were annotated by the user. Partially visible boundary holds are excluded.",
+  "role": "Immutable user-provided ground truth; edits are saved into a separate working dataset."
+}

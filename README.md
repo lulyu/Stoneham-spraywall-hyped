@@ -77,3 +77,11 @@ mask previews, acceptance, deletion and JSON export. It reuses the crop embeddin
 and runs on CPU when CUDA is unavailable. See [local annotator setup and phone
 preview notes](docs/sam2-local-annotator.md). Accepted holds stay separate from the
 route-setting dataset.
+
+### Full-wall annotation upgrade
+
+The editor now covers the full wall with cached regional SAM2 inference. Your
+43-hold top-left ground truth loads automatically into a separate working copy.
+349 automatic suggestions can be reviewed, optionally accepted in a high-score
+batch, and refined. Existing JSON can be imported and edited while preserving IDs.
+See [full-wall workflow, data provenance and tests](docs/sam2-full-wall-annotator.md).

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Serve the local SAM2 crop annotator and built frontend on a single origin."""
+"""Serve the full-wall SAM2 annotator and built frontend on a single origin."""
 from __future__ import annotations
 
 import argparse
+from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 import hmac
 from http.cookies import SimpleCookie
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-import io
 import json
 import math
 from pathlib import Path
@@ -29,8 +29,8 @@ def number(value):
 def point(value):
     if not isinstance(value, list) or len(value) != 2 or not all(number(n) for n in value):
         raise ValueError('Each point must contain two finite full-wall normalized coordinates.')
-    if not (0 <= value[0] <= CROP_WIDTH / WIDTH and 0 <= value[1] <= CROP_HEIGHT / HEIGHT):
-        raise ValueError('Prompts must be inside the top-left crop.')
+    if not (0 <= value[0] <= 1 and 0 <= value[1] <= 1):
+        raise ValueError('Prompts must be inside the full wall.')
     return value
 
 
@@ -54,14 +54,59 @@ def validate_prompts(body):
     return prompts, box
 
 
+def clean_hold(hold, identifier=None):
+    if not isinstance(hold, dict) or not isinstance(hold.get('polygon'), list) or not 3 <= len(hold['polygon']) <= 16:
+        raise ValueError('Each hold requires 3–16 polygon vertices.')
+    point(hold.get('center'))
+    for vertex in hold['polygon']: point(vertex)
+    identifier = identifier or hold.get('id')
+    if not isinstance(identifier, str) or not 1 <= len(identifier) <= 100:
+        raise ValueError('Each hold needs a stable ID of 1–100 characters.')
+    kind = hold.get('kind', 'hold')
+    if kind not in ('hold', 'macro', 'volume'): raise ValueError('Invalid hold kind.')
+    return dict(id=identifier, kind=kind, center=hold['center'], polygon=hold['polygon'])
+
+
+def clean_dataset(data):
+    if not isinstance(data, dict) or not isinstance(data.get('holds'), list) or len(data['holds']) > 5000:
+        raise ValueError('Import a JSON object containing at most 5000 holds.')
+    if data.get('wallId', 'stoneham-spraywall-v1') != 'stoneham-spraywall-v1': raise ValueError('Wrong wall ID.')
+    dimensions = data.get('image_size', data.get('metadata', {}).get('image_size', [WIDTH, HEIGHT]))
+    if dimensions != [WIDTH, HEIGHT]: raise ValueError('Image dimensions do not match the canonical wall.')
+    result = [clean_hold(hold) for hold in data['holds']]
+    if len({h['id'] for h in result}) != len(result): raise ValueError('Duplicate IDs in imported file.')
+    return result
+
+
+def prediction_region(prompts, box):
+    locations = [p['point'] for p in prompts]
+    if box: locations += [box[:2], box[2:]]
+    anchor = [p['point'] for p in prompts if p['label'] == 1] or locations
+    x = sum(p[0] for p in anchor) / len(anchor) * WIDTH
+    y = sum(p[1] for p in anchor) / len(anchor) * HEIGHT
+    col, row = min(2, int(x / CROP_WIDTH)), min(2, int(y / CROP_HEIGHT))
+    left, top = max(0, col * CROP_WIDTH - 160), max(0, row * CROP_HEIGHT - 160)
+    right, bottom = min(WIDTH, (col + 1) * CROP_WIDTH + 160), min(HEIGHT, (row + 1) * CROP_HEIGHT + 160)
+    left = max(0, min(left, int(min(p[0] for p in locations) * WIDTH) - 96))
+    top = max(0, min(top, int(min(p[1] for p in locations) * HEIGHT) - 96))
+    right = min(WIDTH, max(right, int(max(p[0] for p in locations) * WIDTH) + 96))
+    bottom = min(HEIGHT, max(bottom, int(max(p[1] for p in locations) * HEIGHT) + 96))
+    return left, top, right, bottom
+
+
 class Annotator:
-    def __init__(self, checkpoint: Path, storage: Path, threads: int):
+    def __init__(self, checkpoint: Path, storage: Path, threads: int, seed: Path | None = None):
         self.storage = storage
         self.lock = threading.Lock()
         self.model_lock = threading.Lock()
         self.status = dict(state='loading', model='SAM2.1 Small', device='checking',
-                           image_size=[WIDTH, HEIGHT], crop_size=[CROP_WIDTH, CROP_HEIGHT])
-        self.predictor = None
+                           image_size=[WIDTH, HEIGHT], crop_size=[WIDTH, HEIGHT], inference='overlapping tiles')
+        self.model = None
+        self.image = None
+        self.predictors = OrderedDict()
+        self.seed = seed
+        if not storage.exists() and seed and seed.exists():
+            self.write(dict(holds=clean_dataset(json.loads(seed.read_text()))))
         self.crop_bytes = None
         self.executor = ThreadPoolExecutor(max_workers=1)
         self.executor.submit(self.load, checkpoint, threads)
@@ -81,39 +126,50 @@ class Annotator:
             image = Image.open(ROOT / 'public/wall/stoneham-spraywall-canonical.jpg').convert('RGB')
             if image.size != (WIDTH, HEIGHT):
                 raise RuntimeError('Canonical image size must be 7292 × 5514.')
-            crop = image.crop((0, 0, CROP_WIDTH, CROP_HEIGHT))
-            output = io.BytesIO(); crop.save(output, format='JPEG', quality=95)
-            self.crop_bytes = output.getvalue()
+            self.image = image
+            self.crop_bytes = (ROOT / 'public/wall/stoneham-spraywall-canonical.jpg').read_bytes()
             model = build_sam2(CONFIG, str(checkpoint), device=self.status['device'], apply_postprocessing=False)
-            self.predictor = SAM2ImagePredictor(model)
+            self.model = model
             with torch.inference_mode():
-                self.predictor.set_image(np.array(crop, copy=True))
+                self.predictor_for((0, 0, CROP_WIDTH + 160, CROP_HEIGHT + 160))
             self.status.update(state='ready')
-            print(f'SAM2 ready on {self.status["device"]}; crop encoded once', flush=True)
+            print(f'SAM2 ready on {self.status["device"]}; full wall available; tile embeddings cached', flush=True)
         except Exception as error:
             self.status.update(state='error', error=f'{type(error).__name__}: {error}. See docs/sam2-local-annotator.md for setup.')
             print(self.status['error'], flush=True)
+
+    def predictor_for(self, region):
+        import numpy as np
+        from sam2.sam2_image_predictor import SAM2ImagePredictor
+        if region not in self.predictors:
+            predictor = SAM2ImagePredictor(self.model)
+            predictor.set_image(np.array(self.image.crop(region), copy=True))
+            self.predictors[region] = predictor
+            if len(self.predictors) > 2: self.predictors.popitem(last=False)
+        self.predictors.move_to_end(region)
+        return self.predictors[region]
 
     def predict(self, body):
         import cv2
         import numpy as np
         import torch
         prompts, box = validate_prompts(body)
-        coords = np.array([[p['point'][0] * WIDTH, p['point'][1] * HEIGHT] for p in prompts], dtype=np.float32) if prompts else None
+        left, top, right, bottom = region = prediction_region(prompts, box)
+        w, h = right - left, bottom - top
+        coords = np.array([[min(w - 1, max(0, p['point'][0] * WIDTH - left)), min(h - 1, max(0, p['point'][1] * HEIGHT - top))] for p in prompts], dtype=np.float32) if prompts else None
         labels = np.array([p['label'] for p in prompts], dtype=np.int32) if prompts else None
-        rectangle = np.array([box[0] * WIDTH, box[1] * HEIGHT, box[2] * WIDTH, box[3] * HEIGHT], dtype=np.float32) if box else None
+        rectangle = np.array([box[0] * WIDTH - left, box[1] * HEIGHT - top, box[2] * WIDTH - left, box[3] * HEIGHT - top], dtype=np.float32) if box else None
         started = time.monotonic()
         with torch.inference_mode():
-            masks, scores, _ = self.predictor.predict(point_coords=coords, point_labels=labels, box=rectangle, multimask_output=True)
+            predictor = self.predictor_for(region)
+            masks, scores, _ = predictor.predict(point_coords=coords, point_labels=labels, box=rectangle, multimask_output=True)
         results = []
         for mask, score in zip(masks, scores):
             count, components, stats, _ = cv2.connectedComponentsWithStats(mask.astype(np.uint8), 8)
-            if count < 2:
-                continue
-            # Keep the component with most positive prompts, then largest area.
+            if count < 2: continue
             positives = [p['point'] for p in prompts if p['label'] == 1]
             def rank(label):
-                votes = sum(components[min(CROP_HEIGHT - 1, int(y * HEIGHT)), min(CROP_WIDTH - 1, int(x * WIDTH))] == label for x, y in positives)
+                votes = sum(components[min(h - 1, max(0, int(y * HEIGHT - top))), min(w - 1, max(0, int(x * WIDTH - left)))] == label for x, y in positives)
                 return votes, stats[label, cv2.CC_STAT_AREA]
             label = max(range(1, count), key=rank)
             component = (components == label).astype(np.uint8)
@@ -122,16 +178,13 @@ class Annotator:
             epsilon = max(.1, cv2.arcLength(contour, True) * .004)
             polygon = cv2.approxPolyDP(contour, epsilon, True)
             while len(polygon) > 16:
-                epsilon *= 1.2
-                polygon = cv2.approxPolyDP(contour, epsilon, True)
-            if len(polygon) < 3:
-                continue
+                epsilon *= 1.2; polygon = cv2.approxPolyDP(contour, epsilon, True)
+            if len(polygon) < 3: continue
             ys, xs = np.nonzero(component)
-            results.append(dict(kind='hold', center=[float(xs.mean()) / WIDTH, float(ys.mean()) / HEIGHT],
-                                polygon=[[int(x) / WIDTH, int(y) / HEIGHT] for x, y in polygon[:, 0]],
-                                score=float(score)))
+            results.append(dict(kind='hold', center=[(float(xs.mean()) + left) / WIDTH, (float(ys.mean()) + top) / HEIGHT],
+                                polygon=[[(int(x) + left) / WIDTH, (int(y) + top) / HEIGHT] for x, y in polygon[:, 0]], score=float(score)))
         results.sort(key=lambda item: -item['score'])
-        return dict(candidates=results, elapsed_seconds=round(time.monotonic() - started, 3))
+        return dict(candidates=results, region=list(region), elapsed_seconds=round(time.monotonic() - started, 3))
 
     def read(self):
         if not self.storage.exists():
@@ -142,7 +195,7 @@ class Annotator:
         return data
 
     def write(self, data):
-        data.update(wallId='stoneham-spraywall-v1', image_size=[WIDTH, HEIGHT], crop_box=[0, 0, CROP_WIDTH, CROP_HEIGHT],
+        data.update(wallId='stoneham-spraywall-v1', image_size=[WIDTH, HEIGHT], crop_box=[0, 0, WIDTH, HEIGHT],
                     source='manual-sam2.1-small', updated_at=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()))
         self.storage.parent.mkdir(parents=True, exist_ok=True)
         temporary = self.storage.with_suffix('.tmp')
@@ -210,7 +263,10 @@ class Handler(SimpleHTTPRequestHandler):
                     return self.json(200, self.annotator.read())
             except Exception as error:
                 return self.json(500, dict(error=str(error)))
-        if path == '/api/sam2/crop.jpg':
+        if path == '/api/sam2/suggestions':
+            path = ROOT / 'src/data/experiments/full_wall_sam2_suggestions.json'
+            return self.json(200, json.loads(path.read_text()) if path.exists() else dict(holds=[]))
+        if path in ('/api/sam2/crop.jpg', '/api/sam2/image.jpg'):
             if self.annotator.crop_bytes is None:
                 return self.json(503, dict(error='Crop is loading; wait for SAM2 status.'))
             self.send_response(200); self.send_header('Content-Type', 'image/jpeg')
@@ -233,8 +289,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self.json(403, dict(error='Use the annotator page on the same origin.'))
         try:
             size = int(self.headers.get('Content-Length', '0'))
-            if not 0 < size <= 32768:
-                raise ValueError('Request body must be between 1 and 32768 bytes.')
+            if not 0 < size <= 4 * 1024 * 1024:
+                raise ValueError('Request body must be between 1 byte and 4 MiB.')
             if self.headers.get_content_type() != 'application/json':
                 raise ValueError('Send JSON with Content-Type application/json.')
             body = json.loads(self.rfile.read(size))
@@ -252,16 +308,36 @@ class Handler(SimpleHTTPRequestHandler):
                 finally:
                     self.annotator.model_lock.release()
             if path == '/api/sam2/accept':
-                hold = body.get('hold')
-                if not isinstance(hold, dict) or not isinstance(hold.get('polygon'), list) or not 3 <= len(hold['polygon']) <= 16:
-                    raise ValueError('Accept requires a polygon with 3–16 vertices.')
-                point(hold.get('center'))
-                for vertex in hold['polygon']:
-                    point(vertex)
-                clean = dict(id=f'manual-{uuid.uuid4().hex[:12]}', kind='hold', center=hold['center'], polygon=hold['polygon'])
+                identifier = body.get('id')
+                clean = clean_hold(body.get('hold'), identifier or f'manual-{uuid.uuid4().hex[:12]}')
                 with self.annotator.lock:
                     data = self.annotator.read()
-                    data['holds'].append(clean)
+                    if identifier:
+                        match = next((i for i, hold in enumerate(data['holds']) if hold['id'] == identifier), None)
+                        if match is None: return self.json(404, dict(error='Original hold is missing; refresh before editing.'))
+                        if body.get('original') != data['holds'][match]:
+                            return self.json(409, dict(error='This hold changed in another tab. Reload before saving.'))
+                        data['holds'][match] = clean
+                    else: data['holds'].append(clean)
+                    return self.json(200, self.annotator.write(data))
+            if path == '/api/sam2/dismiss':
+                identifier = body.get('id')
+                if not isinstance(identifier, str) or not identifier.startswith('sam2-auto-'):
+                    raise ValueError('Choose an automatic suggestion to skip.')
+                with self.annotator.lock:
+                    data = self.annotator.read()
+                    data['dismissed_suggestions'] = sorted(set(data.get('dismissed_suggestions', [])) | {identifier})
+                    return self.json(200, self.annotator.write(data))
+            if path == '/api/sam2/import':
+                imported = clean_dataset(body.get('dataset'))
+                with self.annotator.lock:
+                    data = self.annotator.read()
+                    current = {hold['id']: hold for hold in data['holds']}
+                    conflicts = [hold['id'] for hold in imported if hold['id'] in current and hold != current[hold['id']]]
+                    if conflicts and body.get('replace_existing') is not True:
+                        return self.json(409, dict(error=f'{len(conflicts)} matching IDs differ. Enable Replace matching IDs to overwrite those holds.'))
+                    current.update({hold['id']: hold for hold in imported})
+                    data['holds'] = list(current.values())
                     return self.json(200, self.annotator.write(data))
             if path == '/api/sam2/delete':
                 identifier = body.get('id')
@@ -285,7 +361,8 @@ def main():
     parser.add_argument('--checkpoint', type=Path, required=True)
     parser.add_argument('--host', default='127.0.0.1')
     parser.add_argument('--port', type=int, default=8787)
-    parser.add_argument('--storage', type=Path, default=ROOT / 'artifacts/manual-annotations/holds.json')
+    parser.add_argument('--storage', type=Path, default=ROOT / 'artifacts/full-wall-annotations/holds.json')
+    parser.add_argument('--seed', type=Path, default=ROOT / 'src/data/groundtruth/top_left_manual_v1.json', help='Initialize empty working storage from this file; never overwrites existing work.')
     parser.add_argument('--access-key-file', type=Path, help='Optional private session key file for HTTPS preview access.')
     parser.add_argument('--threads', type=int, default=4)
     args = parser.parse_args()
@@ -297,7 +374,7 @@ def main():
         Handler.access_key = args.access_key_file.read_text().strip()
         if len(Handler.access_key) < 32:
             parser.error('Session key must contain at least 32 characters.')
-    Handler.annotator = Annotator(args.checkpoint, args.storage, args.threads)
+    Handler.annotator = Annotator(args.checkpoint, args.storage, args.threads, args.seed)
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     print(f'Annotator: http://{args.host}:{args.port}/?annotate=1', flush=True)
     try:

@@ -25,3 +25,9 @@
 .annotation-library { border-top: 1px solid #34382e; margin-top: 18px; padding-top: 12px; }
 .annotation-library h2 { margin: 0; font-size: 19px; }
 .annotation-download { padding: 12px; min-height: 44px; }
+
+.annotation-suggestion { fill: #ffac2822; stroke: #ffac28; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.annotation-selected { fill: #33d6ff44; stroke: #ff6e91; stroke-width: 3; }
+.annotation-inline { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
+.annotation-inline input { width: 20px; height: 20px; }
+.annotation-library input[type=file] { max-width: 100%; }
