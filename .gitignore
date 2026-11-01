@@ -22,5 +22,8 @@ models/
 !artifacts/stoneham-unmarked-holds-v3-preview.metadata.json
 !artifacts/stoneham-unmarked-holds-v3-mask.png
 !artifacts/annotation-coverage-mobile.png
+
+# Backend build products
+backend/src/generated/wallCatalog.ts
 !artifacts/hold-roles-rainbow-mobile.png
 !artifacts/route-focus-pulse-mobile.png

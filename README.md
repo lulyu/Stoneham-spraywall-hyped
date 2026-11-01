@@ -88,6 +88,14 @@ See [full-wall workflow, data provenance and tests](docs/sam2-full-wall-annotato
 
 The canonical production hold map is now the accepted 677-hold v4 export.
 
+## Backend infrastructure
+
+The shared-data backend is deployed from `backend/` and `infra/`: a
+TypeScript Lambda behind API Gateway HTTP API with a single on-demand DynamoDB
+table. The data model separates gym, wall, wall version, and problem so wall resets
+and future gyms are additive. See [`docs/infra.md`](docs/infra.md) for the schema,
+API, build, and CloudFormation deployment workflow.
+
 ## Hold roles and selection styling
 
 Route setting supports Start, Finish, Hold and Foot-only. Only the most recently selected or reassigned hold in setting mode uses a
@@ -112,3 +120,34 @@ Selection effects are now masked to the outside of confirmed hold polygons. Hold
 interiors have no fill or center marker, so the original wall photo stays visible;
 solid borders, rainbow accents and pulsing light remain outside the shape. The
 browser test compares interior screenshot pixels with the unmodified wall view.
+
+## Shared backend integration
+
+Production uses `VITE_API_BASE_URL` to load, create and edit shared problems on the
+Stoneham AWS API. Leave it empty for the existing local-only mode (see
+`.env.example`). Vercel scopes this public URL to Production; previews stay local
+unless explicitly configured for another backend. No AWS keys belong in Vite.
+
+The wall is `stoneham-crg / spray-wall-1 / 2026-10-v4`. The API assigns IDs,
+timestamps and revisions. Browsing and editing fetch the latest problem; updates
+send that fetched revision. A 409 keeps the draft and offers to save it as a new
+problem. Connection failures also preserve the draft; there is no silent fallback
+to a local save when shared mode is configured. Use Refresh to reload the list.
+
+Old device-local routes remain untouched. **Import local problems** copies them
+to the shared wall only when clicked, normalizes legacy `hand` to `hold`, and
+records completed imports per API URL on that device so a reload/retry skips
+completed routes. Routes without a Start and Finish remain local and are reported.
+Import progress uses browser storage; clearing that storage also clears the
+import history. Backend filtering and pagination remain deferred (list limit 100).
+
+Validation:
+- `npm test`: store persistence, legacy compatibility, API payloads/revisions,
+  conflict handling and network failure behavior (Node.js 24).
+- `npm run build`: canonical data validation, TypeScript and production bundle.
+- `node scripts/frontend-api-smoke.cjs`: local mobile browser integration with
+  deterministic mocked API, import/retry, conflict and layout scenarios. Run a
+  dev server on 5174 with `VITE_API_BASE_URL` pointing at the production URL;
+  requests are intercepted by the test and do not modify production data.
+- The existing `scripts/hold-roles-smoke.cjs` continues to cover local-only
+  persistence, four roles, rainbow effects, outer-only glow and route masking.

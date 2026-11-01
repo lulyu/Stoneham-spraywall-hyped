@@ -34,4 +34,6 @@ export type Problem = {
   notes?: string
   holds: ProblemHold[]
   createdAt: string
+  updatedAt?: string
+  revision?: number
 }

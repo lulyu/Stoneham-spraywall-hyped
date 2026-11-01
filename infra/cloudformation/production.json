@@ -1,0 +1,17 @@
+{
+  "recordedAt": "2026-11-01T18:59:35.857996+00:00",
+  "accountId": "010257981603",
+  "region": "us-east-1",
+  "manager": "cloudformation",
+  "stackName": "stoneham-spraywall-prod",
+  "artifactStackName": "stoneham-spraywall-artifacts",
+  "apiUrl": "https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com",
+  "tableName": "stoneham-spraywall-prod",
+  "functionName": "stoneham-spraywall-prod-api",
+  "artifactBucket": "stoneham-spraywall-artifacts-artifacts-lyfxingppoxw",
+  "artifactKey": "backend/cors-preflight-20261101.zip",
+  "sourceCommit": "066620a974138b16e1f06b70de74e06b852381b7",
+  "lambdaCodeSha256": "AdmwcK2S/wIORxL3R1jdsdCfWM7NTGiNPzXepdYcpMM=",
+  "stackStatus": "UPDATE_COMPLETE",
+  "pointInTimeRecovery": "ENABLED"
+}
