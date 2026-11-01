@@ -39,6 +39,9 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
   const requestId = event.requestContext.requestId
 
   try {
+    // API Gateway adds the configured CORS headers to this preflight response.
+    if (method === 'OPTIONS') return response(204)
+
     if (method === 'GET' && path === '/health') {
       return response(200, { ok: true, service: 'stoneham-spraywall-api' })
     }

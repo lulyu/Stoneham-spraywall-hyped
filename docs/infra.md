@@ -111,6 +111,13 @@ npm run build
 `npm run build` regenerates `src/generated/wallCatalog.ts` from the canonical hold
 files, then bundles the Lambda into `backend/dist/index.js` with esbuild.
 
+## Deployed production ownership
+
+Production is deployed through CloudFormation using the connected AWS API.
+See [deployment templates and runbook](../infra/cloudformation/README.md).
+Do not apply Terraform to the same deployed resources without an explicit state
+migration. The Terraform commands below remain a reference for separate environments.
+
 ## Provision dev
 
 Terraform workspaces keep dev and prod state separate. Do not apply from the

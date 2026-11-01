@@ -115,3 +115,9 @@ test('revision alone is not an update', async () => {
   assert.equal((await request('PATCH', path, { revision: 2 })).statusCode, 400)
   assert.equal(writes.length, 0)
 })
+
+test('CORS preflight succeeds without accessing problem data', async () => {
+  assert.equal((await request('OPTIONS', path)).statusCode, 204)
+  assert.equal((await request('OPTIONS', base)).statusCode, 204)
+  assert.equal(writes.length, 0)
+})
