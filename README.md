@@ -107,3 +107,8 @@ a gray wall overlay has cutouts for the current route's holds so those holds ret
 the original photo colors. The overlay is absent while setting or before choosing
 a route, and follows the image during pan/zoom. Reduced-motion preferences keep
 static halos. The hold-role browser test covers pulse, mask holes and route switching.
+
+Selection effects are now masked to the outside of confirmed hold polygons. Hold
+interiors have no fill or center marker, so the original wall photo stays visible;
+solid borders, rainbow accents and pulsing light remain outside the shape. The
+browser test compares interior screenshot pixels with the unmodified wall view.

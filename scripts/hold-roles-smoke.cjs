@@ -3,6 +3,50 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const holds = require('../src/data/polygons/holds.json')
 
+async function checkClearInteriors(page) {
+  const shapes = await page.locator('.selected-hold').evaluateAll(polygons => polygons.map(polygon => {
+    const matrix = polygon.getScreenCTM()
+    return Array.from({ length: polygon.points.numberOfItems }, (_, i) => {
+      const point = polygon.points.getItem(i).matrixTransform(matrix)
+      return [point.x, point.y]
+    })
+  }))
+  const visible = await page.screenshot()
+  const hidden = await page.addStyleTag({ content: '.selection-effects, .route-gray-layer { visibility: hidden !important; }' })
+  const original = await page.screenshot()
+  await hidden.evaluate(element => element.remove())
+  const result = await page.evaluate(async ({ first, second, shapes }) => {
+    const decode = async data => {
+      const image = new Image(); image.src = `data:image/png;base64,${data}`; await image.decode()
+      const canvas = document.createElement('canvas'); canvas.width = image.width; canvas.height = image.height
+      const context = canvas.getContext('2d'); context.drawImage(image, 0, 0)
+      return { pixels: context.getImageData(0, 0, image.width, image.height).data, width: image.width, height: image.height, context }
+    }
+    const a = await decode(first), b = await decode(second)
+    let checked = 0, changed = 0
+    for (const shape of shapes) {
+      const path = new Path2D(); shape.forEach(([x,y], i) => i ? path.lineTo(x,y) : path.moveTo(x,y)); path.closePath()
+      const minX = Math.max(0, Math.floor(Math.min(...shape.map(p=>p[0])))), maxX = Math.min(a.width, Math.ceil(Math.max(...shape.map(p=>p[0]))))
+      const minY = Math.max(0, Math.floor(Math.min(...shape.map(p=>p[1])))), maxY = Math.min(a.height, Math.ceil(Math.max(...shape.map(p=>p[1]))))
+      for (let y=minY;y<maxY;y++) for(let x=minX;x<maxX;x++) {
+        if(!a.context.isPointInPath(path,x+.5,y+.5)) continue
+        const edge = shape.some(([ax,ay],i)=>{
+          const [bx,by]=shape[(i+1)%shape.length], dx=bx-ax, dy=by-ay
+          const t=Math.max(0,Math.min(1,((x+.5-ax)*dx+(y+.5-ay)*dy)/(dx*dx+dy*dy||1)))
+          return Math.hypot(x+.5-ax-t*dx,y+.5-ay-t*dy)<1.5
+        })
+        if(edge) continue
+        checked++
+        const index=(y*a.width+x)*4
+        if([0,1,2].some(c=>Math.abs(a.pixels[index+c]-b.pixels[index+c])>1)) changed++
+      }
+    }
+    return { checked, changed }
+  }, { first: visible.toString('base64'), second: original.toString('base64'), shapes })
+  assert(result.checked > 50, 'Must compare actual visible hold interiors')
+  assert.equal(result.changed, 0, `Hold interiors must match the original wall (${result.checked} pixels checked)`)
+}
+
 async function main() {
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true, args: ['--no-sandbox'] })
   try {
@@ -71,7 +115,11 @@ async function main() {
     assert.equal(await page.locator('.route-gray-layer').count(), 1)
     assert.equal(await page.locator('.route-focus-mask polygon').count(), 4)
     assert.equal(await page.locator('.selected-glow').count(), 4)
+    assert.equal(await page.locator('.selected-center').count(), 0)
+    assert(await page.locator('.selected-hold').evaluateAll(polygons => polygons.every(p => getComputedStyle(p).fill === 'none')))
+    assert.equal(await page.locator('.selection-outside-mask polygon').count(), 4)
     await page.locator('.wall-viewport').scrollIntoViewIfNeeded()
+    await checkClearInteriors(page)
     await page.screenshot({ path: 'artifacts/route-focus-pulse-mobile.png' })
     const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('stoneham-spraywall:problems:v3')))
     assert.deepEqual(stored[0].holds.map(h => h.role).sort(), ['finish', 'foot-only', 'hold', 'start'])
@@ -109,7 +157,7 @@ async function main() {
     assert.equal(await page.locator('.selected-glow').count(), 0)
     assert.equal(await page.locator('.route-gray-layer').count(), 0)
     assert.deepEqual(errors, [])
-    console.log('PASS: four roles, foot-only persistence, legacy hand migration, reassignment/toggle, latest-only rainbow, solid role pulse, route-only gray mask, reduced-motion fallback and 320px touch layout')
+    console.log('PASS: four roles, foot-only persistence, legacy hand migration, reassignment/toggle, latest-only rainbow, outer-only glow with pixel-clear interiors, route-only gray mask, reduced-motion fallback and 320px touch layout')
   } finally { await browser.close() }
 }
 main().catch(error => { console.error(error); process.exitCode = 1 })

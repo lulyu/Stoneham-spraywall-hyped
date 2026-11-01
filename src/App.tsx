@@ -130,7 +130,8 @@ function WallViewer({
 
   const shownHolds = mode === 'set' ? draft : activeProblem?.holds ?? []
   const shownMap = useMemo(() => new Map(shownHolds.map((h) => [h.holdId, h.role])), [shownHolds])
-  const routeHolds = useMemo(() => mode === 'browse' ? holds.filter((hold) => shownMap.has(hold.id)) : [], [mode, shownMap])
+  const selectedHolds = useMemo(() => holds.filter((hold) => shownMap.has(hold.id)), [shownMap])
+  const routeHolds = mode === 'browse' ? selectedHolds : []
 
   const fit = () => {
     const viewport = viewportRef.current
@@ -246,10 +247,10 @@ function WallViewer({
         <img src={wallImage} className="wall-image" alt="Stoneham spray wall" draggable={false} />
         <svg className="wall-overlay" viewBox={`0 0 ${WALL_WIDTH} ${WALL_HEIGHT}`}>
           <defs>
-            {routeHolds.length > 0 && <mask id={routeMaskId} className="route-focus-mask" maskUnits="userSpaceOnUse"
+            {selectedHolds.length > 0 && <mask id={routeMaskId} className={`selection-outside-mask ${mode === 'browse' ? 'route-focus-mask' : ''}`} maskUnits="userSpaceOnUse"
               maskContentUnits="userSpaceOnUse" x={0} y={0} width={WALL_WIDTH} height={WALL_HEIGHT} style={{ maskType: 'luminance' }}>
               <rect width={WALL_WIDTH} height={WALL_HEIGHT} fill="white" />
-              {routeHolds.map((hold) => <polygon key={hold.id} points={polygonPoints(hold)} fill="black" />)}
+              {selectedHolds.map((hold) => <polygon key={hold.id} points={polygonPoints(hold)} fill="black" />)}
             </mask>}
             <linearGradient id={selectionGradientId} x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
               <stop offset="0%" stopColor="#33d6ff" />
@@ -275,27 +276,22 @@ function WallViewer({
           </g>
           {routeHolds.length > 0 && <rect className="route-gray-layer" width={WALL_WIDTH} height={WALL_HEIGHT}
             fill="#686d67" fillOpacity={0.72} mask={`url(#${routeMaskId})`} aria-hidden="true" />}
-          {holds.map((hold) => {
-            const role = shownMap.get(hold.id)
-            const [cx, cy] = toWallPoint(hold.center)
-            return (
-              <g key={hold.id}>
-                {role && (
-                  <>
-                    {!(mode === 'set' && highlightedHoldId === hold.id) && <polygon
-                      className={`selected-glow ${roleClass(role)}`} points={polygonPoints(hold)} aria-hidden="true" />}
-                    <polygon className={`selected-hold ${roleClass(role)} ${mode === 'set' && highlightedHoldId === hold.id ? 'is-current' : ''}`} points={polygonPoints(hold)} />
-                    {mode === 'set' && highlightedHoldId === hold.id && <polygon className="selected-rainbow" points={polygonPoints(hold)} pathLength={100}
-                      stroke={`url(#${selectionGradientId})`} aria-hidden="true" />}
-                  </>
-                )}
-                {mode === 'set' && (
-                  <polygon className="hold-hit-polygon" points={polygonPoints(hold)} data-hold-id={hold.id} />
-                )}
-                {role && <circle className="selected-center" cx={cx} cy={cy} r={3.5} />}
-              </g>
-            )
-          })}
+          {selectedHolds.length > 0 && <g className="selection-effects" mask={`url(#${routeMaskId})`}>
+            {selectedHolds.map((hold) => {
+              const role = shownMap.get(hold.id)!
+              const isCurrent = mode === 'set' && highlightedHoldId === hold.id
+              return (
+                <g key={hold.id}>
+                  {!isCurrent && <polygon className={`selected-glow ${roleClass(role)}`} points={polygonPoints(hold)} aria-hidden="true" />}
+                  <polygon className={`selected-hold ${roleClass(role)} ${isCurrent ? 'is-current' : ''}`} points={polygonPoints(hold)} />
+                  {isCurrent && <polygon className="selected-rainbow" points={polygonPoints(hold)} pathLength={100}
+                    stroke={`url(#${selectionGradientId})`} aria-hidden="true" />}
+                </g>
+              )
+            })}
+          </g>}
+          {mode === 'set' && holds.map((hold) => <polygon key={hold.id}
+            className={`hold-hit-polygon ${shownMap.has(hold.id) ? 'is-selected' : ''}`} points={polygonPoints(hold)} data-hold-id={hold.id} />)}
         </svg>
       </div>
       <button className="fit-button" onPointerUp={(e) => { e.stopPropagation(); fit() }} onClick={fit}>Fit wall</button>
