@@ -100,3 +100,10 @@ Reduced-motion preferences keep a static rainbow outline. Existing locally saved
 Run `node scripts/hold-roles-smoke.cjs` against the local production preview to
 check the four roles, legacy migration, persistence, animations and mobile layout.
 The usual Playwright environment variables apply.
+
+Confirmed selections use a gently pulsing glow behind their solid role-colored
+outline; the latest setting selection keeps its rainbow highlight. In route view,
+a gray wall overlay has cutouts for the current route's holds so those holds retain
+the original photo colors. The overlay is absent while setting or before choosing
+a route, and follows the image during pan/zoom. Reduced-motion preferences keep
+static halos. The hold-role browser test covers pulse, mask holes and route switching.

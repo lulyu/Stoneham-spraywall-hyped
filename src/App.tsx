@@ -115,6 +115,7 @@ function WallViewer({
   highlightedHoldId: string | null
 }) {
   const selectionGradientId = useId()
+  const routeMaskId = useId()
   const [motionAllowed, setMotionAllowed] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   useEffect(() => {
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -129,6 +130,7 @@ function WallViewer({
 
   const shownHolds = mode === 'set' ? draft : activeProblem?.holds ?? []
   const shownMap = useMemo(() => new Map(shownHolds.map((h) => [h.holdId, h.role])), [shownHolds])
+  const routeHolds = useMemo(() => mode === 'browse' ? holds.filter((hold) => shownMap.has(hold.id)) : [], [mode, shownMap])
 
   const fit = () => {
     const viewport = viewportRef.current
@@ -244,6 +246,11 @@ function WallViewer({
         <img src={wallImage} className="wall-image" alt="Stoneham spray wall" draggable={false} />
         <svg className="wall-overlay" viewBox={`0 0 ${WALL_WIDTH} ${WALL_HEIGHT}`}>
           <defs>
+            {routeHolds.length > 0 && <mask id={routeMaskId} className="route-focus-mask" maskUnits="userSpaceOnUse"
+              maskContentUnits="userSpaceOnUse" x={0} y={0} width={WALL_WIDTH} height={WALL_HEIGHT} style={{ maskType: 'luminance' }}>
+              <rect width={WALL_WIDTH} height={WALL_HEIGHT} fill="white" />
+              {routeHolds.map((hold) => <polygon key={hold.id} points={polygonPoints(hold)} fill="black" />)}
+            </mask>}
             <linearGradient id={selectionGradientId} x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
               <stop offset="0%" stopColor="#33d6ff" />
               <stop offset="20%" stopColor="#a580ff" />
@@ -266,6 +273,8 @@ function WallViewer({
               )
             })}
           </g>
+          {routeHolds.length > 0 && <rect className="route-gray-layer" width={WALL_WIDTH} height={WALL_HEIGHT}
+            fill="#686d67" fillOpacity={0.72} mask={`url(#${routeMaskId})`} aria-hidden="true" />}
           {holds.map((hold) => {
             const role = shownMap.get(hold.id)
             const [cx, cy] = toWallPoint(hold.center)
@@ -273,6 +282,8 @@ function WallViewer({
               <g key={hold.id}>
                 {role && (
                   <>
+                    {!(mode === 'set' && highlightedHoldId === hold.id) && <polygon
+                      className={`selected-glow ${roleClass(role)}`} points={polygonPoints(hold)} aria-hidden="true" />}
                     <polygon className={`selected-hold ${roleClass(role)} ${mode === 'set' && highlightedHoldId === hold.id ? 'is-current' : ''}`} points={polygonPoints(hold)} />
                     {mode === 'set' && highlightedHoldId === hold.id && <polygon className="selected-rainbow" points={polygonPoints(hold)} pathLength={100}
                       stroke={`url(#${selectionGradientId})`} aria-hidden="true" />}
