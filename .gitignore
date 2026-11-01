@@ -15,3 +15,6 @@ __pycache__/
 models/
 !artifacts/sam2-full-wall-suggestions.jpg
 !artifacts/full-wall-annotator-mobile.png
+!artifacts/stoneham-unmarked-holds-preview.jpg
+!artifacts/stoneham-unmarked-holds-preview.metadata.json
+!artifacts/stoneham-annotated-holds-mask.png
