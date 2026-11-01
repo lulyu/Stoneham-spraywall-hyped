@@ -1,5 +1,5 @@
 export type HoldKind = 'hold_guess' | 'macro_hold_guess' | 'volume_guess' | 'hold' | 'macro' | 'volume'
-export type HoldRole = 'start' | 'hand' | 'finish'
+export type HoldRole = 'start' | 'finish' | 'hold' | 'foot-only'
 export type Point = [number, number]
 
 export type Hold = {

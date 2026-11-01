@@ -29,22 +29,35 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .wall-stage { position: absolute; width: 100%; height: 100%; transform-origin: 0 0; will-change: transform; }
 .wall-image { position: absolute; inset: 0; width: 100%; height: 100%; user-select: none; pointer-events: none; }
 .wall-overlay { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.hold-hit-polygon { fill: rgba(205, 255, 83, .015); stroke: rgba(205,255,83,.08); stroke-width: 2; cursor: pointer; vector-effect: non-scaling-stroke; }
-.selected-hold { pointer-events: none; stroke-width: 7; vector-effect: non-scaling-stroke; filter: drop-shadow(0 1px 3px rgba(0,0,0,.85)); }
-.selected-hold.role-hand { fill: rgba(215,255,101,.28); stroke: #d7ff65; }
-.selected-hold.role-start { fill: rgba(51,214,255,.3); stroke: #33d6ff; }
-.selected-hold.role-finish { fill: rgba(255,110,145,.3); stroke: #ff6e91; }
-.selected-center { pointer-events: none; fill: #fff; stroke: rgba(0,0,0,.75); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.hold-hit-polygon { fill: transparent; stroke: rgba(205,255,83,.08); stroke-width: 2; cursor: pointer; vector-effect: non-scaling-stroke; }
+.hold-hit-polygon.is-selected { stroke: none; }
+.route-gray-layer { pointer-events: none; }
+.role-start { --role-color: #33d6ff; }
+.role-finish { --role-color: #9e2637; }
+.role-hold { --role-color: #d7ff65; }
+.role-foot-only { --role-color: #b992ff; }
+.selected-glow { pointer-events: none; fill: none; stroke: var(--role-color); stroke-width: 18; stroke-linejoin: round; vector-effect: non-scaling-stroke; filter: blur(2px) drop-shadow(0 0 5px var(--role-color)); animation: hold-light-pulse 2.6s ease-in-out infinite; }
+@keyframes hold-light-pulse { 0%, 100% { opacity: .2; } 50% { opacity: .7; } }
+.selected-hold { pointer-events: none; fill: none; stroke-width: 14; stroke-linejoin: round; vector-effect: non-scaling-stroke; filter: drop-shadow(0 1px 3px rgba(0,0,0,.85)); }
+.selected-hold.is-current { stroke-width: 22; }
+.selected-hold.role-hold { stroke: #d7ff65; }
+.selected-hold.role-start { stroke: #33d6ff; }
+.selected-hold.role-foot-only { stroke: #b992ff; }
+.selected-hold.role-finish { stroke: #9e2637; }
+.selected-rainbow { pointer-events: none; fill: none; stroke-width: 12; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; stroke-dasharray: 22 4 12 4 8 4 12 4 22 8; animation: selected-rainbow-orbit 3s linear infinite; }
+@keyframes selected-rainbow-orbit { to { stroke-dashoffset: -100; } }
+@media (prefers-reduced-motion: reduce) { .selected-rainbow { animation: none; stroke-dasharray: none; } .selected-glow { animation: none; opacity: .4; } }
 .fit-button { position: absolute; right: 12px; top: 12px; padding: 8px 11px; background: rgba(12,14,11,.78); color: white; backdrop-filter: blur(8px); }
 .tap-hint { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); white-space: nowrap; font-size: 11px; color: #d6d9ce; background: rgba(12,14,11,.72); padding: 7px 10px; border-radius: 999px; backdrop-filter: blur(8px); }
 
 .editor-sheet, .problem-sheet { padding: 18px; }
-.role-row { display: flex; gap: 8px; align-items: center; overflow-x: auto; padding-bottom: 2px; }
-.role-button { padding: 9px 12px; background: #242720; color: #c9cdbf; border: 1px solid transparent; font-size: 12px; }
-.role-button.active.role-hand { border-color: #d7ff65; color: #d7ff65; }
+.role-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; align-items: center; padding-bottom: 2px; }
+.role-button { min-width: 0; min-height: 44px; white-space: nowrap; padding: 9px 4px; background: #242720; color: #c9cdbf; border: 1px solid transparent; font-size: 11px; }
+.role-button.active.role-hold { border-color: #d7ff65; color: #d7ff65; }
 .role-button.active.role-start { border-color: #33d6ff; color: #33d6ff; }
-.role-button.active.role-finish { border-color: #ff6e91; color: #ff6e91; }
-.selection-count { margin-left: auto; color: #8f9787; font-size: 12px; white-space: nowrap; }
+.role-button.active.role-finish { border-color: #9e2637; background: #6b1a2c; color: #ffe6eb; }
+.role-button.active.role-foot-only { border-color: #b992ff; color: #b992ff; }
+.selection-count { grid-column: 1 / -1; text-align: right; color: #8f9787; font-size: 12px; white-space: nowrap; }
 .form-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-top: 16px; }
 label { display: grid; gap: 6px; color: #9fa596; font-size: 11px; font-weight: 700; min-width: 0; }
 input, select { font-size: 16px; min-width: 0; width: 100%; background: #191c16; border: 1px solid #34382e; color: white; border-radius: 11px; padding: 11px 12px; outline: none; }

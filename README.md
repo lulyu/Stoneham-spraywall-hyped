@@ -9,7 +9,7 @@ The first version intentionally keeps everything local so we can validate the cl
 - real wall image with pan / zoom
 - 677 user-confirmed hold polygons overlaid on the wall
 - tap holds to create a problem
-- mark holds as **start**, **hand**, or **finish**
+- mark holds as **start**, **finish**, **hold**, or **foot-only**
 - add problem name, V-grade, and setter
 - save problems in browser `localStorage`
 - browse saved problems and highlight their holds
@@ -87,3 +87,28 @@ batch, and refined. Existing JSON can be imported and edited while preserving ID
 See [full-wall workflow, data provenance and tests](docs/sam2-full-wall-annotator.md).
 
 The canonical production hold map is now the accepted 677-hold v4 export.
+
+## Hold roles and selection styling
+
+Route setting supports Start, Finish, Hold and Foot-only. Only the most recently selected or reassigned hold in setting mode uses a
+thicker border with a rotating rainbow gradient and flowing highlight. Other
+selected holds and saved-route viewing use solid role colors: Start cyan, Finish
+dark red, Hold lime and Foot-only purple.
+Reduced-motion preferences keep a static rainbow outline. Existing locally saved
+`hand` roles are read as `hold` without changing IDs or the storage key.
+
+Run `node scripts/hold-roles-smoke.cjs` against the local production preview to
+check the four roles, legacy migration, persistence, animations and mobile layout.
+The usual Playwright environment variables apply.
+
+Confirmed selections use a gently pulsing glow behind their solid role-colored
+outline; the latest setting selection keeps its rainbow highlight. In route view,
+a gray wall overlay has cutouts for the current route's holds so those holds retain
+the original photo colors. The overlay is absent while setting or before choosing
+a route, and follows the image during pan/zoom. Reduced-motion preferences keep
+static halos. The hold-role browser test covers pulse, mask holes and route switching.
+
+Selection effects are now masked to the outside of confirmed hold polygons. Hold
+interiors have no fill or center marker, so the original wall photo stays visible;
+solid borders, rainbow accents and pulsing light remain outside the shape. The
+browser test compares interior screenshot pixels with the unmodified wall view.
