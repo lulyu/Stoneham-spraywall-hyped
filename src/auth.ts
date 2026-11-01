@@ -26,6 +26,15 @@ export async function signIn() {
   if (!manager) throw new Error('Login has not been configured yet.')
   await manager.signinRedirect({ extraQueryParams: { identity_provider: 'Google' } })
 }
-export async function signOut() { await manager?.signoutRedirect() }
+export async function signOut() {
+  if (!manager) return
+  const metadata = await manager.metadataService.getMetadata()
+  if (!metadata.authorization_endpoint) throw new Error('Login service metadata is incomplete.')
+  const logout = new URL('/logout', metadata.authorization_endpoint)
+  logout.searchParams.set('client_id', clientId!)
+  logout.searchParams.set('logout_uri', window.location.origin + '/')
+  await manager.removeUser()
+  window.location.assign(logout.toString())
+}
 
 export function initializeAuth() { return initialization ??= completeLogin() }
