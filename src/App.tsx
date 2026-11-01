@@ -1,8 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import rawHolds from './data/holds.json'
+import holds0 from './data/holds-0.json'
+import holds1 from './data/holds-1.json'
+import holds2 from './data/holds-2.json'
+import holds3 from './data/holds-3.json'
+import holds4 from './data/holds-4.json'
+import wallImage from './data/wall'
 import type { Hold, HoldRole, Problem, ProblemHold } from './types'
 
-const holds = rawHolds as Hold[]
+const holds = [...holds0, ...holds1, ...holds2, ...holds3, ...holds4] as Hold[]
 const STORAGE_KEY = 'stoneham-spraywall:problems:v1'
 const WALL_WIDTH = 1536
 const WALL_HEIGHT = 1152
@@ -119,7 +124,7 @@ function WallViewer({
         className="wall-stage"
         style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}
       >
-        <img src="/wall.jpg" className="wall-image" alt="Stoneham spray wall" draggable={false} />
+        <img src={wallImage} className="wall-image" alt="Stoneham spray wall" draggable={false} />
         <svg className="wall-overlay" viewBox={`0 0 ${WALL_WIDTH} ${WALL_HEIGHT}`}>
           {holds.map((hold) => {
             const role = shownMap.get(hold.id)
