@@ -18,3 +18,6 @@ models/
 !artifacts/stoneham-unmarked-holds-preview.jpg
 !artifacts/stoneham-unmarked-holds-preview.metadata.json
 !artifacts/stoneham-annotated-holds-mask.png
+!artifacts/stoneham-unmarked-holds-v3-preview.jpg
+!artifacts/stoneham-unmarked-holds-v3-preview.metadata.json
+!artifacts/stoneham-unmarked-holds-v3-mask.png

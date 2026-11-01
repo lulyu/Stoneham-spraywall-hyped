@@ -32,3 +32,19 @@ Visible objects outside those polygons are candidates for further annotation.
 Thin colored rims or shadows can remain when a polygon stops short of an object's
 edge; they do not necessarily indicate a completely unannotated hold. The preview
 is a polygon-coverage visualization, not an automatic count of remaining holds.
+
+## v3 checkpoint
+
+`full_wall_manual_v3.json` preserves the next user export verbatim: 676 holds,
+including 34 new IDs relative to v2, exported at `2026-11-01T04:32:55Z`.
+SHA-256: `97d0d9305f1f894922a32559c5c11815cb075970535db7865bd4f395b4d5c399`.
+
+Its full-resolution coverage preview is
+`artifacts/stoneham-unmarked-holds-v3-preview.jpg`, with a separate v3 mask and
+metadata file. Prior snapshots and their visualization masks remain unchanged.
+
+```bash
+python tools/preview_unmarked_holds.py \
+  --annotations "$PWD/src/data/annotations/full_wall_manual_v3.json" \
+  --output "$PWD/artifacts/stoneham-unmarked-holds-v3-preview.jpg"
+```

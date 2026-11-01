@@ -44,7 +44,7 @@ def main():
     assert np.array_equal(preview[mask == 0], image[mask == 0]), 'Visualization changed pixels outside annotations'
     args.output.parent.mkdir(parents=True, exist_ok=True)
     Image.fromarray(preview).save(args.output, quality=97, subsampling=0)
-    mask_path = args.output.with_name('stoneham-annotated-holds-mask.png')
+    mask_path = args.output.with_name('stoneham-annotated-holds-mask.png') if args.output.name == 'stoneham-unmarked-holds-preview.jpg' else args.output.with_name(args.output.stem.removesuffix('-preview') + '-mask.png')
     Image.fromarray(mask).save(mask_path)
     metadata = dict(annotation_file=str(args.annotations.relative_to(ROOT)), hold_count=len(holds),
                     annotation_sha256=hashlib.sha256(args.annotations.read_bytes()).hexdigest(),
