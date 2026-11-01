@@ -1,15 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import holds0 from './data/holds-0.json'
-import holds1 from './data/holds-1.json'
-import holds2 from './data/holds-2.json'
-import holds3 from './data/holds-3.json'
-import holds4 from './data/holds-4.json'
+import { polygonCandidates as holds } from './data/polygons/auto-v1-packed'
 import type { PointerEvent as ReactPointerEvent } from 'react'
-import type { Hold, HoldRole, Problem, ProblemHold } from './types'
+import type { HoldRole, Problem, ProblemHold, PolygonHoldCandidate, Point } from './types'
 
 const wallImage = `${import.meta.env.BASE_URL}wall/stoneham-spraywall-canonical.jpg`
-const holds = [...holds0, ...holds1, ...holds2, ...holds3, ...holds4] as Hold[]
-const STORAGE_KEY = 'stoneham-spraywall:problems:v1'
+const STORAGE_KEY = 'stoneham-spraywall:problems:v2'
 const WALL_WIDTH = 1536
 const WALL_HEIGHT = WALL_WIDTH * 5514 / 7292
 const grades = ['VB', 'V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V10+']
@@ -41,6 +36,54 @@ function roleLabel(role: HoldRole) {
 
 function roleClass(role: HoldRole) {
   return `role-${role}`
+}
+
+function toWallPoint(point: Point): Point {
+  return [point[0] * WALL_WIDTH, point[1] * WALL_HEIGHT]
+}
+
+function polygonPoints(hold: PolygonHoldCandidate) {
+  return hold.polygon.map(([x, y]) => `${x * WALL_WIDTH},${y * WALL_HEIGHT}`).join(' ')
+}
+
+function pointInPolygon(point: Point, polygon: Point[]) {
+  let inside = false
+  const [x, y] = point
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [xi, yi] = polygon[i]
+    const [xj, yj] = polygon[j]
+    const intersects = ((yi > y) !== (yj > y)) &&
+      (x < (xj - xi) * (y - yi) / ((yj - yi) || Number.EPSILON) + xi)
+    if (intersects) inside = !inside
+  }
+  return inside
+}
+
+function polygonArea(hold: PolygonHoldCandidate) {
+  let sum = 0
+  for (let i = 0, j = hold.polygon.length - 1; i < hold.polygon.length; j = i++) {
+    const [xi, yi] = hold.polygon[i]
+    const [xj, yj] = hold.polygon[j]
+    sum += (xj + xi) * (yj - yi)
+  }
+  return Math.abs(sum / 2)
+}
+
+function nearestHold(point: Point) {
+  const nx = point[0] / WALL_WIDTH
+  const ny = point[1] / WALL_HEIGHT
+  const containing = holds
+    .filter((hold) => pointInPolygon([nx, ny], hold.polygon))
+    .sort((a, b) => polygonArea(a) - polygonArea(b))
+  if (containing.length > 0) return containing[0]
+
+  return holds
+    .map((hold) => ({
+      hold,
+      distance: Math.hypot(hold.center[0] * WALL_WIDTH - point[0], hold.center[1] * WALL_HEIGHT - point[1]),
+    }))
+    .filter(({ distance }) => distance <= 18)
+    .sort((a, b) => a.distance - b.distance)[0]?.hold
 }
 
 function WallViewer({
@@ -113,24 +156,18 @@ function WallViewer({
     <div
       className="wall-viewport"
       ref={viewportRef}
-      onWheel={(e) => {
-        zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.0012))
-      }}
+      onWheel={(e) => zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.0012))}
       onPointerDown={(e) => {
         if ((e.target as Element).closest('button') || e.button !== 0) return
         pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
         if (pointers.current.size === 1) {
-          // Overlapping hit circles must select the closest hold, not SVG paint order.
           const rect = e.currentTarget.getBoundingClientRect()
-          const wx = (e.clientX - rect.left - view.x) / view.scale
-          const wy = (e.clientY - rect.top - view.y) / view.scale
-          const nearest = mode === 'set' ? holds
-            .map((hold) => ({ hold, distance: Math.hypot(hold.x * WALL_WIDTH - wx, hold.y * WALL_HEIGHT - wy) }))
-            .filter(({ hold, distance }) => distance <= Math.max(20, Math.max(10, hold.radius * WALL_WIDTH) * 1.45))
-            .sort((a, b) => a.distance - b.distance)[0]?.hold : undefined
-          tap.current = { id: e.pointerId, x: e.clientX, y: e.clientY,
-            holdId: nearest?.id,
-            moved: false }
+          const wallPoint: Point = [
+            (e.clientX - rect.left - view.x) / view.scale,
+            (e.clientY - rect.top - view.y) / view.scale,
+          ]
+          const hold = mode === 'set' ? nearestHold(wallPoint) : undefined
+          tap.current = { id: e.pointerId, x: e.clientX, y: e.clientY, holdId: hold?.id, moved: false }
         } else if (tap.current) tap.current.moved = true
         e.currentTarget.setPointerCapture(e.pointerId)
       }}
@@ -157,9 +194,11 @@ function WallViewer({
           const rect = e.currentTarget.getBoundingClientRect()
           setView((v) => {
             const scale = Math.max(0.12, Math.min(4.5, v.scale * (oldDistance > 0 ? distance(after) / oldDistance : 1)))
-            return { scale,
+            return {
+              scale,
               x: newMid.x - rect.left - (oldMid.x - rect.left - v.x) * scale / v.scale,
-              y: newMid.y - rect.top - (oldMid.y - rect.top - v.y) * scale / v.scale }
+              y: newMid.y - rect.top - (oldMid.y - rect.top - v.y) * scale / v.scale,
+            }
           })
         }
       }}
@@ -175,29 +214,16 @@ function WallViewer({
         <svg className="wall-overlay" viewBox={`0 0 ${WALL_WIDTH} ${WALL_HEIGHT}`}>
           {holds.map((hold) => {
             const role = shownMap.get(hold.id)
-            const baseRadius = Math.max(10, hold.radius * WALL_WIDTH)
-            const hitRadius = Math.max(20, baseRadius * 1.45)
-            const cx = hold.x * WALL_WIDTH
-            const cy = hold.y * WALL_HEIGHT
+            const [cx, cy] = toWallPoint(hold.center)
             return (
               <g key={hold.id}>
                 {role && (
-                  <circle
-                    className={`selected-ring ${roleClass(role)}`}
-                    cx={cx}
-                    cy={cy}
-                    r={Math.max(14, baseRadius * 1.15)}
-                  />
+                  <polygon className={`selected-hold ${roleClass(role)}`} points={polygonPoints(hold)} />
                 )}
                 {mode === 'set' && (
-                  <circle
-                    className="hold-hit"
-                    cx={cx}
-                    cy={cy}
-                    r={hitRadius}
-                    data-hold-id={hold.id}
-                  />
+                  <polygon className="hold-hit-polygon" points={polygonPoints(hold)} data-hold-id={hold.id} />
                 )}
+                {role && <circle className="selected-center" cx={cx} cy={cy} r={3.5} />}
               </g>
             )
           })}
@@ -218,10 +244,9 @@ function App() {
   const [name, setName] = useState('')
   const [grade, setGrade] = useState('V4')
   const [setter, setSetter] = useState('Lu')
+  const [storageError, setStorageError] = useState('')
 
   const activeProblem = problems.find((p) => p.id === activeId) ?? null
-
-  const [storageError, setStorageError] = useState('')
 
   const startSetting = () => {
     setDraft([])
