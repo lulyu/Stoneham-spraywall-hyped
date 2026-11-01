@@ -1,5 +1,5 @@
 export const GRADES = ['VB', 'V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V10+'] as const
-export const HOLD_ROLES = ['start', 'hand', 'finish'] as const
+export const HOLD_ROLES = ['start', 'finish', 'hold', 'foot-only'] as const
 
 export type Grade = typeof GRADES[number]
 export type HoldRole = typeof HOLD_ROLES[number]
@@ -26,7 +26,7 @@ export type Problem = {
 }
 
 export type CreateProblemInput = Pick<Problem, 'name' | 'grade' | 'setter' | 'notes' | 'holds'>
-export type UpdateProblemInput = Partial<CreateProblemInput> & { revision?: number }
+export type UpdateProblemInput = Partial<CreateProblemInput> & { revision: number }
 
 export type ProblemItem = Problem & {
   pk: string

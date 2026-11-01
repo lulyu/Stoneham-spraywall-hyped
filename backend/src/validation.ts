@@ -26,10 +26,11 @@ function parseHolds(value: unknown, wall: WallVersion): ProblemHold[] {
     }
     if (seen.has(entry.holdId)) throw new ApiError(400, `duplicate holdId: ${entry.holdId}`)
     seen.add(entry.holdId)
-    if (typeof entry.role !== 'string' || !HOLD_ROLES.includes(entry.role as ProblemHold['role'])) {
-      throw new ApiError(400, `holds[${index}].role must be start, hand, or finish`)
+    const role = entry.role === 'hand' ? 'hold' : entry.role
+    if (typeof role !== 'string' || !HOLD_ROLES.includes(role as ProblemHold['role'])) {
+      throw new ApiError(400, `holds[${index}].role must be start, finish, hold, or foot-only`)
     }
-    return { holdId: entry.holdId, role: entry.role as ProblemHold['role'] }
+    return { holdId: entry.holdId, role: role as ProblemHold['role'] }
   })
 
   if (!holds.some((hold) => hold.role === 'start')) throw new ApiError(400, 'problem must have at least one start hold')
@@ -55,7 +56,10 @@ export function parseCreateProblem(value: unknown, wall: WallVersion): CreatePro
 
 export function parseUpdateProblem(value: unknown, wall: WallVersion): UpdateProblemInput {
   if (!isObject(value)) throw new ApiError(400, 'request body must be a JSON object')
-  const update: UpdateProblemInput = {}
+  if (!Number.isSafeInteger(value.revision) || (value.revision as number) < 1) {
+    throw new ApiError(400, 'revision is required and must be a positive safe integer')
+  }
+  const update: UpdateProblemInput = { revision: value.revision as number }
 
   if ('name' in value) update.name = cleanString(value.name, 'name', 120)!
   if ('setter' in value) update.setter = cleanString(value.setter, 'setter', 80)!
@@ -67,10 +71,6 @@ export function parseUpdateProblem(value: unknown, wall: WallVersion): UpdatePro
     update.grade = value.grade as CreateProblemInput['grade']
   }
   if ('holds' in value) update.holds = parseHolds(value.holds, wall)
-  if ('revision' in value) {
-    if (!Number.isInteger(value.revision) || (value.revision as number) < 1) throw new ApiError(400, 'revision must be a positive integer')
-    update.revision = value.revision as number
-  }
 
   if (Object.keys(update).every((key) => key === 'revision')) throw new ApiError(400, 'no supported fields to update')
   return update

@@ -16,7 +16,13 @@ const wallVersionPk = (gymId: string, wallId: string, wallVersionId: string) =>
 
 function toProblem(item: ProblemItem): Problem {
   const { pk: _pk, sk: _sk, gsi1pk: _gsi1pk, gsi1sk: _gsi1sk, entityType: _entityType, ...problem } = item
-  return problem
+  return {
+    ...problem,
+    holds: problem.holds.map((hold) => ({
+      ...hold,
+      role: (hold.role as string) === 'hand' ? 'hold' : hold.role,
+    })),
+  }
 }
 
 export async function createProblem(problem: Problem): Promise<Problem> {
@@ -73,7 +79,7 @@ export async function listProblems(gymId: string, wallId: string, wallVersionId:
 }
 
 export async function updateProblem(existing: Problem, patch: UpdateProblemInput): Promise<Problem> {
-  if (patch.revision !== undefined && patch.revision !== existing.revision) {
+  if (patch.revision !== existing.revision) {
     throw new ApiError(409, `problem changed since revision ${patch.revision}`)
   }
 

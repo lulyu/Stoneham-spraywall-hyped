@@ -7,7 +7,8 @@
     "generate:wall-catalog": "node scripts/generate-wall-catalog.mjs",
     "build": "npm run generate:wall-catalog && esbuild src/handler.ts --bundle --platform=node --target=node24 --format=cjs --outfile=dist/index.js",
     "typecheck": "npm run generate:wall-catalog && tsc --noEmit",
-    "clean": "node -e \"const fs=require('fs');fs.rmSync('dist',{recursive:true,force:true});fs.rmSync('src/generated/wallCatalog.ts',{force:true})\""
+    "clean": "node -e \"const fs=require('fs');fs.rmSync('dist',{recursive:true,force:true});fs.rmSync('src/generated/wallCatalog.ts',{force:true})\"",
+    "test": "npm run generate:wall-catalog && esbuild src/handler.ts --bundle --packages=external --platform=node --target=node24 --format=cjs --outfile=dist/test-handler.cjs && node --test tests/*.test.cjs"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.0.0",

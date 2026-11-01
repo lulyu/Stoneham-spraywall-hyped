@@ -82,8 +82,15 @@ DELETE /v1/problems/{problemId}
 
 Problem creation validates the wall version, grade, hold IDs, duplicate holds,
 and requires at least one start and one finish. IDs and timestamps are generated
-server-side. Updates use a revision counter and conditional DynamoDB write so two
-simultaneous edits cannot silently overwrite one another.
+server-side. Hold roles are `start`, `finish`, `hold`, and `foot-only`.
+Legacy `hand` roles are accepted and normalized to `hold` on input and when
+reading existing records; responses use the current role names.
+
+Every PATCH must include the positive integer `revision` from the last fetched
+problem, for example `{"name":"Updated route","revision":2}`. Missing or invalid
+revisions return 400. Stale revisions and concurrent write conflicts return 409;
+reload the problem before retrying. Successful updates increment the revision.
+The conditional DynamoDB write also protects against edits between read and write.
 
 Authentication is deliberately not part of this first backend. Do not put an API
 secret in the Vite app. When identity becomes useful, API Gateway can gain a JWT
@@ -97,6 +104,7 @@ From the repository root:
 cd backend
 npm install
 npm run typecheck
+npm test
 npm run build
 ```
 
