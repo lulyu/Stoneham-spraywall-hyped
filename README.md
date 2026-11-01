@@ -38,3 +38,26 @@ The next high-value feature is a tiny hold-map correction UI so the canonical wa
 5. Add lightweight identity/auth only after the core interaction is useful.
 
 The goal is deliberately not to build a full Stōkt clone. It is to build the smallest version that feels great on this one wall.
+
+## Validation and wall image
+
+Use Node.js 22.12+ (or 24) and `npm ci` for the locked dependency versions.
+`npm run build` checks TypeScript and creates the production bundle.
+
+The full-resolution canonical image is served from
+`public/wall/stoneham-spraywall-canonical.jpg` (7292 × 5514), with its original
+aspect ratio preserved. The legacy embedded image was corrupt and is removed.
+The current circular hold map comes from an earlier photo; its alignment against
+this canonical image still needs manual correction. Experimental polygon
+candidates remain separate, as documented in `src/data/polygons/README.md`.
+
+Local phone testing over plain HTTP is supported, including browsers without
+`crypto.randomUUID`. Storage failures leave the problem draft open and show an
+error instead of claiming that the problem was saved.
+
+A repeatable touch regression script is included at `scripts/mobile-smoke.cjs`.
+With Playwright available and the dev server running, run
+`node scripts/mobile-smoke.cjs`. Set `PLAYWRIGHT_MODULE_PATH` if Playwright is
+installed outside this project and `CHROMIUM_PATH` to use system Chromium.
+It uses isolated browser storage, tests touch pan/pinch/selection, save/reload,
+small-screen layout and storage failures, and writes a screenshot to `artifacts/`.

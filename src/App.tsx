@@ -4,19 +4,30 @@ import holds1 from './data/holds-1.json'
 import holds2 from './data/holds-2.json'
 import holds3 from './data/holds-3.json'
 import holds4 from './data/holds-4.json'
-import wallImage from './data/wall'
+import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { Hold, HoldRole, Problem, ProblemHold } from './types'
 
+const wallImage = `${import.meta.env.BASE_URL}wall/stoneham-spraywall-canonical.jpg`
 const holds = [...holds0, ...holds1, ...holds2, ...holds3, ...holds4] as Hold[]
 const STORAGE_KEY = 'stoneham-spraywall:problems:v1'
 const WALL_WIDTH = 1536
-const WALL_HEIGHT = 1152
+const WALL_HEIGHT = WALL_WIDTH * 5514 / 7292
 const grades = ['VB', 'V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V10+']
 
 function loadProblems(): Problem[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
+    const parsed: unknown = raw ? JSON.parse(raw) : []
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((p): p is Problem =>
+      p !== null && typeof p === 'object' &&
+      typeof p.id === 'string' && typeof p.name === 'string' &&
+      typeof p.grade === 'string' && typeof p.setter === 'string' &&
+      typeof p.createdAt === 'string' && Array.isArray(p.holds) &&
+      p.holds.every((h: ProblemHold) => h !== null && typeof h === 'object' &&
+        holds.some((hold) => hold.id === h.holdId) &&
+        ['start', 'hand', 'finish'].includes(h.role)),
+    )
   } catch {
     return []
   }
@@ -45,8 +56,8 @@ function WallViewer({
 }) {
   const viewportRef = useRef<HTMLDivElement>(null)
   const [view, setView] = useState({ scale: 0.35, x: 0, y: 0 })
-  const drag = useRef({ active: false, moved: false, x: 0, y: 0, originX: 0, originY: 0 })
-  const lastDistance = useRef<number | null>(null)
+  const pointers = useRef(new Map<number, { x: number; y: number }>())
+  const tap = useRef<{ id: number; x: number; y: number; holdId?: string; moved: boolean } | null>(null)
 
   const shownHolds = mode === 'set' ? draft : activeProblem?.holds ?? []
   const shownMap = useMemo(() => new Map(shownHolds.map((h) => [h.holdId, h.role])), [shownHolds])
@@ -64,9 +75,15 @@ function WallViewer({
 
   useEffect(() => {
     fit()
+    const preventScroll = (event: WheelEvent) => event.preventDefault()
+    const viewport = viewportRef.current
+    viewport?.addEventListener('wheel', preventScroll, { passive: false })
     const handler = () => fit()
     window.addEventListener('resize', handler)
-    return () => window.removeEventListener('resize', handler)
+    return () => {
+      window.removeEventListener('resize', handler)
+      viewport?.removeEventListener('wheel', preventScroll)
+    }
   }, [])
 
   const zoomAt = (clientX: number, clientY: number, factor: number) => {
@@ -83,46 +100,76 @@ function WallViewer({
     })
   }
 
+  const endPointer = (e: ReactPointerEvent<HTMLDivElement>, cancelled = false) => {
+    const candidate = tap.current
+    pointers.current.delete(e.pointerId)
+    if (!cancelled && candidate?.id === e.pointerId && !candidate.moved &&
+        Math.hypot(e.clientX - candidate.x, e.clientY - candidate.y) <= 6 &&
+        candidate.holdId && mode === 'set') onHoldTap(candidate.holdId)
+    if (candidate?.id === e.pointerId || cancelled) tap.current = null
+  }
+
   return (
     <div
       className="wall-viewport"
       ref={viewportRef}
       onWheel={(e) => {
-        e.preventDefault()
         zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.0012))
       }}
       onPointerDown={(e) => {
-        if ((e.target as Element).closest('.hold-hit')) return
-        drag.current = { active: true, moved: false, x: e.clientX, y: e.clientY, originX: view.x, originY: view.y }
-        ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+        if ((e.target as Element).closest('button') || e.button !== 0) return
+        pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+        if (pointers.current.size === 1) {
+          // Overlapping hit circles must select the closest hold, not SVG paint order.
+          const rect = e.currentTarget.getBoundingClientRect()
+          const wx = (e.clientX - rect.left - view.x) / view.scale
+          const wy = (e.clientY - rect.top - view.y) / view.scale
+          const nearest = mode === 'set' ? holds
+            .map((hold) => ({ hold, distance: Math.hypot(hold.x * WALL_WIDTH - wx, hold.y * WALL_HEIGHT - wy) }))
+            .filter(({ hold, distance }) => distance <= Math.max(20, Math.max(10, hold.radius * WALL_WIDTH) * 1.45))
+            .sort((a, b) => a.distance - b.distance)[0]?.hold : undefined
+          tap.current = { id: e.pointerId, x: e.clientX, y: e.clientY,
+            holdId: nearest?.id,
+            moved: false }
+        } else if (tap.current) tap.current.moved = true
+        e.currentTarget.setPointerCapture(e.pointerId)
       }}
       onPointerMove={(e) => {
-        if (!drag.current.active) return
-        const dx = e.clientX - drag.current.x
-        const dy = e.clientY - drag.current.y
-        if (Math.abs(dx) + Math.abs(dy) > 4) drag.current.moved = true
-        setView((v) => ({ ...v, x: drag.current.originX + dx, y: drag.current.originY + dy }))
-      }}
-      onPointerUp={() => {
-        drag.current.active = false
-      }}
-      onTouchMove={(e) => {
-        if (e.touches.length !== 2) {
-          lastDistance.current = null
-          return
+        const previous = pointers.current.get(e.pointerId)
+        if (!previous) return
+        const before = [...pointers.current.values()]
+        pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+        if (tap.current && Math.hypot(e.clientX - tap.current.x, e.clientY - tap.current.y) > 6) {
+          tap.current.moved = true
         }
-        const [a, b] = [e.touches[0], e.touches[1]]
-        const distance = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
-        const midpointX = (a.clientX + b.clientX) / 2
-        const midpointY = (a.clientY + b.clientY) / 2
-        if (lastDistance.current) zoomAt(midpointX, midpointY, distance / lastDistance.current)
-        lastDistance.current = distance
+        const after = [...pointers.current.values()]
+        if (before.length === 1) {
+          setView((v) => ({ ...v, x: v.x + e.clientX - previous.x, y: v.y + e.clientY - previous.y }))
+        } else {
+          const midpoint = (points: typeof before) => ({
+            x: (points[0].x + points[1].x) / 2,
+            y: (points[0].y + points[1].y) / 2,
+          })
+          const oldMid = midpoint(before)
+          const newMid = midpoint(after)
+          const distance = (points: typeof before) => Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y)
+          const oldDistance = distance(before)
+          const rect = e.currentTarget.getBoundingClientRect()
+          setView((v) => {
+            const scale = Math.max(0.12, Math.min(4.5, v.scale * (oldDistance > 0 ? distance(after) / oldDistance : 1)))
+            return { scale,
+              x: newMid.x - rect.left - (oldMid.x - rect.left - v.x) * scale / v.scale,
+              y: newMid.y - rect.top - (oldMid.y - rect.top - v.y) * scale / v.scale }
+          })
+        }
       }}
-      onTouchEnd={() => { lastDistance.current = null }}
+      onPointerUp={(e) => endPointer(e)}
+      onPointerCancel={(e) => endPointer(e, true)}
+      onLostPointerCapture={(e) => endPointer(e, true)}
     >
       <div
         className="wall-stage"
-        style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}
+        style={{ width: WALL_WIDTH, height: WALL_HEIGHT, transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}
       >
         <img src={wallImage} className="wall-image" alt="Stoneham spray wall" draggable={false} />
         <svg className="wall-overlay" viewBox={`0 0 ${WALL_WIDTH} ${WALL_HEIGHT}`}>
@@ -148,11 +195,7 @@ function WallViewer({
                     cx={cx}
                     cy={cy}
                     r={hitRadius}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onHoldTap(hold.id)
-                    }}
+                    data-hold-id={hold.id}
                   />
                 )}
               </g>
@@ -160,7 +203,7 @@ function WallViewer({
           })}
         </svg>
       </div>
-      <button className="fit-button" onClick={fit}>Fit wall</button>
+      <button className="fit-button" onPointerUp={(e) => { e.stopPropagation(); fit() }} onClick={fit}>Fit wall</button>
       {mode === 'set' && <div className="tap-hint">Tap holds · drag to pan · pinch to zoom</div>}
     </div>
   )
@@ -178,12 +221,12 @@ function App() {
 
   const activeProblem = problems.find((p) => p.id === activeId) ?? null
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(problems))
-  }, [problems])
+  const [storageError, setStorageError] = useState('')
 
   const startSetting = () => {
     setDraft([])
+    setStorageError('')
+    setCurrentRole('hand')
     setName('')
     setGrade('V4')
     setMode('set')
@@ -207,14 +250,23 @@ function App() {
     const trimmed = name.trim()
     if (!trimmed || draft.length < 2) return
     const problem: Problem = {
-      id: crypto.randomUUID(),
+      id: typeof crypto.randomUUID === 'function' ? crypto.randomUUID() :
+        `problem-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       name: trimmed,
       grade,
       setter: setter.trim() || 'Anonymous',
       holds: draft,
       createdAt: new Date().toISOString(),
     }
-    setProblems((prev) => [problem, ...prev])
+    const next = [problem, ...problems]
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+    } catch {
+      setStorageError('Could not save on this device. Free storage or enable browser storage, then try again.')
+      return
+    }
+    setStorageError('')
+    setProblems(next)
     setActiveId(problem.id)
     setMode('browse')
   }
@@ -267,6 +319,7 @@ function App() {
               <input value={setter} onChange={(e) => setSetter(e.target.value)} />
             </label>
           </div>
+          {storageError && <p role="alert">{storageError}</p>}
           <div className="editor-actions">
             <button className="ghost" onClick={() => setDraft([])}>Clear</button>
             <button className="primary" disabled={!name.trim() || draft.length < 2} onClick={saveProblem}>Save problem</button>

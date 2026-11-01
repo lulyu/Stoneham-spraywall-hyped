@@ -9,7 +9,7 @@
 * { box-sizing: border-box; }
 html, body, #root { margin: 0; min-height: 100%; background: #0d0f0c; }
 button, input, select { font: inherit; }
-button { -webkit-tap-highlight-color: transparent; }
+button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
 .app-shell { max-width: 980px; margin: 0 auto; min-height: 100vh; padding-bottom: env(safe-area-inset-bottom); }
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 18px 18px 12px; }
@@ -26,11 +26,11 @@ button { -webkit-tap-highlight-color: transparent; }
 
 .wall-card { margin: 0 12px; height: min(66vh, 660px); min-height: 420px; border-radius: 18px; overflow: hidden; background: #191b17; border: 1px solid #292d25; }
 .wall-viewport { position: relative; width: 100%; height: 100%; overflow: hidden; touch-action: none; background: #191b17; }
-.wall-stage { position: absolute; width: 1536px; height: 1152px; transform-origin: 0 0; will-change: transform; }
-.wall-image { position: absolute; inset: 0; width: 1536px; height: 1152px; user-select: none; pointer-events: none; }
-.wall-overlay { position: absolute; inset: 0; width: 1536px; height: 1152px; overflow: visible; }
+.wall-stage { position: absolute; width: 100%; height: 100%; transform-origin: 0 0; will-change: transform; }
+.wall-image { position: absolute; inset: 0; width: 100%; height: 100%; user-select: none; pointer-events: none; }
+.wall-overlay { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .hold-hit { fill: rgba(205, 255, 83, .04); stroke: rgba(205,255,83,.13); stroke-width: 4; cursor: pointer; vector-effect: non-scaling-stroke; }
-.selected-ring { fill: rgba(0,0,0,.03); stroke-width: 14; vector-effect: non-scaling-stroke; filter: drop-shadow(0 1px 4px rgba(0,0,0,.8)); }
+.selected-ring { pointer-events: none; fill: rgba(0,0,0,.03); stroke-width: 14; vector-effect: non-scaling-stroke; filter: drop-shadow(0 1px 4px rgba(0,0,0,.8)); }
 .selected-ring.role-hand { stroke: #d7ff65; }
 .selected-ring.role-start { stroke: #33d6ff; }
 .selected-ring.role-finish { stroke: #ff6e91; }
@@ -45,8 +45,8 @@ button { -webkit-tap-highlight-color: transparent; }
 .role-button.active.role-finish { border-color: #ff6e91; color: #ff6e91; }
 .selection-count { margin-left: auto; color: #8f9787; font-size: 12px; white-space: nowrap; }
 .form-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-top: 16px; }
-label { display: grid; gap: 6px; color: #9fa596; font-size: 11px; font-weight: 700; }
-input, select { width: 100%; background: #191c16; border: 1px solid #34382e; color: white; border-radius: 11px; padding: 11px 12px; outline: none; }
+label { display: grid; gap: 6px; color: #9fa596; font-size: 11px; font-weight: 700; min-width: 0; }
+input, select { font-size: 16px; min-width: 0; width: 100%; background: #191c16; border: 1px solid #34382e; color: white; border-radius: 11px; padding: 11px 12px; outline: none; }
 input:focus, select:focus { border-color: #6e7b59; }
 .editor-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 14px; }
 
@@ -59,7 +59,7 @@ input:focus, select:focus { border-color: #6e7b59; }
 .problem-card { width: 100%; border: 1px solid #2d3128; border-radius: 14px; background: #171a15; color: white; display: flex; align-items: center; padding: 11px; text-align: left; cursor: pointer; }
 .problem-card.active { border-color: #66734f; background: #1c2118; }
 .grade-chip { min-width: 44px; height: 44px; border-radius: 12px; background: #c9ff53; color: #15180f; display: grid; place-items: center; font-weight: 900; }
-.problem-copy { display: grid; gap: 2px; margin-left: 11px; }
+.problem-copy { min-width: 0; overflow-wrap: anywhere; display: grid; gap: 2px; margin-left: 11px; }
 .problem-copy small { color: #8d9584; }
 .chevron { margin-left: auto; font-size: 24px; color: #687060; }
 
