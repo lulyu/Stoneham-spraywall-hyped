@@ -1,12 +1,24 @@
-export type HoldKind = 'hold_guess' | 'macro_hold_guess' | 'volume_guess'
+export type HoldKind = 'hold_guess' | 'macro_hold_guess' | 'volume_guess' | 'hold' | 'macro' | 'volume'
 export type HoldRole = 'start' | 'hand' | 'finish'
+export type Point = [number, number]
 
 export type Hold = {
   id: string
+  /** Normalized center coordinates in [0, 1]. */
   x: number
   y: number
+  /** Legacy circular hit radius, normalized by wall width. */
   radius: number
   kind: HoldKind
+  /** Optional normalized hold outline. Auto-generated polygons are capped at 16 vertices. */
+  polygon?: Point[]
+}
+
+export type PolygonHoldCandidate = {
+  id: string
+  center: Point
+  polygon: Point[]
+  kind: 'hold' | 'macro' | 'volume'
 }
 
 export type ProblemHold = {
