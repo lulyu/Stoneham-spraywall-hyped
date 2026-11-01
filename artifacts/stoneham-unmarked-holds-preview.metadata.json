@@ -1,0 +1,18 @@
+{
+  "annotation_file": "src/data/annotations/full_wall_manual_v2.json",
+  "hold_count": 642,
+  "annotation_sha256": "67e85109ac44ebc47e83369bb77cb169abac948cb97b09fb7b9b425d9c3d85cb",
+  "image_sha256": "0dddcf36d5e9df223bea360cb9a6a03c7871d40be20f7d73a976c14d1a2a7693",
+  "image_size": [
+    7292,
+    5514
+  ],
+  "masked_pixel_fraction": 0.36422,
+  "fill": "Median nearby bright, low-chroma unmasked wall pixels per polygon; global wall median fallback.",
+  "global_wall_rgb": [
+    170,
+    168,
+    162
+  ],
+  "outside_polygons_unchanged_before_jpeg": true
+}
