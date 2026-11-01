@@ -13,10 +13,13 @@ async function main() {
     page.on('request', request => { if (request.method() !== 'GET') writes.push(request.url()) })
     // Use the exact supplied snapshot without replacing any live server storage.
     await page.route('**/api/sam2/annotations', route => route.fulfill({ json: dataset }))
+    const suggestionsLoaded = page.waitForResponse(response => response.url().endsWith('/api/sam2/suggestions') && response.ok())
     if (process.env.ANNOTATOR_KEY_FILE) await page.goto(`${base}/auth?key=${encodeURIComponent(fs.readFileSync(process.env.ANNOTATOR_KEY_FILE, 'utf8').trim())}`)
     else await page.goto(`${base}/?annotate=1`)
     await page.getByText(/SAM2.1 Small ready/).waitFor({ timeout: 60000 })
     await page.getByRole('heading', { name: 'Accepted holds (677)', exact: true }).waitFor()
+    await (await suggestionsLoaded).finished()
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
     assert.equal(await page.locator('.annotation-covered').count(), 0)
     const suggestionsBefore = await page.locator('.annotation-suggestion').count()
     await page.getByRole('button', { name: 'Cover confirmed holds', exact: true }).click()
