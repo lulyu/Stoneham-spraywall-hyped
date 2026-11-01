@@ -58,7 +58,7 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
         const input = parseCreateProblem(parseJsonBody(event), wall)
         const now = new Date().toISOString()
         const problem: Problem = {
-          problemId: randomUUID(),
+          id: randomUUID(),
           gymId,
           wallId,
           wallVersionId,
