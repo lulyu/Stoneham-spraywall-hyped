@@ -6,6 +6,10 @@ to deploy the equivalent stack. Do not apply the sibling Terraform configuration
 against these resources. A future migration requires explicit CloudFormation
 retention/removal and Terraform import, not a second create/apply.
 
+The deployed endpoint is https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com
+(health: `/health`). See `production.json` for the deployed source commit,
+artifact location, code hash and stack names.
+
 Templates:
 - `artifacts.json`: private encrypted, versioned S3 deployment bucket, retained
   on deletion; old noncurrent artifact versions expire after 30 days.
