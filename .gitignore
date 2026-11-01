@@ -32,3 +32,5 @@ infra/*.tfstate.*
 infra/terraform.tfstate.d/
 infra/.terraform.tfstate.lock.info
 infra/crash.log
+!artifacts/hold-roles-rainbow-mobile.png
+!artifacts/route-focus-pulse-mobile.png
