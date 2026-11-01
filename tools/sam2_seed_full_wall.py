@@ -32,6 +32,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--checkpoint', type=Path, required=True)
     parser.add_argument('--output', type=Path, default=ROOT / 'src/data/experiments/full_wall_sam2_suggestions.json')
+    parser.add_argument('--groundtruth', type=Path, default=ROOT / 'src/data/polygons/holds.json')
     parser.add_argument('--min-score', type=float, default=.88)
     parser.add_argument('--threads', type=int, default=4)
     args = parser.parse_args()
@@ -48,9 +49,10 @@ def main():
     torch.manual_seed(0); np.random.seed(0); torch.set_num_threads(args.threads)
     path = ROOT / 'public/wall/stoneham-spraywall-canonical.jpg'
     image = Image.open(path).convert('RGB'); width, height = image.size
-    groundtruth_path = ROOT / 'src/data/groundtruth/top_left_manual_v1.json'
-    groundtruth = json.loads(groundtruth_path.read_text())['holds']
-    centers = candidate_centers(ROOT / 'src/data/polygons/auto-v1-packed.ts')
+    groundtruth_path = args.groundtruth
+    groundtruth_data = json.loads(groundtruth_path.read_text())
+    groundtruth = groundtruth_data if isinstance(groundtruth_data, list) else groundtruth_data['holds']
+    centers = candidate_centers(ROOT / 'src/data/polygons/holds.json')
     model = build_sam2('configs/sam2.1/sam2.1_hiera_s.yaml', str(args.checkpoint), device=device, apply_postprocessing=False)
     predictor = SAM2ImagePredictor(model)
     proposals, prompt_count = [], 0

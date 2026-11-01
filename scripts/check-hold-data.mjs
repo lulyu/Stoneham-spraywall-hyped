@@ -1,19 +1,20 @@
 import { readFileSync } from 'node:fs'
 import assert from 'node:assert/strict'
 
-const source = readFileSync(process.argv[2] || new URL('../src/data/polygons/auto-v1-packed.ts', import.meta.url), 'utf8')
-const packed = source.match(/const PACKED = '([^']*)'/)?.[1]
-assert(packed, 'Missing packed hold dataset')
-assert.match(packed, /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/, 'Invalid or truncated Base64 hold data')
-const data = Buffer.from(packed, 'base64')
-let count = 0
-for (let offset = 0; offset < data.length; count++) {
-  assert(offset + 6 <= data.length, 'Truncated hold header')
-  assert(data[offset] <= 2, 'Invalid hold kind')
-  const vertices = data[offset + 1]
-  assert(vertices >= 3 && vertices <= 16, 'Invalid polygon vertex count')
-  offset += 6 + vertices * 4
-  assert(offset <= data.length, 'Truncated polygon coordinates')
+const holds = JSON.parse(readFileSync(process.argv[2] || new URL('../src/data/polygons/holds.json', import.meta.url), 'utf8'))
+assert(Array.isArray(holds), 'Canonical hold dataset must be a JSON array')
+assert.equal(holds.length, 677, 'Unexpected canonical hold count; review the accepted export')
+const ids = new Set()
+const point = value => {
+  assert(Array.isArray(value) && value.length === 2, 'Each point needs two coordinates')
+  assert(value.every(n => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= 1), 'Coordinates must be finite full-wall normalized values')
 }
-assert.equal(count, 526, 'Unexpected canonical candidate count; review regenerated geometry')
-console.log(`Validated ${count} packed polygon candidates`)
+for (const hold of holds) {
+  assert(typeof hold.id === 'string' && hold.id.length > 0 && !ids.has(hold.id), 'Hold IDs must be unique and nonempty')
+  ids.add(hold.id)
+  assert(['hold', 'macro', 'volume'].includes(hold.kind), 'Invalid hold kind')
+  point(hold.center)
+  assert(Array.isArray(hold.polygon) && hold.polygon.length >= 3 && hold.polygon.length <= 16, 'Polygons need 3–16 vertices')
+  hold.polygon.forEach(point)
+}
+console.log(`Validated ${holds.length} canonical, user-confirmed polygons`)

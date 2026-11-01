@@ -18,7 +18,11 @@ SAM2_REVISION = '2b90b9f5ceec907a1c18123530e92e794ad901a4'
 
 
 def candidate_centers(path: Path) -> list[tuple[float, float]]:
-    """Read the same validated uint16 dataset used by the app; never evaluate TS."""
+    """Read canonical JSON or a historical packed dataset; never evaluate TS."""
+    if path.suffix == '.json':
+        payload = json.loads(path.read_text())
+        holds = payload if isinstance(payload, list) else payload['holds']
+        return [tuple(hold['center']) for hold in holds]
     match = re.search(r"const PACKED = '([^']+)'", path.read_text())
     if not match:
         raise ValueError(f'No packed candidates in {path}')
@@ -186,7 +190,7 @@ def run(args: argparse.Namespace, report: dict) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--image', type=Path, default=ROOT / 'public/wall/stoneham-spraywall-canonical.jpg')
-    parser.add_argument('--candidates', type=Path, default=ROOT / 'src/data/polygons/auto-v1-packed.ts')
+    parser.add_argument('--candidates', type=Path, default=ROOT / 'src/data/polygons/holds.json')
     parser.add_argument('--checkpoint', type=Path, required=True)
     parser.add_argument('--output', type=Path, default=ROOT / 'src/data/experiments/top_left_sam2_polygons.json')
     parser.add_argument('--artifacts', type=Path, default=ROOT / 'artifacts')

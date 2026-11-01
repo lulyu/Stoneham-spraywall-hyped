@@ -1,9 +1,11 @@
-import p0 from './holds-poly-0.json'
-import p1 from './holds-poly-1.json'
-import type { PolygonHoldCandidate } from '../../types'
+import data from './holds.json'
+import type { Point, PolygonHoldCandidate } from '../../types'
 
-export const polygonCandidates = [...p0, ...p1] as PolygonHoldCandidate[]
-
-export const polygonById = new Map(
-  polygonCandidates.map((hold) => [hold.id, hold] as const),
-)
+// Canonical, user-confirmed geometry. Preserve these IDs when editing holds.
+export const polygonCandidates: PolygonHoldCandidate[] = data.map((hold) => ({
+  id: hold.id,
+  kind: hold.kind as PolygonHoldCandidate['kind'],
+  center: [hold.center[0], hold.center[1]],
+  polygon: hold.polygon.map(([x, y]): Point => [x, y]),
+}))
+export const polygonById = new Map(polygonCandidates.map((hold) => [hold.id, hold]))

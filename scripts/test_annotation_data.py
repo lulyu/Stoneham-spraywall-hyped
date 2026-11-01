@@ -35,6 +35,11 @@ class AnnotationDataTests(unittest.TestCase):
         l, t, r, b = module.prediction_region([{'point': [.32, .32], 'label': 1}, {'point': [.4, .4], 'label': 0}], None)
         self.assertTrue(l <= .32 * 7292 and r >= .4 * 7292 and t <= .32 * 5514 and b >= .4 * 5514)
 
+    def test_canonical_production_array_can_seed_editor(self):
+        canonical = json.loads((ROOT / 'src/data/polygons/holds.json').read_text())
+        self.assertEqual(len(canonical), 677)
+        self.assertEqual(module.clean_dataset(canonical), canonical)
+
     def test_bad_import_is_rejected(self):
         for mutate in [lambda d: d.update(wallId='other'), lambda d: d.update(image_size=[100, 100]),
                        lambda d: d['holds'].append(d['holds'][0]),

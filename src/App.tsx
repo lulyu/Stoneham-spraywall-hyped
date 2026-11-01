@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import sam2Experiment from './data/experiments/top_left_sam2_polygons.json'
-import { polygonCandidates as holds } from './data/polygons/auto-v1-packed'
+import { polygonCandidates as holds } from './data/polygons'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { HoldRole, Problem, ProblemHold, PolygonHoldCandidate, Point } from './types'
 
 const wallImage = `${import.meta.env.BASE_URL}wall/stoneham-spraywall-canonical.jpg`
-const STORAGE_KEY = 'stoneham-spraywall:problems:v2'
+const STORAGE_KEY = 'stoneham-spraywall:problems:v3'
 const WALL_WIDTH = 1536
 const WALL_HEIGHT = WALL_WIDTH * 5514 / 7292
 const sam2Holds: PolygonHoldCandidate[] = sam2Experiment.holds.map((hold) => ({

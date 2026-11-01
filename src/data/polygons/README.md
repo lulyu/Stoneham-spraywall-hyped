@@ -1,36 +1,22 @@
-# Polygon hold candidates
+# Canonical production hold geometry
 
-This directory contains an **experimental** polygon-native detection pass generated from Lu's manually adjusted 7292×5514 canonical wall image.
+`holds.json` is the app's authoritative 677-hold dataset, promoted from the user's
+`full_wall_manual_v4.json` accepted export. IDs, centers, kinds and polygon vertices
+are preserved exactly. Coordinates are normalized against the 7292×5514 canonical
+wall image. The index exports typed polygons for the app.
 
-The two sample JSON files are experimental; the app now uses the complete packed dataset described below. Candidate IDs are not stable across detector changes. The existing circular dataset was generated from an earlier image, so do not treat matching numeric IDs as identity matches.
+Old circular maps, partial polygon samples and packed automatic candidates were
+removed. Earlier versions remain accessible through Git history; there are no
+old production hold files or backups in this directory. Annotation checkpoints,
+ground truth and experimental suggestions remain separately documented.
 
-The intended v1 canonical representation is:
+The build validates unique IDs, count, kinds, finite coordinate bounds and polygon
+vertex limits. Edit existing holds while preserving their IDs.
 
-```ts
-{
-  id: string,
-  center: [number, number],       // normalized [0, 1]
-  polygon: [number, number][],    // normalized [0, 1], max 16 vertices
-  kind: 'hold' | 'macro' | 'volume'
-}
-```
+The app now uses local route storage `stoneham-spraywall:problems:v3` because the
+old `h001`-style IDs do not identify these confirmed holds. Previous v2 routes are
+left under their original browser key and are not automatically remapped.
 
-The automatic detector is only a bootstrap. Final hold geometry should be corrected in the wall-editor UI before the dataset becomes canonical.
-
-## Rebuild the active dataset
-
-The app uses `auto-v1-packed.ts` (526 candidates). Regenerate it from the exact
-canonical image instead of copying encoded data through chat or truncated output:
-
-```bash
-# Requires Python with opencv-python-headless and numpy.
-python3 tools/detect_holds.py public/wall/stoneham-spraywall-canonical.jpg /tmp/holds.json
-python3 tools/pack_holds.py /tmp/holds.json src/data/polygons/auto-v1-packed.ts
-npm run build
-```
-
-The build validates Base64 encoding, record boundaries, polygon sizes, and candidate
-count before bundling. The mobile smoke script checks browser startup and the
-active polygon overlays against the production preview as well as the dev server.
-IDs are assigned in detector order; review saved-problem compatibility whenever
-changing detection parameters or candidate ordering.
+SAM2 experiment scripts seed prompts from this JSON by default. Historical run
+counts in experiment documentation refer to the old automatic input; reproduce
+those exact runs from the corresponding historical Git commit.

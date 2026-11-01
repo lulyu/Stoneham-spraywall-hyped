@@ -68,6 +68,7 @@ def clean_hold(hold, identifier=None):
 
 
 def clean_dataset(data):
+    if isinstance(data, list): data = dict(holds=data)
     if not isinstance(data, dict) or not isinstance(data.get('holds'), list) or len(data['holds']) > 5000:
         raise ValueError('Import a JSON object containing at most 5000 holds.')
     if data.get('wallId', 'stoneham-spraywall-v1') != 'stoneham-spraywall-v1': raise ValueError('Wrong wall ID.')
@@ -362,7 +363,7 @@ def main():
     parser.add_argument('--host', default='127.0.0.1')
     parser.add_argument('--port', type=int, default=8787)
     parser.add_argument('--storage', type=Path, default=ROOT / 'artifacts/full-wall-annotations/holds.json')
-    parser.add_argument('--seed', type=Path, default=ROOT / 'src/data/groundtruth/top_left_manual_v1.json', help='Initialize empty working storage from this file; never overwrites existing work.')
+    parser.add_argument('--seed', type=Path, default=ROOT / 'src/data/polygons/holds.json', help='Initialize empty working storage from this file; never overwrites existing work.')
     parser.add_argument('--access-key-file', type=Path, help='Optional private session key file for HTTPS preview access.')
     parser.add_argument('--threads', type=int, default=4)
     args = parser.parse_args()

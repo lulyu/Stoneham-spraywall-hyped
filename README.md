@@ -7,7 +7,7 @@ A small, mobile-first spray-wall route-setting app for the Stoneham wall.
 The first version intentionally keeps everything local so we can validate the climbing interaction before building infrastructure:
 
 - real wall image with pan / zoom
-- 469 first-pass hold candidates overlaid on the wall
+- 677 user-confirmed hold polygons overlaid on the wall
 - tap holds to create a problem
 - mark holds as **start**, **hand**, or **finish**
 - add problem name, V-grade, and setter
@@ -47,9 +47,9 @@ Use Node.js 22.12+ (or 24) and `npm ci` for the locked dependency versions.
 The full-resolution canonical image is served from
 `public/wall/stoneham-spraywall-canonical.jpg` (7292 × 5514), with its original
 aspect ratio preserved. The legacy embedded image was corrupt and is removed.
-The current circular hold map comes from an earlier photo; its alignment against
-this canonical image still needs manual correction. Experimental polygon
-candidates remain separate, as documented in `src/data/polygons/README.md`.
+The app uses the 677 accepted polygons in `src/data/polygons/holds.json`. Old
+automatic production maps have been removed. Experimental suggestions remain
+separate; see `src/data/polygons/README.md` for IDs and storage compatibility.
 
 Local phone testing over plain HTTP is supported, including browsers without
 `crypto.randomUUID`. Storage failures leave the problem draft open and show an
@@ -85,3 +85,5 @@ The editor now covers the full wall with cached regional SAM2 inference. Your
 349 automatic suggestions can be reviewed, optionally accepted in a high-score
 batch, and refined. Existing JSON can be imported and edited while preserving IDs.
 See [full-wall workflow, data provenance and tests](docs/sam2-full-wall-annotator.md).
+
+The canonical production hold map is now the accepted 677-hold v4 export.
