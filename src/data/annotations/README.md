@@ -48,3 +48,11 @@ python tools/preview_unmarked_holds.py \
   --annotations "$PWD/src/data/annotations/full_wall_manual_v3.json" \
   --output "$PWD/artifacts/stoneham-unmarked-holds-v3-preview.jpg"
 ```
+
+## v4 checkpoint
+
+`full_wall_manual_v4.json` is the original 677-hold user export from
+`2026-11-01T04:36:54Z`, including one additional hold relative to v3. The user
+considers this the completed pass; the coverage view can still be used to inspect
+for omissions. It is preserved verbatim, SHA-256:
+`0be8468fbc2b40b924062024fd09da753882726ddfe7ce2e589ea4cc7f5a068d`.

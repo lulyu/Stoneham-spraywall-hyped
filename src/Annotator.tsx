@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { Point, PolygonHoldCandidate } from './types'
 import './annotator.css'
+import { annotationWallColors } from './annotationWallColors'
 
 const WIDTH = 7292
 const HEIGHT = 5514
@@ -51,6 +52,10 @@ export default function Annotator() {
   const [candidateIndex, setCandidateIndex] = useState(0)
   const [saved, setSaved] = useState<Saved>({ holds: [] })
   const [savedLoaded, setSavedLoaded] = useState(false)
+  const [coverConfirmed, setCoverConfirmed] = useState(false)
+  const [coverLoading, setCoverLoading] = useState(false)
+  const [wallColors, setWallColors] = useState<Record<string, string>>({})
+  const wallPixels = useRef<Promise<ImageData> | null>(null)
   const [selectedId, setSelectedId] = useState('')
   const [editingOriginal, setEditingOriginal] = useState<PolygonHoldCandidate | null>(null)
   const [suggestions, setSuggestions] = useState<(PolygonHoldCandidate & { score?: number })[]>([])
@@ -91,6 +96,30 @@ export default function Annotator() {
     }).catch((problem) => { if (alive) setError(`Could not load saved holds: ${String(problem)}`) })
     return () => { alive = false; clearTimeout(timer) }
   }, [])
+
+  useEffect(() => {
+    if (!coverConfirmed || status.state !== 'ready') return
+    let cancelled = false
+    setCoverLoading(true)
+    if (!wallPixels.current) wallPixels.current = (async () => {
+      const image = new Image()
+      image.src = `${API}/image.jpg`
+      await image.decode()
+      const canvas = document.createElement('canvas')
+      canvas.width = 1024; canvas.height = Math.round(1024 * HEIGHT / WIDTH)
+      const context = canvas.getContext('2d', { willReadFrequently: true })
+      if (!context) throw new Error('Canvas is unavailable')
+      context.drawImage(image, 0, 0, canvas.width, canvas.height)
+      return context.getImageData(0, 0, canvas.width, canvas.height)
+    })()
+    void wallPixels.current.then((pixels) => {
+      if (!cancelled) setWallColors(annotationWallColors(saved.holds, pixels))
+    }).catch((problem) => {
+      wallPixels.current = null
+      if (!cancelled) setError(`Could not estimate wall colors: ${String(problem)}`)
+    }).finally(() => { if (!cancelled) setCoverLoading(false) })
+    return () => { cancelled = true }
+  }, [coverConfirmed, saved.holds, status.state])
 
   const fit = () => {
     const element = viewport.current
@@ -229,6 +258,11 @@ export default function Annotator() {
           onClick={() => { setTool(value); setBoxStart(null) }}>{({ positive: '＋ Hold', negative: '− Exclude', box: 'Box', pan: 'Pan', select: 'Select' })[value]}</button>)}
       </fieldset>
       <div className="annotation-zoom"><button onClick={() => zoom(1.5)}>Zoom in</button><button onClick={() => zoom(1 / 1.5)}>Zoom out</button><button onClick={fit}>Fit wall</button></div>
+      <button className="annotation-coverage-toggle" type="button" aria-pressed={coverConfirmed}
+        disabled={!savedLoaded || status.state !== 'ready'} onClick={() => setCoverConfirmed((value) => !value)}>
+        {coverConfirmed ? 'Show original holds' : 'Cover confirmed holds'}
+      </button>
+      {coverConfirmed && <p className="annotation-hint">{coverLoading ? 'Estimating nearby wall colors…' : `${saved.holds.length} confirmed holds covered. Uncovered holds retain their original colors. Thin rims or shadows may be outline errors.`}</p>}
       <div className="annotation-viewport" ref={viewport} aria-label="Annotation wall"
         onPointerDown={(event) => {
           if (event.button !== 0 || busy) return
@@ -261,8 +295,8 @@ export default function Annotator() {
         <svg className="annotation-stage" width={CROP_WIDTH} height={CROP_HEIGHT} viewBox={`0 0 ${CROP_WIDTH} ${CROP_HEIGHT}`}
           style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}>
           {status.state === 'ready' && <image href={`${API}/image.jpg`} width={CROP_WIDTH} height={CROP_HEIGHT} />}
-          {saved.holds.map((hold) => <polygon key={hold.id} className={`annotation-saved ${selectedId === hold.id ? 'annotation-selected' : ''}`} points={points(hold.polygon)} />)}
-          {showSuggestions && pendingSuggestions.map((hold) => <polygon key={hold.id} className="annotation-suggestion" points={points(hold.polygon)} />)}
+          {saved.holds.map((hold) => <polygon key={hold.id} className={`annotation-saved ${coverConfirmed ? 'annotation-covered' : ''} ${selectedId === hold.id ? 'annotation-selected' : ''}`} points={points(hold.polygon)} style={coverConfirmed ? { fill: wallColors[hold.id] ?? 'rgb(170, 168, 162)', stroke: 'none' } : undefined} />)}
+          {showSuggestions && !coverConfirmed && pendingSuggestions.map((hold) => <polygon key={hold.id} className="annotation-suggestion" points={points(hold.polygon)} />)}
           {preview && <polygon className="annotation-preview" points={points(preview.polygon)} />}
           {box && <rect className="annotation-box" x={box[0] * WIDTH} y={box[1] * HEIGHT} width={(box[2] - box[0]) * WIDTH} height={(box[3] - box[1]) * HEIGHT} />}
           {prompts.map((prompt, index) => <g key={index} className={prompt.label ? 'annotation-positive' : 'annotation-negative'}>

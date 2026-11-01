@@ -114,3 +114,27 @@ initial phone access, exact GT preservation and real bottom-right inference with
 changing saved data. Playwright setup variables are documented in the local
 annotator note. Tests cover original-ID edits, stale-write rejection, idempotent
 import, bad input, persistent skip, coordinate bounds and mobile layout.
+
+## Live wall-color coverage check
+
+**Cover confirmed holds** fills accepted polygons with locally sampled neutral
+wall gray. The browser samples a reduced image and ignores all accepted polygon
+pixels when estimating nearby wall colors, matching the offline coverage preview
+strategy. **Show original holds** turns it off. Orange automatic suggestions are
+hidden only while this coverage view is active, then restored to their previous
+visibility. Green previews and prompt controls remain available.
+
+This is a display-only toggle: it sends no annotation writes, defaults to off,
+and recalculates when accepted holds are added, edited, imported or deleted. It
+reuses cached image pixels rather than rerunning SAM2. Colored rims and shadows
+may reflect contour inaccuracies rather than wholly missed holds.
+
+`node scripts/annotation-coverage-smoke.cjs` verifies 677 neutral filled polygons,
+original/suggestion restoration, no write requests, and phone layout. Use the
+same Playwright environment variables as the other browser tests.
+
+The automatic pre-labeling source is committed: `tools/sam2_seed_full_wall.py`
+(overlapping tiles, candidate/grid prompts, filtering and deduplication), added
+in commit `04e5815`. The earlier crop pipeline is
+`tools/sam2_experiment_top_left.py`, with setup pinned in
+`tools/sam2-cpu-requirements.txt`.
