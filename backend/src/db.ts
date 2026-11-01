@@ -1,5 +1,5 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
-import { DeleteCommand, DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb'
+import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb'
 import type { Problem, ProblemItem, UpdateProblemInput } from './model'
 import { ApiError } from './walls'
 
@@ -113,19 +113,4 @@ export async function updateProblem(existing: Problem, patch: UpdateProblemInput
     throw error
   }
   return next
-}
-
-export async function deleteProblem(problemId: string): Promise<void> {
-  try {
-    await client.send(new DeleteCommand({
-      TableName: tableName,
-      Key: { pk: problemPk(problemId), sk: 'META' },
-      ConditionExpression: 'attribute_exists(pk)',
-    }))
-  } catch (error) {
-    if ((error as { name?: string }).name === 'ConditionalCheckFailedException') {
-      throw new ApiError(404, 'problem not found')
-    }
-    throw error
-  }
 }

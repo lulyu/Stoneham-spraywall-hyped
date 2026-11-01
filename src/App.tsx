@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import sam2Experiment from './data/experiments/top_left_sam2_polygons.json'
 import { polygonCandidates as holds } from './data/polygons'
+import { initializeAuth, accessToken, signIn, signOut, authConfigured } from './auth'
 import { createApiProblemStore, createLocalProblemStore, readLocalProblems, ProblemStoreError, STORAGE_KEY } from './problemStore'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { HoldRole, Problem, ProblemHold, PolygonHoldCandidate, Point } from './types'
@@ -13,7 +14,7 @@ const browserStorage = {
 }
 const validHoldIds = new Set(holds.map((hold) => hold.id))
 const problemStore = apiBaseUrl
-  ? createApiProblemStore(apiBaseUrl)
+  ? createApiProblemStore(apiBaseUrl, fetch, accessToken)
   : createLocalProblemStore(browserStorage, validHoldIds)
 const importKey = STORAGE_KEY + ':imported:' + apiBaseUrl
 function pendingLocalProblems() {
@@ -298,6 +299,24 @@ function WallViewer({
 }
 
 function App() {
+  const [identity, setIdentity] = useState<{ userId: string; isAdmin: boolean } | null>(null)
+  const [authError, setAuthError] = useState('')
+  useEffect(() => {
+    let live = true
+    void (async () => {
+      try {
+        await initializeAuth()
+        const token = await accessToken()
+        if (!token) return
+        const response = await fetch(apiBaseUrl + '/v1/me', { headers: { authorization: 'Bearer ' + token } })
+        if (!response.ok) throw new Error('Could not verify your login. Please sign in again.')
+        const value = await response.json()
+        if (live) setIdentity(value)
+      } catch (error) { if (live) setAuthError(error instanceof Error ? error.message : 'Login failed.') }
+    })()
+    return () => { live = false }
+  }, [])
+  const canWrite = !problemStore.shared || Boolean(identity)
   const [mode, setMode] = useState<'browse' | 'set'>('browse')
   const [problems, setProblems] = useState<Problem[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -373,6 +392,7 @@ function App() {
   }
 
   const startSetting = () => {
+    if (!canWrite) { void signIn().catch((e) => setAuthError(e.message)); return }
     selectionSequence.current++
     setOpeningId(null)
     setEditing(null)
@@ -474,6 +494,11 @@ function App() {
         )}
       </header>
 
+      {problemStore.shared && <div className="problem-tools auth-tools">
+        {identity ? <><span className="muted">{identity.isAdmin ? 'Gym administrator' : 'Signed in'}</span><button className="ghost small" disabled={busy} onClick={() => void signOut().catch((e) => setAuthError(e.message))}>Sign out</button></> :
+          <button className="ghost small" disabled={!authConfigured} onClick={() => void signIn().catch((e) => setAuthError(e.message))}>Sign in with Google</button>}
+        {authError && <p role="alert" className="error-message">{authError}</p>}
+      </div>}
       <details className="polygon-debug-panel">
         <summary>Polygon debug</summary>
         <div className="polygon-debug-controls">
@@ -547,13 +572,13 @@ function App() {
 
           <div className="problem-tools">
             <button className="ghost small" disabled={busy || loading} onClick={() => void refreshProblems()}>{loading ? 'Loading…' : 'Refresh'}</button>
-            {activeProblem && <button className="ghost small" disabled={busy || openingId !== null} onClick={() => void openProblem(activeProblem, true)}>Edit problem</button>}
+            {activeProblem && (!problemStore.shared || identity?.isAdmin || (identity && activeProblem.ownerId === identity.userId)) && <button className="ghost small" disabled={busy || openingId !== null} onClick={() => void openProblem(activeProblem, true)}>Edit problem</button>}
           </div>
           {listError && <p className="error-message" role="alert">{listError}</p>}
           {openingId && <p role="status" className="muted">Opening problem…</p>}
           {problemStore.shared && localProblems.length > 0 && <div className="local-import">
             <p>{localProblems.length} local problems remain on this device.</p>
-            <button className="ghost small" disabled={busy || loading} onClick={() => void importLocal()}>{busy ? 'Importing…' : 'Import local problems'}</button>
+            <button className="ghost small" disabled={busy || loading || !canWrite} onClick={() => void importLocal()}>{busy ? 'Importing…' : 'Import local problems'}</button>
           </div>}
           {importMessage && <p role="status">{importMessage}</p>}
           {loading && problems.length === 0 ? <p role="status">Loading problems…</p> : problems.length === 0 && listError ? null : problems.length === 0 ? (

@@ -61,14 +61,15 @@ export function createLocalProblemStore(storage: Pick<Storage, 'getItem' | 'setI
   }
 }
 
-export function createApiProblemStore(baseUrl: string, fetcher: typeof fetch = fetch): ProblemStore {
+export function createApiProblemStore(baseUrl: string, fetcher: typeof fetch = fetch, token: () => Promise<string | undefined> = async () => undefined): ProblemStore {
   const base = baseUrl.replace(/\/+$/, '')
   const collection = '/v1/gyms/stoneham-crg/walls/spray-wall-1/versions/2026-10-v4/problems'
   async function request<T>(method: string, path: string, payload?: unknown): Promise<T> {
+    const bearer = await token()
     let response: Response
     try {
       response = await fetcher(base + path, {
-        method, headers: payload === undefined ? undefined : { 'content-type': 'application/json' },
+        method, headers: { ...(payload === undefined ? {} : { 'content-type': 'application/json' }), ...(bearer ? { authorization: 'Bearer ' + bearer } : {}) },
         body: payload === undefined ? undefined : JSON.stringify(payload),
         signal: AbortSignal.timeout(20000),
       })
@@ -76,6 +77,7 @@ export function createApiProblemStore(baseUrl: string, fetcher: typeof fetch = f
       throw new Error('Could not reach the shared wall. Check your connection and try again. Your draft is still here.')
     }
     const data = await response.json().catch(() => null)
+    if (response.status === 401) throw new ProblemStoreError(401, 'Sign in to save or edit. Your draft is still here.')
     if (!response.ok) throw new ProblemStoreError(response.status, data?.error || 'The shared wall request failed. Please try again.')
     if (!data || typeof data !== 'object') throw new Error('The shared wall returned an invalid response.')
     return data as T

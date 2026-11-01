@@ -1,6 +1,7 @@
+import { requireIdentity, requireEditor } from './auth'
 import { randomUUID } from 'node:crypto'
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda'
-import { createProblem, deleteProblem, listProblems, requireProblem, updateProblem } from './db'
+import { createProblem, listProblems, requireProblem, updateProblem } from './db'
 import type { Problem } from './model'
 import { parseCreateProblem, parseUpdateProblem } from './validation'
 import { ApiError, requireWallVersion } from './walls'
@@ -46,6 +47,8 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
       return response(200, { ok: true, service: 'stoneham-spraywall-api' })
     }
 
+    if (method === 'GET' && path === '/v1/me') return response(200, requireIdentity(event))
+
     const wallProblemPath = pathMatch(
       path,
       /^\/v1\/gyms\/([^/]+)\/walls\/([^/]+)\/versions\/([^/]+)\/problems$/,
@@ -58,6 +61,7 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
         return response(200, { items: await listProblems(gymId, wallId, wallVersionId) })
       }
       if (method === 'POST') {
+        const identity = requireIdentity(event)
         const input = parseCreateProblem(parseJsonBody(event), wall)
         const now = new Date().toISOString()
         const problem: Problem = {
@@ -69,6 +73,7 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
           createdAt: now,
           updatedAt: now,
           revision: 1,
+          ownerId: identity.userId,
         }
         return response(201, await createProblem(problem))
       }
@@ -79,12 +84,10 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
     if (problemPath) {
       const [problemId] = problemPath
       if (method === 'GET') return response(200, await requireProblem(problemId))
-      if (method === 'DELETE') {
-        await deleteProblem(problemId)
-        return response(204)
-      }
       if (method === 'PATCH') {
+        const identity = requireIdentity(event)
         const existing = await requireProblem(problemId)
+        requireEditor(identity, existing)
         const wall = requireWallVersion(existing.gymId, existing.wallId, existing.wallVersionId)
         const patch = parseUpdateProblem(parseJsonBody(event), wall)
         return response(200, await updateProblem(existing, patch))
