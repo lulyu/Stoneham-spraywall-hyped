@@ -22,10 +22,10 @@ function toProblem(item: ProblemItem): Problem {
 export async function createProblem(problem: Problem): Promise<Problem> {
   const item: ProblemItem = {
     ...problem,
-    pk: problemPk(problem.problemId),
+    pk: problemPk(problem.id),
     sk: 'META',
     gsi1pk: wallVersionPk(problem.gymId, problem.wallId, problem.wallVersionId),
-    gsi1sk: `PROBLEM#${problem.createdAt}#${problem.problemId}`,
+    gsi1sk: `PROBLEM#${problem.createdAt}#${problem.id}`,
     entityType: 'problem',
   }
 
@@ -86,10 +86,10 @@ export async function updateProblem(existing: Problem, patch: UpdateProblemInput
   }
   const item: ProblemItem = {
     ...next,
-    pk: problemPk(next.problemId),
+    pk: problemPk(next.id),
     sk: 'META',
     gsi1pk: wallVersionPk(next.gymId, next.wallId, next.wallVersionId),
-    gsi1sk: `PROBLEM#${next.createdAt}#${next.problemId}`,
+    gsi1sk: `PROBLEM#${next.createdAt}#${next.id}`,
     entityType: 'problem',
   }
 
