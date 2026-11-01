@@ -1,0 +1,72 @@
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE_PATH || 'playwright')
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+
+async function main() {
+  const base = process.env.APP_URL || 'http://127.0.0.1:8787'
+  const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true, args: ['--no-sandbox'], proxy: base.startsWith('https:') && process.env.HTTPS_PROXY ? { server: process.env.HTTPS_PROXY } : undefined })
+  try {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, acceptDownloads: true })
+    const page = await context.newPage()
+    page.setDefaultTimeout(15000)
+    const errors = []
+    page.on('pageerror', error => errors.push(error.message))
+    if (process.env.ANNOTATOR_KEY_FILE) {
+      const key = fs.readFileSync(process.env.ANNOTATOR_KEY_FILE, 'utf8').trim()
+      assert.equal((await browser.newContext().then(async c => { try { return (await c.request.get(`${base}/api/sam2/status`)).status() } finally { await c.close() } })), 401)
+      await page.goto(`${base}/auth?key=${encodeURIComponent(key)}`)
+    } else await page.goto(`${base}/?annotate=1`)
+    await page.getByText(/SAM2.1 Small ready/).waitFor({ timeout: 60000 })
+    const tapAt = async (x, y) => {
+      await page.locator('.annotation-viewport').scrollIntoViewIfNeeded()
+      const location = await page.locator('.annotation-stage').evaluate((svg, [x, y]) => {
+        const location = new DOMPoint(x * 7292, y * 5514).matrixTransform(svg.getScreenCTM())
+        return { x: location.x, y: location.y }
+      }, [x, y])
+      await page.touchscreen.tap(location.x, location.y)
+    }
+    await tapAt(.074, .103)
+    await page.getByText(/1 positive · 0 negative/).waitFor()
+    await page.getByRole('button', { name: 'Generate mask' }).click()
+    await page.locator('.annotation-preview').waitFor()
+    await page.getByRole('button', { name: '− Exclude', exact: true }).click()
+    await tapAt(.12, .04)
+    await page.getByText(/1 positive · 1 negative/).waitFor()
+    assert.equal(await page.locator('.annotation-preview').count(), 0)
+    await page.getByRole('button', { name: 'Generate mask' }).click()
+    await page.locator('.annotation-preview').waitFor()
+    await page.getByRole('button', { name: 'Box', exact: true }).click()
+    await tapAt(.035, .065)
+    await tapAt(.11, .14)
+    await page.locator('.annotation-box').waitFor()
+    await page.getByRole('button', { name: 'Generate mask' }).click()
+    await page.locator('.annotation-preview').waitFor()
+    const vertices = await page.locator('.annotation-preview').getAttribute('points')
+    assert(vertices.split(' ').length >= 3 && vertices.split(' ').length <= 16)
+    fs.mkdirSync('artifacts', { recursive: true })
+    await page.screenshot({ path: 'artifacts/manual-annotator-mobile.png' })
+    const acceptedResponse = page.waitForResponse(response => response.url().endsWith('/api/sam2/accept'))
+    await page.getByRole('button', { name: 'Accept hold', exact: true }).click()
+    const data = await (await acceptedResponse).json()
+    const created = data.holds.at(-1)
+    assert.match(created.id, /^manual-/)
+    assert(created.polygon.every(([x, y]) => x >= 0 && x <= 2431 / 7292 && y >= 0 && y <= 1838 / 5514))
+    await page.reload()
+    await page.getByLabel('Saved hold', { exact: true }).selectOption(created.id)
+    const downloadPromise = page.waitForEvent('download')
+    await page.getByRole('link', { name: 'Export JSON' }).click()
+    const download = await downloadPromise
+    const exported = JSON.parse(fs.readFileSync(await download.path(), 'utf8'))
+    assert(exported.holds.some(hold => hold.id === created.id))
+    await page.getByRole('button', { name: 'Delete selected', exact: true }).click()
+    await page.waitForFunction(id => ![...document.querySelectorAll('option')].some(o => o.value === id), created.id)
+    const invalid = await context.request.post(`${base}/api/sam2/predict`, { data: { points: [{ point: [1, 1], label: 1 }] } })
+    assert.equal(invalid.status(), 400)
+    const crossOrigin = await context.request.post(`${base}/api/sam2/predict`, { headers: { Origin: 'https://example.com' }, data: { points: [] } })
+    assert.equal(crossOrigin.status(), 403)
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+    assert.deepEqual(errors, [])
+    console.log('PASS: real SAM2 positive/negative/box, ≤16 vertices, accept, reload, export, delete, invalid input, same-origin protection, mobile layout')
+  } finally { await browser.close() }
+}
+main().catch(error => { console.error(error); process.exitCode = 1 })

@@ -69,3 +69,11 @@ in each dimension. Open **Polygon debug → Show all polygons** to compare curre
 candidates with **SAM2 top-left**, optionally show labels and focus the crop.
 This changes the overlay only; route setting retains its current dataset.
 See [experiment setup, results and limitations](docs/sam2-top-left-experiment.md).
+
+## Manual SAM2 annotator
+
+A separate local Python service now supports positive/negative points, box prompts,
+mask previews, acceptance, deletion and JSON export. It reuses the crop embedding
+and runs on CPU when CUDA is unavailable. See [local annotator setup and phone
+preview notes](docs/sam2-local-annotator.md). Accepted holds stay separate from the
+route-setting dataset.
