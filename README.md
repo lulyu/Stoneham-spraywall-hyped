@@ -87,3 +87,11 @@ batch, and refined. Existing JSON can be imported and edited while preserving ID
 See [full-wall workflow, data provenance and tests](docs/sam2-full-wall-annotator.md).
 
 The canonical production hold map is now the accepted 677-hold v4 export.
+
+## Backend infrastructure (infra-mvp-backend branch)
+
+The first shared-data backend is scaffolded under `backend/` and `infra/`: a
+TypeScript Lambda behind API Gateway HTTP API with a single on-demand DynamoDB
+table. The data model separates gym, wall, wall version, and problem so wall resets
+and future gyms are additive. See [`docs/infra.md`](docs/infra.md) for the schema,
+API, build, and Terraform workflow.
