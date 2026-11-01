@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import sam2Experiment from './data/experiments/top_left_sam2_polygons.json'
 import { polygonCandidates as holds } from './data/polygons/auto-v1-packed'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { HoldRole, Problem, ProblemHold, PolygonHoldCandidate, Point } from './types'
@@ -7,6 +8,10 @@ const wallImage = `${import.meta.env.BASE_URL}wall/stoneham-spraywall-canonical.
 const STORAGE_KEY = 'stoneham-spraywall:problems:v2'
 const WALL_WIDTH = 1536
 const WALL_HEIGHT = WALL_WIDTH * 5514 / 7292
+const sam2Holds: PolygonHoldCandidate[] = sam2Experiment.holds.map((hold) => ({
+  id: hold.id, kind: 'hold', center: [hold.center[0], hold.center[1]],
+  polygon: hold.polygon.map(([x, y]): Point => [x, y]),
+}))
 const grades = ['VB', 'V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V10+']
 
 function loadProblems(): Problem[] {
@@ -91,11 +96,17 @@ function WallViewer({
   draft,
   activeProblem,
   onHoldTap,
+  debugPolygons,
+  showPolygonLabels,
+  showCropFocus,
 }: {
   mode: 'browse' | 'set'
   draft: ProblemHold[]
   activeProblem: Problem | null
   onHoldTap: (id: string) => void
+  debugPolygons: PolygonHoldCandidate[]
+  showPolygonLabels: boolean
+  showCropFocus: boolean
 }) {
   const viewportRef = useRef<HTMLDivElement>(null)
   const [view, setView] = useState({ scale: 0.35, x: 0, y: 0 })
@@ -141,6 +152,12 @@ function WallViewer({
       const wy = (py - v.y) / v.scale
       return { scale: nextScale, x: px - wx * nextScale, y: py - wy * nextScale }
     })
+  }
+
+  const focusCrop = () => {
+    const viewport = viewportRef.current
+    if (!viewport) return
+    setView({ scale: Math.min(viewport.clientWidth / (WALL_WIDTH / 3), viewport.clientHeight / (WALL_HEIGHT / 3)), x: 0, y: 0 })
   }
 
   const endPointer = (e: ReactPointerEvent<HTMLDivElement>, cancelled = false) => {
@@ -212,6 +229,18 @@ function WallViewer({
       >
         <img src={wallImage} className="wall-image" alt="Stoneham spray wall" draggable={false} />
         <svg className="wall-overlay" viewBox={`0 0 ${WALL_WIDTH} ${WALL_HEIGHT}`}>
+          <g className="debug-polygons" aria-hidden="true">
+            {debugPolygons.map((hold, index) => {
+              const [cx, cy] = toWallPoint(hold.center)
+              return (
+                <g key={hold.id}>
+                  <polygon className="debug-polygon" points={polygonPoints(hold)}
+                    style={{ fill: `hsl(${index * 137.508 % 360} 85% 60% / 0.18)`, stroke: `hsl(${index * 137.508 % 360} 85% 65%)` }} />
+                  {showPolygonLabels && <text className="debug-polygon-label" x={cx} y={cy} fontSize={12 / view.scale}>{hold.id}</text>}
+                </g>
+              )
+            })}
+          </g>
           {holds.map((hold) => {
             const role = shownMap.get(hold.id)
             const [cx, cy] = toWallPoint(hold.center)
@@ -230,6 +259,7 @@ function WallViewer({
         </svg>
       </div>
       <button className="fit-button" onPointerUp={(e) => { e.stopPropagation(); fit() }} onClick={fit}>Fit wall</button>
+      {showCropFocus && <button className="crop-focus-button" onPointerUp={(e) => { e.stopPropagation(); focusCrop() }} onClick={focusCrop}>Focus top-left crop</button>}
       {mode === 'set' && <div className="tap-hint">Tap holds · drag to pan · pinch to zoom</div>}
     </div>
   )
@@ -245,6 +275,11 @@ function App() {
   const [grade, setGrade] = useState('V4')
   const [setter, setSetter] = useState('Lu')
   const [storageError, setStorageError] = useState('')
+  const [showAllPolygons, setShowAllPolygons] = useState(false)
+  const [showPolygonLabels, setShowPolygonLabels] = useState(false)
+  const [debugDataset, setDebugDataset] = useState<'current' | 'sam2'>('current')
+  const experimentHolds = sam2Holds
+  const debugHolds = debugDataset === 'current' ? holds : experimentHolds
 
   const activeProblem = problems.find((p) => p.id === activeId) ?? null
 
@@ -310,8 +345,23 @@ function App() {
         )}
       </header>
 
+      <details className="polygon-debug-panel">
+        <summary>Polygon debug</summary>
+        <div className="polygon-debug-controls">
+          <label><input type="checkbox" checked={showAllPolygons} onChange={(e) => setShowAllPolygons(e.target.checked)} />Show all polygons</label>
+          <label><input type="checkbox" checked={showPolygonLabels} disabled={!showAllPolygons} onChange={(e) => setShowPolygonLabels(e.target.checked)} />Show polygon labels</label>
+          <label>Debug dataset
+            <select aria-label="Debug dataset" value={debugDataset} onChange={(e) => setDebugDataset(e.target.value as 'current' | 'sam2')}>
+              <option value="current">Current candidates ({holds.length})</option>
+              <option value="sam2">SAM2 top-left ({experimentHolds.length})</option>
+            </select>
+          </label>
+          <p>{debugHolds.length} polygons · Overlay only. Route setting continues to use current candidates.</p>
+        </div>
+      </details>
       <section className="wall-card">
-        <WallViewer mode={mode} draft={draft} activeProblem={activeProblem} onHoldTap={tapHold} />
+        <WallViewer mode={mode} draft={draft} activeProblem={activeProblem} onHoldTap={tapHold}
+          debugPolygons={showAllPolygons ? debugHolds : []} showPolygonLabels={showPolygonLabels} showCropFocus={showAllPolygons && debugDataset === 'sam2'} />
       </section>
 
       {mode === 'set' ? (

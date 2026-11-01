@@ -61,3 +61,11 @@ With Playwright available and the dev server running, run
 installed outside this project and `CHROMIUM_PATH` to use system Chromium.
 It uses isolated browser storage, tests touch pan/pinch/selection, save/reload,
 small-screen layout and storage failures, and writes a screenshot to `artifacts/`.
+
+## SAM2 crop experiment and polygon debug view
+
+A separate SAM2.1 Small experiment segments only the top-left third of the image
+in each dimension. Open **Polygon debug → Show all polygons** to compare current
+candidates with **SAM2 top-left**, optionally show labels and focus the crop.
+This changes the overlay only; route setting retains its current dataset.
+See [experiment setup, results and limitations](docs/sam2-top-left-experiment.md).

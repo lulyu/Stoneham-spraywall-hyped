@@ -72,3 +72,16 @@ input:focus, select:focus { border-color: #6e7b59; }
   .editor-sheet, .problem-sheet { padding: 14px; }
   .topbar { padding: 13px 14px 10px; }
 }
+
+/* Temporary inspection overlay: never intercept hold selection or wall gestures. */
+.debug-polygons { pointer-events: none; }
+.debug-polygon { stroke-width: 1.25; vector-effect: non-scaling-stroke; }
+.debug-polygon-label { fill: white; stroke: #111; stroke-width: 3px; paint-order: stroke; }
+.polygon-debug-panel { margin: 0 14px 10px; color: #c9cebf; font-size: 13px; }
+.polygon-debug-panel summary { cursor: pointer; padding: 8px 0; }
+.polygon-debug-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px; border: 1px solid #34382e; border-radius: 10px; }
+.polygon-debug-controls label { display: flex; align-items: center; font-size: 13px; flex-wrap: wrap; }
+.polygon-debug-controls input { width: 18px; height: 18px; accent-color: #c9ff53; }
+.polygon-debug-controls select { width: auto; max-width: 100%; }
+.polygon-debug-controls p { margin: 0; width: 100%; font-size: 12px; }
+.crop-focus-button { position: absolute; right: 12px; top: 60px; background: #252821; color: white; border: 1px solid #66734f; border-radius: 999px; padding: 9px 12px; cursor: pointer; }

@@ -4,4 +4,12 @@ dist/
 .DS_Store
 *.local
 *.tsbuildinfo
-artifacts/
+artifacts/*
+!artifacts/sam2-top-left-crop.jpg
+!artifacts/sam2-top-left-overlay.jpg
+!artifacts/sam2-top-left-overlay-labeled.jpg
+!artifacts/sam2-top-left-run.json
+!artifacts/sam2-top-left-ui-debug.png
+__pycache__/
+*.pyc
+models/
