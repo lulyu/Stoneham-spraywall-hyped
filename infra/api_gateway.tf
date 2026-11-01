@@ -24,28 +24,10 @@ resource "aws_apigatewayv2_route" "default" {
   target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
 }
 
-resource "aws_cloudwatch_log_group" "api" {
-  name              = "/aws/apigateway/${local.name_prefix}"
-  retention_in_days = var.log_retention_days
-}
-
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.http.id
   name        = "$default"
   auto_deploy = true
-
-  access_log_settings {
-    destination_arn = aws_cloudwatch_log_group.api.arn
-    format = jsonencode({
-      requestId        = "$context.requestId"
-      requestTime      = "$context.requestTime"
-      httpMethod       = "$context.httpMethod"
-      routeKey         = "$context.routeKey"
-      status           = "$context.status"
-      responseLength   = "$context.responseLength"
-      integrationError = "$context.integrationErrorMessage"
-    })
-  }
 }
 
 resource "aws_lambda_permission" "api_gateway" {
