@@ -1,0 +1,10 @@
+[
+  {
+    "gymId": "stoneham-crg",
+    "wallId": "spray-wall-1",
+    "wallVersionId": "2026-10-v4",
+    "displayName": "Stoneham Spray Wall",
+    "active": true,
+    "holdSource": "src/data/polygons/holds.json"
+  }
+]
