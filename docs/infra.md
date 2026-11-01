@@ -111,33 +111,23 @@ npm run build
 `npm run build` regenerates `src/generated/wallCatalog.ts` from the canonical hold
 files, then bundles the Lambda into `backend/dist/index.js` with esbuild.
 
-## Deployed production ownership
+## Deployment and maintenance
 
-Production is deployed through CloudFormation using the connected AWS API.
-See [deployment templates and runbook](../infra/cloudformation/README.md).
-Do not apply Terraform to the same deployed resources without an explicit state
-migration. The Terraform commands below remain a reference for separate environments.
+CloudFormation manages the deployed production backend in `us-east-1`.
+See [deployment templates and runbook](../infra/cloudformation/README.md) for
+building the Lambda package, uploading it to the private artifact bucket, and
+updating the stack. Deployment records are in
+[`production.json`](../infra/cloudformation/production.json).
 
-## Provision dev
+- `stoneham-spraywall-artifacts`: private deployment package storage.
+- `stoneham-spraywall-prod`: HTTP API, Lambda, IAM role, logs and DynamoDB.
+- DynamoDB uses on-demand billing and has point-in-time recovery enabled.
+- CloudFormation retains the database and artifact bucket on deletion/replacement.
 
-Terraform workspaces keep dev and prod state separate. Do not apply from the
-`default` workspace; the configuration rejects it.
-
-```bash
-cd infra
-terraform init
-terraform workspace new dev       # first time only
-# or: terraform workspace select dev
-terraform fmt -check
-terraform validate
-terraform plan  -var-file=env/dev.tfvars
-terraform apply -var-file=env/dev.tfvars
-```
-
-Then:
+Check the deployed API:
 
 ```bash
-curl "$(terraform output -raw api_url)/health"
+curl https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com/health
 ```
 
 Expected response:
@@ -146,16 +136,8 @@ Expected response:
 {"ok":true,"service":"stoneham-spraywall-api"}
 ```
 
-The dev API currently allows browser requests from any origin because it is an
-anonymous, non-sensitive prototype. Production tfvars restrict browser CORS to the
-stable Vercel domain. CORS is not used as authentication.
-
-## Production
-
-A separate `prod` Terraform workspace and `env/prod.tfvars` are provided, with
-DynamoDB point-in-time recovery enabled. Before treating production data as
-important, move Terraform state to a remote backend (S3 with locking/versioning or
-Terraform Cloud) instead of relying on local state.
+Production CORS permits the stable Vercel origin. CORS is not authentication.
+Vercel previews remain local-only unless explicitly configured for a separate API.
 
 ## Frontend integration
 

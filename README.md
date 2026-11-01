@@ -88,13 +88,14 @@ See [full-wall workflow, data provenance and tests](docs/sam2-full-wall-annotato
 
 The canonical production hold map is now the accepted 677-hold v4 export.
 
-## Backend infrastructure (infra-mvp-backend branch)
+## Backend infrastructure
 
-The first shared-data backend is scaffolded under `backend/` and `infra/`: a
+The shared-data backend is deployed from `backend/` and `infra/`: a
 TypeScript Lambda behind API Gateway HTTP API with a single on-demand DynamoDB
 table. The data model separates gym, wall, wall version, and problem so wall resets
 and future gyms are additive. See [`docs/infra.md`](docs/infra.md) for the schema,
-API, build, and Terraform workflow.
+API, build, and CloudFormation deployment workflow.
+
 ## Hold roles and selection styling
 
 Route setting supports Start, Finish, Hold and Foot-only. Only the most recently selected or reassigned hold in setting mode uses a

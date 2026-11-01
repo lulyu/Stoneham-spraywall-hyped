@@ -23,14 +23,7 @@ models/
 !artifacts/stoneham-unmarked-holds-v3-mask.png
 !artifacts/annotation-coverage-mobile.png
 
-# Backend / Terraform build products
+# Backend build products
 backend/src/generated/wallCatalog.ts
-infra/.terraform/
-infra/.backend.zip
-infra/*.tfstate
-infra/*.tfstate.*
-infra/terraform.tfstate.d/
-infra/.terraform.tfstate.lock.info
-infra/crash.log
 !artifacts/hold-roles-rainbow-mobile.png
 !artifacts/route-focus-pulse-mobile.png

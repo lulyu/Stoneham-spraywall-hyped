@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Stoneham production API; CloudFormation owns these resources, not Terraform",
+  "Description": "Stoneham production API managed by CloudFormation",
   "Parameters": {
     "ArtifactBucket": {
       "Type": "String"

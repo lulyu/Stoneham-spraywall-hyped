@@ -1,10 +1,8 @@
 # AWS connector deployment
 
-The deployed production backend is owned by **CloudFormation**, not Terraform.
-The managed terminal has no AWS CLI credentials; the connected AWS API was used
-to deploy the equivalent stack. Do not apply the sibling Terraform configuration
-against these resources. A future migration requires explicit CloudFormation
-retention/removal and Terraform import, not a second create/apply.
+CloudFormation is the deployment and maintenance entry point for the production
+backend. The initial deployment used the connected AWS API; the commands below
+provide the equivalent workflow with AWS CLI credentials.
 
 The deployed endpoint is https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com
 (health: `/health`). See `production.json` for the deployed source commit,
@@ -18,8 +16,8 @@ Templates:
   and 14-day Lambda logs. The database is retained on deletion/replacement.
 
 Production CORS defaults to the existing Vercel production origin. Authentication
-remains outside this MVP, as in the Terraform design. The frontend still uses
-localStorage; deploying this API alone does not switch frontend persistence.
+remains outside this MVP. The frontend uses this API when `VITE_API_BASE_URL` is
+configured; without that variable it uses localStorage.
 
 ## Rebuild and update
 
@@ -50,7 +48,7 @@ aws cloudformation deploy --stack-name stoneham-spraywall-prod --region us-east-
 aws cloudformation describe-stacks --stack-name stoneham-spraywall-prod --region us-east-1
 ```
 
-Validate templates with `cfn-lint -t infra/cloudformation/*.json -r us-east-1`.
+Validate templates with `cfn-lint -t infra/cloudformation/artifacts.json infra/cloudformation/backend.json -r us-east-1`.
 The initial deployment also used CloudFormation change sets and their
 `DescribeEvents` pre-deployment validation; cfn-guard was not installed/run.
 
