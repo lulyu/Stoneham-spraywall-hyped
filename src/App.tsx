@@ -1,11 +1,28 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import sam2Experiment from './data/experiments/top_left_sam2_polygons.json'
 import { polygonCandidates as holds } from './data/polygons'
+import { createApiProblemStore, createLocalProblemStore, readLocalProblems, ProblemStoreError, STORAGE_KEY } from './problemStore'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { HoldRole, Problem, ProblemHold, PolygonHoldCandidate, Point } from './types'
 
 const wallImage = `${import.meta.env.BASE_URL}wall/stoneham-spraywall-canonical.jpg`
-const STORAGE_KEY = 'stoneham-spraywall:problems:v3'
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim() ?? ''
+const browserStorage = {
+  getItem: (key: string) => window.localStorage.getItem(key),
+  setItem: (key: string, value: string) => window.localStorage.setItem(key, value),
+}
+const validHoldIds = new Set(holds.map((hold) => hold.id))
+const problemStore = apiBaseUrl
+  ? createApiProblemStore(apiBaseUrl)
+  : createLocalProblemStore(browserStorage, validHoldIds)
+const importKey = STORAGE_KEY + ':imported:' + apiBaseUrl
+function pendingLocalProblems() {
+  const local = readLocalProblems(browserStorage, validHoldIds)
+  try {
+    const imported = JSON.parse(browserStorage.getItem(importKey) || '{}')
+    return local.filter((problem) => !imported[problem.id])
+  } catch { return local }
+}
 const WALL_WIDTH = 1536
 const WALL_HEIGHT = WALL_WIDTH * 5514 / 7292
 const sam2Holds: PolygonHoldCandidate[] = sam2Experiment.holds.map((hold) => ({
@@ -14,27 +31,6 @@ const sam2Holds: PolygonHoldCandidate[] = sam2Experiment.holds.map((hold) => ({
 }))
 const holdRoles: HoldRole[] = ['start', 'finish', 'hold', 'foot-only']
 const grades = ['VB', 'V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V10+']
-
-function loadProblems(): Problem[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    const parsed: unknown = raw ? JSON.parse(raw) : []
-    if (!Array.isArray(parsed)) return []
-    return parsed.filter((p): p is Problem =>
-      p !== null && typeof p === 'object' &&
-      typeof p.id === 'string' && typeof p.name === 'string' &&
-      typeof p.grade === 'string' && typeof p.setter === 'string' &&
-      typeof p.createdAt === 'string' && Array.isArray(p.holds) &&
-      p.holds.every((h: ProblemHold) => h !== null && typeof h === 'object' &&
-        holds.some((hold) => hold.id === h.holdId) &&
-        [...holdRoles, 'hand'].includes(h.role)),
-    ).map((problem) => ({ ...problem, holds: problem.holds.map((h): ProblemHold => ({
-      ...h, role: (h.role as HoldRole | 'hand') === 'hand' ? 'hold' : h.role,
-    })) }))
-  } catch {
-    return []
-  }
-}
 
 function roleLabel(role: HoldRole) {
   if (role === 'start') return 'START'
@@ -303,7 +299,7 @@ function WallViewer({
 
 function App() {
   const [mode, setMode] = useState<'browse' | 'set'>('browse')
-  const [problems, setProblems] = useState<Problem[]>(loadProblems)
+  const [problems, setProblems] = useState<Problem[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [draft, setDraft] = useState<ProblemHold[]>([])
   const [highlightedHoldId, setHighlightedHoldId] = useState<string | null>(null)
@@ -312,6 +308,17 @@ function App() {
   const [grade, setGrade] = useState('V4')
   const [setter, setSetter] = useState('Lu')
   const [storageError, setStorageError] = useState('')
+  const [listError, setListError] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const [openingId, setOpeningId] = useState<string | null>(null)
+  const [editing, setEditing] = useState<Problem | null>(null)
+  const [conflict, setConflict] = useState(false)
+  const [localProblems, setLocalProblems] = useState(pendingLocalProblems)
+  const [importMessage, setImportMessage] = useState('')
+  const mutation = useRef(false)
+  const listSequence = useRef(0)
+  const selectionSequence = useRef(0)
   const [showAllPolygons, setShowAllPolygons] = useState(false)
   const [showPolygonLabels, setShowPolygonLabels] = useState(false)
   const [debugDataset, setDebugDataset] = useState<'current' | 'sam2'>('current')
@@ -320,7 +327,56 @@ function App() {
 
   const activeProblem = problems.find((p) => p.id === activeId) ?? null
 
+  const refreshProblems = async () => {
+    const sequence = ++listSequence.current
+    setLoading(true)
+    setListError('')
+    try {
+      const items = await problemStore.list()
+      if (sequence === listSequence.current) setProblems(items)
+    } catch (error) {
+      if (sequence === listSequence.current) setListError(error instanceof Error ? error.message : 'Could not load problems.')
+    } finally {
+      if (sequence === listSequence.current) setLoading(false)
+    }
+  }
+  useEffect(() => {
+    void refreshProblems()
+    return () => { listSequence.current++; selectionSequence.current++ }
+  }, [])
+
+  const openProblem = async (problem: Problem, edit = false) => {
+    const sequence = ++selectionSequence.current
+    setOpeningId(problem.id)
+    setListError('')
+    try {
+      const fresh = await problemStore.get(problem.id)
+      if (sequence !== selectionSequence.current) return
+      setProblems((prev) => prev.map((item) => item.id === fresh.id ? fresh : item))
+      setActiveId(fresh.id)
+      if (edit) {
+        setEditing(fresh)
+        setDraft(fresh.holds)
+        setName(fresh.name)
+        setGrade(fresh.grade)
+        setSetter(fresh.setter)
+        setHighlightedHoldId(null)
+        setStorageError('')
+        setConflict(false)
+        setMode('set')
+      }
+    } catch (error) {
+      if (sequence === selectionSequence.current) setListError(error instanceof Error ? error.message : 'Could not open problem.')
+    } finally {
+      if (sequence === selectionSequence.current) setOpeningId(null)
+    }
+  }
+
   const startSetting = () => {
+    selectionSequence.current++
+    setOpeningId(null)
+    setEditing(null)
+    setConflict(false)
     setDraft([])
     setHighlightedHoldId(null)
     setStorageError('')
@@ -331,6 +387,7 @@ function App() {
   }
 
   const tapHold = (holdId: string) => {
+    if (mutation.current) return
     const existing = draft.find((h) => h.holdId === holdId)
     if (existing?.role === currentRole) {
       setDraft((prev) => prev.filter((h) => h.holdId !== holdId))
@@ -343,30 +400,64 @@ function App() {
     }
   }
 
-  const saveProblem = () => {
-    const trimmed = name.trim()
-    if (!trimmed || draft.length < 2) return
-    const problem: Problem = {
-      id: typeof crypto.randomUUID === 'function' ? crypto.randomUUID() :
-        `problem-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      name: trimmed,
-      grade,
-      setter: setter.trim() || 'Anonymous',
-      holds: draft,
-      createdAt: new Date().toISOString(),
-    }
-    const next = [problem, ...problems]
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-    } catch {
-      setStorageError('Could not save on this device. Free storage or enable browser storage, then try again.')
-      return
-    }
+  const validDraft = Boolean(name.trim()) && draft.length >= 2 &&
+    draft.some((hold) => hold.role === 'start') && draft.some((hold) => hold.role === 'finish')
+
+  const saveProblem = async () => {
+    if (!validDraft || mutation.current || conflict) return
+    mutation.current = true
+    setBusy(true)
     setStorageError('')
-    setProblems(next)
-    setActiveId(problem.id)
-    setHighlightedHoldId(null)
-    setMode('browse')
+    listSequence.current++
+    setLoading(false)
+    const input = { name: name.trim(), grade, setter: setter.trim() || 'Anonymous', holds: draft, ...(editing?.notes !== undefined ? { notes: editing.notes } : {}) }
+    try {
+      const problem = editing ? await problemStore.update(editing, input) : await problemStore.create(input)
+      setProblems((prev) => [problem, ...prev.filter((p) => p.id !== problem.id)])
+      setActiveId(problem.id)
+      setHighlightedHoldId(null)
+      setEditing(null)
+      setMode('browse')
+    } catch (error) {
+      if (error instanceof ProblemStoreError && error.status === 409) {
+        setConflict(true)
+        setStorageError('Someone else updated this problem. Your draft is preserved. Save it as a new problem, or cancel and reopen the latest version.')
+      } else setStorageError(error instanceof Error ? error.message : 'Could not save problem. Your draft is still here.')
+    } finally { mutation.current = false; setBusy(false) }
+  }
+
+  const importLocal = async () => {
+    if (mutation.current) return
+    mutation.current = true
+    setBusy(true)
+    setImportMessage('')
+    let imported = 0
+    const skipped: string[] = []
+    try {
+      const mapping = JSON.parse(browserStorage.getItem(importKey) || '{}')
+      // Check that migration progress can be persisted before creating remote records.
+      browserStorage.setItem(importKey, JSON.stringify(mapping))
+      for (const problem of localProblems) {
+        if (mapping[problem.id]) continue
+        if (!problem.holds.some((h) => h.role === 'start') || !problem.holds.some((h) => h.role === 'finish')) {
+          skipped.push(problem.name)
+          continue
+        }
+        const { name, grade, setter, holds, notes } = problem
+        const saved = await problemStore.create({ name, grade, setter, holds, notes })
+        mapping[problem.id] = saved.id
+        browserStorage.setItem(importKey, JSON.stringify(mapping))
+        imported++
+      }
+      setImportMessage(imported + ' imported.' + (skipped.length ? ' Still local (need a Start and Finish): ' + skipped.join(', ') : ' Local originals are kept.'))
+    } catch (error) {
+      setImportMessage(imported + ' imported. ' + (error instanceof Error ? error.message : 'Import stopped.'))
+    } finally {
+      setLocalProblems(pendingLocalProblems())
+      await refreshProblems()
+      mutation.current = false
+      setBusy(false)
+    }
   }
 
   return (
@@ -377,9 +468,9 @@ function App() {
           <h1>Spray Wall</h1>
         </div>
         {mode === 'browse' ? (
-          <button className="primary small" onClick={startSetting}>＋ Set</button>
+          <button className="primary small" disabled={busy} onClick={startSetting}>＋ Set</button>
         ) : (
-          <button className="ghost small" onClick={() => { setMode('browse'); setHighlightedHoldId(null) }}>Cancel</button>
+          <button className="ghost small" disabled={busy} onClick={() => { setMode('browse'); setHighlightedHoldId(null) }}>Cancel</button>
         )}
       </header>
 
@@ -404,6 +495,7 @@ function App() {
 
       {mode === 'set' ? (
         <section className="editor-sheet">
+          <fieldset className="editor-fields" aria-label="Problem editor" disabled={busy}>
           <div className="role-row" role="group" aria-label="Hold role">
             {holdRoles.map((role) => (
               <button
@@ -421,7 +513,7 @@ function App() {
           <div className="form-grid">
             <label>
               Problem name
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Technical Butt" />
+              <input maxLength={120} value={name} onChange={(e) => setName(e.target.value)} placeholder="Technical Butt" />
             </label>
             <label>
               Grade
@@ -431,30 +523,44 @@ function App() {
             </label>
             <label>
               Setter
-              <input value={setter} onChange={(e) => setSetter(e.target.value)} />
+              <input maxLength={80} value={setter} onChange={(e) => setSetter(e.target.value)} />
             </label>
           </div>
-          {storageError && <p role="alert">{storageError}</p>}
+          {!validDraft && <p className="muted">Add a name, at least one Start and one Finish.</p>}
+          {storageError && <p className="error-message" role="alert">{storageError}</p>}
+          {conflict && <button className="ghost" onClick={() => { setEditing(null); setConflict(false); setStorageError(''); setName((previous) => previous.slice(0, 112) + ' (copy)') }}>Keep draft as new problem</button>}
           <div className="editor-actions">
             <button className="ghost" onClick={() => { setDraft([]); setHighlightedHoldId(null) }}>Clear</button>
-            <button className="primary" disabled={!name.trim() || draft.length < 2} onClick={saveProblem}>Save problem</button>
+            <button className="primary" disabled={!validDraft || busy || conflict} onClick={() => void saveProblem()}>{busy ? 'Saving…' : editing ? 'Save changes' : 'Save problem'}</button>
           </div>
+          </fieldset>
         </section>
       ) : (
         <section className="problem-sheet">
           <div className="section-heading">
             <div>
-              <div className="eyebrow">LOCAL PROTOTYPE</div>
+              <div className="eyebrow">{problemStore.shared ? 'SHARED WALL' : 'LOCAL MODE'}</div>
               <h2>Problems</h2>
             </div>
-            <span className="muted">{problems.length} saved on this device</span>
+            <span className="muted">{problems.length} {problemStore.shared ? 'shared problems' : 'saved on this device'}</span>
           </div>
 
-          {problems.length === 0 ? (
-            <button className="empty-state" onClick={startSetting}>
+          <div className="problem-tools">
+            <button className="ghost small" disabled={busy || loading} onClick={() => void refreshProblems()}>{loading ? 'Loading…' : 'Refresh'}</button>
+            {activeProblem && <button className="ghost small" disabled={busy || openingId !== null} onClick={() => void openProblem(activeProblem, true)}>Edit problem</button>}
+          </div>
+          {listError && <p className="error-message" role="alert">{listError}</p>}
+          {openingId && <p role="status" className="muted">Opening problem…</p>}
+          {problemStore.shared && localProblems.length > 0 && <div className="local-import">
+            <p>{localProblems.length} local problems remain on this device.</p>
+            <button className="ghost small" disabled={busy || loading} onClick={() => void importLocal()}>{busy ? 'Importing…' : 'Import local problems'}</button>
+          </div>}
+          {importMessage && <p role="status">{importMessage}</p>}
+          {loading && problems.length === 0 ? <p role="status">Loading problems…</p> : problems.length === 0 && listError ? null : problems.length === 0 ? (
+            <button className="empty-state" disabled={busy} onClick={startSetting}>
               <span className="empty-plus">＋</span>
               <strong>Set the first problem</strong>
-              <span>Tap holds directly on the wall. Nothing leaves this device yet.</span>
+              <span>{problemStore.shared ? 'Tap holds on the wall and share your problem.' : 'Tap holds directly on the wall. Saved on this device.'}</span>
             </button>
           ) : (
             <div className="problem-list">
@@ -462,7 +568,8 @@ function App() {
                 <button
                   key={problem.id}
                   className={`problem-card ${activeId === problem.id ? 'active' : ''}`}
-                  onClick={() => setActiveId(problem.id)}
+                  disabled={busy}
+                  onClick={() => void openProblem(problem)}
                 >
                   <span className="grade-chip">{problem.grade}</span>
                   <span className="problem-copy">

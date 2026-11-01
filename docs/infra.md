@@ -157,13 +157,13 @@ DynamoDB point-in-time recovery enabled. Before treating production data as
 important, move Terraform state to a remote backend (S3 with locking/versioning or
 Terraform Cloud) instead of relying on local state.
 
-## Frontend integration next
+## Frontend integration
 
-The current React app remains localStorage-backed on this branch. The next step is
-to introduce a small `ProblemStore` interface with two implementations:
+The React app selects an async `ProblemStore` using the public
+`VITE_API_BASE_URL` build variable. With a URL it lists, reads, creates and edits
+shared routes; without one it uses localStorage. Updates require the revision
+from the last read, and conflicts retain the user's draft. Production on Vercel
+uses the deployed AWS API. Previews remain local-only by default.
 
-- `LocalProblemStore` for offline/local UI work
-- `ApiProblemStore` when `VITE_API_BASE_URL` is configured
-
-That keeps UI development independent from AWS and makes Vercel Preview -> dev API
-and Vercel Production -> prod API wiring straightforward.
+Local device routes can be imported explicitly without removing the originals.
+See the root README for migration behavior and regression test commands.

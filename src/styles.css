@@ -98,3 +98,10 @@ input:focus, select:focus { border-color: #6e7b59; }
 .polygon-debug-controls select { width: auto; max-width: 100%; }
 .polygon-debug-controls p { margin: 0; width: 100%; font-size: 12px; }
 .crop-focus-button { position: absolute; right: 12px; top: 60px; background: #252821; color: white; border: 1px solid #66734f; border-radius: 999px; padding: 9px 12px; cursor: pointer; }
+
+.editor-fields { border: 0; margin: 0; padding: 0; min-width: 0; }
+.problem-tools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.error-message { color: #ffb8bf; font-size: 13px; overflow-wrap: anywhere; }
+.local-import { padding: 12px; border: 1px solid #34382e; border-radius: 12px; margin-bottom: 12px; font-size: 13px; }
+.local-import p { margin-top: 0; }
+button:disabled { cursor: default; opacity: .45; }
