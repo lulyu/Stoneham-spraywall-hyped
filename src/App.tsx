@@ -103,6 +103,7 @@ function WallViewer({
   debugPolygons,
   showPolygonLabels,
   showCropFocus,
+  highlightedHoldId,
 }: {
   mode: 'browse' | 'set'
   draft: ProblemHold[]
@@ -111,6 +112,7 @@ function WallViewer({
   debugPolygons: PolygonHoldCandidate[]
   showPolygonLabels: boolean
   showCropFocus: boolean
+  highlightedHoldId: string | null
 }) {
   const selectionGradientId = useId()
   const [motionAllowed, setMotionAllowed] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
@@ -249,7 +251,7 @@ function WallViewer({
               <stop offset="60%" stopColor="#ffc857" />
               <stop offset="80%" stopColor="#d7ff65" />
               <stop offset="100%" stopColor="#33d6ff" />
-              {motionAllowed && <animateTransform attributeName="gradientTransform" type="rotate" from="0 .5 .5" to="360 .5 .5" dur="3s" repeatCount="indefinite" />}
+              {motionAllowed && mode === 'set' && highlightedHoldId && shownMap.has(highlightedHoldId) && <animateTransform attributeName="gradientTransform" type="rotate" from="0 .5 .5" to="360 .5 .5" dur="3s" repeatCount="indefinite" />}
             </linearGradient>
           </defs>
           <g className="debug-polygons" aria-hidden="true">
@@ -271,9 +273,9 @@ function WallViewer({
               <g key={hold.id}>
                 {role && (
                   <>
-                    <polygon className={`selected-hold ${roleClass(role)}`} points={polygonPoints(hold)} />
-                    <polygon className="selected-rainbow" points={polygonPoints(hold)} pathLength={100}
-                      stroke={`url(#${selectionGradientId})`} aria-hidden="true" />
+                    <polygon className={`selected-hold ${roleClass(role)} ${mode === 'set' && highlightedHoldId === hold.id ? 'is-current' : ''}`} points={polygonPoints(hold)} />
+                    {mode === 'set' && highlightedHoldId === hold.id && <polygon className="selected-rainbow" points={polygonPoints(hold)} pathLength={100}
+                      stroke={`url(#${selectionGradientId})`} aria-hidden="true" />}
                   </>
                 )}
                 {mode === 'set' && (
@@ -297,6 +299,7 @@ function App() {
   const [problems, setProblems] = useState<Problem[]>(loadProblems)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [draft, setDraft] = useState<ProblemHold[]>([])
+  const [highlightedHoldId, setHighlightedHoldId] = useState<string | null>(null)
   const [currentRole, setCurrentRole] = useState<HoldRole>('hold')
   const [name, setName] = useState('')
   const [grade, setGrade] = useState('V4')
@@ -312,6 +315,7 @@ function App() {
 
   const startSetting = () => {
     setDraft([])
+    setHighlightedHoldId(null)
     setStorageError('')
     setCurrentRole('hold')
     setName('')
@@ -320,17 +324,16 @@ function App() {
   }
 
   const tapHold = (holdId: string) => {
-    setDraft((prev) => {
-      const index = prev.findIndex((h) => h.holdId === holdId)
-      if (index >= 0) {
-        const existing = prev[index]
-        if (existing.role === currentRole) return prev.filter((_, i) => i !== index)
-        const next = [...prev]
-        next[index] = { holdId, role: currentRole }
-        return next
-      }
-      return [...prev, { holdId, role: currentRole }]
-    })
+    const existing = draft.find((h) => h.holdId === holdId)
+    if (existing?.role === currentRole) {
+      setDraft((prev) => prev.filter((h) => h.holdId !== holdId))
+      setHighlightedHoldId((previous) => previous === holdId ? null : previous)
+    } else {
+      setDraft((prev) => existing
+        ? prev.map((h) => h.holdId === holdId ? { holdId, role: currentRole } : h)
+        : [...prev, { holdId, role: currentRole }])
+      setHighlightedHoldId(holdId)
+    }
   }
 
   const saveProblem = () => {
@@ -355,6 +358,7 @@ function App() {
     setStorageError('')
     setProblems(next)
     setActiveId(problem.id)
+    setHighlightedHoldId(null)
     setMode('browse')
   }
 
@@ -368,7 +372,7 @@ function App() {
         {mode === 'browse' ? (
           <button className="primary small" onClick={startSetting}>＋ Set</button>
         ) : (
-          <button className="ghost small" onClick={() => setMode('browse')}>Cancel</button>
+          <button className="ghost small" onClick={() => { setMode('browse'); setHighlightedHoldId(null) }}>Cancel</button>
         )}
       </header>
 
@@ -388,7 +392,7 @@ function App() {
       </details>
       <section className="wall-card">
         <WallViewer mode={mode} draft={draft} activeProblem={activeProblem} onHoldTap={tapHold}
-          debugPolygons={showAllPolygons ? debugHolds : []} showPolygonLabels={showPolygonLabels} showCropFocus={showAllPolygons && debugDataset === 'sam2'} />
+          debugPolygons={showAllPolygons ? debugHolds : []} showPolygonLabels={showPolygonLabels} showCropFocus={showAllPolygons && debugDataset === 'sam2'} highlightedHoldId={highlightedHoldId} />
       </section>
 
       {mode === 'set' ? (
@@ -425,7 +429,7 @@ function App() {
           </div>
           {storageError && <p role="alert">{storageError}</p>}
           <div className="editor-actions">
-            <button className="ghost" onClick={() => setDraft([])}>Clear</button>
+            <button className="ghost" onClick={() => { setDraft([]); setHighlightedHoldId(null) }}>Clear</button>
             <button className="primary" disabled={!name.trim() || draft.length < 2} onClick={saveProblem}>Save problem</button>
           </div>
         </section>

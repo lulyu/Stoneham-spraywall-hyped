@@ -30,11 +30,12 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .wall-image { position: absolute; inset: 0; width: 100%; height: 100%; user-select: none; pointer-events: none; }
 .wall-overlay { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .hold-hit-polygon { fill: rgba(205, 255, 83, .015); stroke: rgba(205,255,83,.08); stroke-width: 2; cursor: pointer; vector-effect: non-scaling-stroke; }
-.selected-hold { pointer-events: none; stroke-width: 11; stroke-linejoin: round; vector-effect: non-scaling-stroke; filter: drop-shadow(0 1px 3px rgba(0,0,0,.85)); }
+.selected-hold { pointer-events: none; stroke-width: 7; stroke-linejoin: round; vector-effect: non-scaling-stroke; filter: drop-shadow(0 1px 3px rgba(0,0,0,.85)); }
+.selected-hold.is-current { stroke-width: 11; }
 .selected-hold.role-hold { fill: rgba(215,255,101,.28); stroke: #d7ff65; }
 .selected-hold.role-start { fill: rgba(51,214,255,.3); stroke: #33d6ff; }
-.selected-hold.role-foot-only { fill: rgba(185,146,255,.26); stroke: #b992ff; stroke-dasharray: 5 3; }
-.selected-hold.role-finish { fill: rgba(255,110,145,.3); stroke: #ff6e91; }
+.selected-hold.role-foot-only { fill: rgba(185,146,255,.26); stroke: #b992ff; }
+.selected-hold.role-finish { fill: rgba(158,38,55,.3); stroke: #9e2637; }
 .selected-rainbow { pointer-events: none; fill: none; stroke-width: 6; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; stroke-dasharray: 22 4 12 4 8 4 12 4 22 8; animation: selected-rainbow-orbit 3s linear infinite; }
 @keyframes selected-rainbow-orbit { to { stroke-dashoffset: -100; } }
 @media (prefers-reduced-motion: reduce) { .selected-rainbow { animation: none; stroke-dasharray: none; } }
@@ -47,7 +48,7 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .role-button { min-width: 0; min-height: 44px; white-space: nowrap; padding: 9px 4px; background: #242720; color: #c9cdbf; border: 1px solid transparent; font-size: 11px; }
 .role-button.active.role-hold { border-color: #d7ff65; color: #d7ff65; }
 .role-button.active.role-start { border-color: #33d6ff; color: #33d6ff; }
-.role-button.active.role-finish { border-color: #ff6e91; color: #ff6e91; }
+.role-button.active.role-finish { border-color: #9e2637; background: #6b1a2c; color: #ffe6eb; }
 .role-button.active.role-foot-only { border-color: #b992ff; color: #b992ff; }
 .selection-count { grid-column: 1 / -1; text-align: right; color: #8f9787; font-size: 12px; white-space: nowrap; }
 .form-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-top: 16px; }

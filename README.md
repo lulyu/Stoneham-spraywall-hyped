@@ -90,8 +90,10 @@ The canonical production hold map is now the accepted 677-hold v4 export.
 
 ## Hold roles and selection styling
 
-Route setting supports Start, Finish, Hold and Foot-only. Selected outlines use a
-thicker role-colored border with a rotating rainbow gradient and flowing highlight.
+Route setting supports Start, Finish, Hold and Foot-only. Only the most recently selected or reassigned hold in setting mode uses a
+thicker border with a rotating rainbow gradient and flowing highlight. Other
+selected holds and saved-route viewing use solid role colors: Start cyan, Finish
+dark red, Hold lime and Foot-only purple.
 Reduced-motion preferences keep a static rainbow outline. Existing locally saved
 `hand` roles are read as `hold` without changing IDs or the storage key.
 
