@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import sam2Experiment from './data/experiments/top_left_sam2_polygons.json'
 import { polygonCandidates as holds } from './data/polygons'
 import type { PointerEvent as ReactPointerEvent } from 'react'
@@ -12,6 +12,7 @@ const sam2Holds: PolygonHoldCandidate[] = sam2Experiment.holds.map((hold) => ({
   id: hold.id, kind: 'hold', center: [hold.center[0], hold.center[1]],
   polygon: hold.polygon.map(([x, y]): Point => [x, y]),
 }))
+const holdRoles: HoldRole[] = ['start', 'finish', 'hold', 'foot-only']
 const grades = ['VB', 'V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V10+']
 
 function loadProblems(): Problem[] {
@@ -26,8 +27,10 @@ function loadProblems(): Problem[] {
       typeof p.createdAt === 'string' && Array.isArray(p.holds) &&
       p.holds.every((h: ProblemHold) => h !== null && typeof h === 'object' &&
         holds.some((hold) => hold.id === h.holdId) &&
-        ['start', 'hand', 'finish'].includes(h.role)),
-    )
+        [...holdRoles, 'hand'].includes(h.role)),
+    ).map((problem) => ({ ...problem, holds: problem.holds.map((h): ProblemHold => ({
+      ...h, role: (h.role as HoldRole | 'hand') === 'hand' ? 'hold' : h.role,
+    })) }))
   } catch {
     return []
   }
@@ -36,7 +39,8 @@ function loadProblems(): Problem[] {
 function roleLabel(role: HoldRole) {
   if (role === 'start') return 'START'
   if (role === 'finish') return 'FINISH'
-  return 'HAND'
+  if (role === 'foot-only') return 'FOOT-ONLY'
+  return 'HOLD'
 }
 
 function roleClass(role: HoldRole) {
@@ -108,6 +112,14 @@ function WallViewer({
   showPolygonLabels: boolean
   showCropFocus: boolean
 }) {
+  const selectionGradientId = useId()
+  const [motionAllowed, setMotionAllowed] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  useEffect(() => {
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const update = () => setMotionAllowed(!preference.matches)
+    preference.addEventListener('change', update)
+    return () => preference.removeEventListener('change', update)
+  }, [])
   const viewportRef = useRef<HTMLDivElement>(null)
   const [view, setView] = useState({ scale: 0.35, x: 0, y: 0 })
   const pointers = useRef(new Map<number, { x: number; y: number }>())
@@ -229,6 +241,17 @@ function WallViewer({
       >
         <img src={wallImage} className="wall-image" alt="Stoneham spray wall" draggable={false} />
         <svg className="wall-overlay" viewBox={`0 0 ${WALL_WIDTH} ${WALL_HEIGHT}`}>
+          <defs>
+            <linearGradient id={selectionGradientId} x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+              <stop offset="0%" stopColor="#33d6ff" />
+              <stop offset="20%" stopColor="#a580ff" />
+              <stop offset="40%" stopColor="#ff6eac" />
+              <stop offset="60%" stopColor="#ffc857" />
+              <stop offset="80%" stopColor="#d7ff65" />
+              <stop offset="100%" stopColor="#33d6ff" />
+              {motionAllowed && <animateTransform attributeName="gradientTransform" type="rotate" from="0 .5 .5" to="360 .5 .5" dur="3s" repeatCount="indefinite" />}
+            </linearGradient>
+          </defs>
           <g className="debug-polygons" aria-hidden="true">
             {debugPolygons.map((hold, index) => {
               const [cx, cy] = toWallPoint(hold.center)
@@ -247,7 +270,11 @@ function WallViewer({
             return (
               <g key={hold.id}>
                 {role && (
-                  <polygon className={`selected-hold ${roleClass(role)}`} points={polygonPoints(hold)} />
+                  <>
+                    <polygon className={`selected-hold ${roleClass(role)}`} points={polygonPoints(hold)} />
+                    <polygon className="selected-rainbow" points={polygonPoints(hold)} pathLength={100}
+                      stroke={`url(#${selectionGradientId})`} aria-hidden="true" />
+                  </>
                 )}
                 {mode === 'set' && (
                   <polygon className="hold-hit-polygon" points={polygonPoints(hold)} data-hold-id={hold.id} />
@@ -270,7 +297,7 @@ function App() {
   const [problems, setProblems] = useState<Problem[]>(loadProblems)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [draft, setDraft] = useState<ProblemHold[]>([])
-  const [currentRole, setCurrentRole] = useState<HoldRole>('hand')
+  const [currentRole, setCurrentRole] = useState<HoldRole>('hold')
   const [name, setName] = useState('')
   const [grade, setGrade] = useState('V4')
   const [setter, setSetter] = useState('Lu')
@@ -286,7 +313,7 @@ function App() {
   const startSetting = () => {
     setDraft([])
     setStorageError('')
-    setCurrentRole('hand')
+    setCurrentRole('hold')
     setName('')
     setGrade('V4')
     setMode('set')
@@ -366,17 +393,19 @@ function App() {
 
       {mode === 'set' ? (
         <section className="editor-sheet">
-          <div className="role-row">
-            {(['start', 'hand', 'finish'] as HoldRole[]).map((role) => (
+          <div className="role-row" role="group" aria-label="Hold role">
+            {holdRoles.map((role) => (
               <button
                 key={role}
+                type="button"
+                aria-pressed={currentRole === role}
                 className={`role-button ${roleClass(role)} ${currentRole === role ? 'active' : ''}`}
                 onClick={() => setCurrentRole(role)}
               >
                 {roleLabel(role)}
               </button>
             ))}
-            <span className="selection-count">{draft.length} selected</span>
+            <span className="selection-count" aria-live="polite">{draft.length} selected</span>
           </div>
           <div className="form-grid">
             <label>

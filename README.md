@@ -9,7 +9,7 @@ The first version intentionally keeps everything local so we can validate the cl
 - real wall image with pan / zoom
 - 677 user-confirmed hold polygons overlaid on the wall
 - tap holds to create a problem
-- mark holds as **start**, **hand**, or **finish**
+- mark holds as **start**, **finish**, **hold**, or **foot-only**
 - add problem name, V-grade, and setter
 - save problems in browser `localStorage`
 - browse saved problems and highlight their holds
@@ -87,3 +87,14 @@ batch, and refined. Existing JSON can be imported and edited while preserving ID
 See [full-wall workflow, data provenance and tests](docs/sam2-full-wall-annotator.md).
 
 The canonical production hold map is now the accepted 677-hold v4 export.
+
+## Hold roles and selection styling
+
+Route setting supports Start, Finish, Hold and Foot-only. Selected outlines use a
+thicker role-colored border with a rotating rainbow gradient and flowing highlight.
+Reduced-motion preferences keep a static rainbow outline. Existing locally saved
+`hand` roles are read as `hold` without changing IDs or the storage key.
+
+Run `node scripts/hold-roles-smoke.cjs` against the local production preview to
+check the four roles, legacy migration, persistence, animations and mobile layout.
+The usual Playwright environment variables apply.
