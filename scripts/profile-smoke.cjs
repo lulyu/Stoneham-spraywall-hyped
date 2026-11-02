@@ -3,7 +3,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE_PATH || 'playwright')
 const holds = require('../src/data/polygons/holds.json')
 const api = 'https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com'
 ;(async () => {
- const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']})
+ const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox'],proxy:process.env.BROWSER_PROXY?{server:process.env.BROWSER_PROXY}:undefined})
  try {
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true})
   await context.addInitScript(()=>{

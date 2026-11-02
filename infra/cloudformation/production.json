@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-11-01T23:06:17.369780+00:00",
+  "recordedAt": "2026-11-02T01:56:26.382949+00:00",
   "accountId": "010257981603",
   "region": "us-east-1",
   "manager": "cloudformation",
@@ -9,17 +9,17 @@
   "tableName": "stoneham-spraywall-prod",
   "functionName": "stoneham-spraywall-prod-api",
   "artifactBucket": "stoneham-spraywall-artifacts-artifacts-lyfxingppoxw",
-  "artifactKey": "backend/cognito-auth-3fc2669.zip",
-  "sourceCommit": "3fc2669",
-  "lambdaCodeSha256": "Bg6xQAUu+NDXZKSTqdL3Pkg32Iqao+JCCDvVDn2aybk=",
+  "artifactKey": "backend/user-profile-20261102.zip",
+  "sourceCommit": "a84a80c9c70c28b1da055796e33bd2a11c7cbeaf",
+  "lambdaCodeSha256": "1z3tXtLrS/N+MqXMclfLaU2UIeBoYeREgWYBFIolp/Y=",
   "stackStatus": "UPDATE_COMPLETE",
   "pointInTimeRecovery": "ENABLED",
   "userPoolId": "us-east-1_fvraMpcpi",
   "userClientId": "537q15f8r1ppgtpucjoa5pad1r",
   "authAuthority": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_fvraMpcpi",
   "authDomain": "https://stoneham-spraywall-prod-010257981603.auth.us-east-1.amazoncognito.com",
-  "frontendCommit": "32b97b3c609f4fca31e1a15b5b25709e4bb27d6b",
-  "frontendDeploymentId": "dpl_B1ahEa5wH4UZtJHuQjA98ZKC8xxR",
+  "frontendCommit": "a84a80c9c70c28b1da055796e33bd2a11c7cbeaf",
+  "frontendDeploymentId": "dpl_4Hauz7qt8KYoQQtA7h1LNSYmnnuG",
   "authVerification": {
     "anonymousWrites": "401",
     "forgedTokenWrites": "401",
@@ -28,7 +28,14 @@
     "corsPreflight": "204",
     "googleRedirect": "verified",
     "logoutRedirect": "verified",
-    "realUserLogin": "pending user action",
-    "administratorAssignment": "pending first login"
+    "realUserLogin": "confirmed by user",
+    "administratorAssignment": "group membership verified through Cognito management API"
+  },
+  "profileVerification": {
+    "anonymousGetAndPatch": "401",
+    "deployedLambdaToDynamoDB": "verified using temporary test identity via IAM invocation",
+    "temporaryTestProfile": "cleaned up",
+    "deployedFrontend": "mobile regression passed with mocked session/API",
+    "setterDefaultsAndOverrides": "verified"
   }
 }

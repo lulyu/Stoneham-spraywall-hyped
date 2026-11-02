@@ -8,8 +8,9 @@ Verified live: public reads, anonymous and forged-token writes rejected with 401
 DELETE disabled with 405, authorized CORS preflight, mobile Sign in navigation to
 the configured Google client without a redirect error, and the Cognito logout
 return URL. CloudFormation reports UPDATE_COMPLETE; the Lambda artifact hash
-matches the deployed code. Real Google login, two-user ownership checks and first
-administrator assignment require user sign-in and remain pending. See
+matches the deployed code. The user confirmed Google login and administrator UI access; administrator group
+membership was verified through the Cognito management API. Two-user ownership
+checks have unit coverage; live testing with two Google accounts remains pending. See
 `infra/cloudformation/production.json` for deployed identifiers.
 
 ## Permissions
