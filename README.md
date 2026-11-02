@@ -147,8 +147,10 @@ Validation:
 - `npm run build`: canonical data validation, TypeScript and production bundle.
 - `node scripts/frontend-api-smoke.cjs`: local mobile browser integration with
   deterministic mocked API, import/retry, conflict and layout scenarios. Run a
-  dev server on 5174 with `VITE_API_BASE_URL` pointing at the production URL;
-  requests are intercepted by the test and do not modify production data.
+  dev server on 5174 with `VITE_API_BASE_URL` pointing at the production URL and
+  `VITE_COGNITO_AUTHORITY` / `VITE_COGNITO_CLIENT_ID` from `production.json`.
+  Requests and the authenticated browser session are mocked; production data is
+  not modified.
 - The existing `scripts/hold-roles-smoke.cjs` continues to cover local-only
   persistence, four roles, rainbow effects, outer-only glow and route masking.
 
@@ -156,3 +158,25 @@ Validation:
 
 See [authentication permissions and rollout](docs/auth.md). The layer is deployed;
 real user login verification and initial administrator assignment remain pending.
+
+## Profile and Setter defaults
+
+Signed-in users can edit their own Profile: a display name (1–60 characters) and
+optional short bio (up to 160 characters). Initially, the Google display name is
+used until a custom profile is saved. Email is shown only on the user's own page,
+from their login session; it is not copied into public route records.
+
+GET/PATCH `/v1/me/profile` requires a Cognito access token. Profile records use
+`USER#<verified-sub> / PROFILE` in DynamoDB, without route-list GSI attributes.
+Only displayName and bio can be updated; user IDs, ownership and roles are never
+taken from the request body.
+
+Creating a new problem prefills Setter from the current display name. Setter
+remains editable, existing route setters are preserved, and renaming a profile
+does not rewrite old routes or change ownership. Profile save failures keep the
+form available for retry. Bio can be cleared.
+
+Validation: backend profile regression tests plus
+`scripts/profile-smoke.cjs` (authenticated session/API mocks on local dev port
+5176 with the deployed Cognito public configuration) exercise save/reload,
+manual Setter overrides, existing Setter retention, retry and mobile layout.

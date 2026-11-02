@@ -75,3 +75,16 @@ export function parseUpdateProblem(value: unknown, wall: WallVersion): UpdatePro
   if (Object.keys(update).every((key) => key === 'revision')) throw new ApiError(400, 'no supported fields to update')
   return update
 }
+
+export function parseProfile(value: unknown): { displayName?: string; bio?: string } {
+  if (!isObject(value)) throw new ApiError(400, 'request body must be a JSON object')
+  if (Object.keys(value).some((key) => !['displayName', 'bio'].includes(key))) throw new ApiError(400, 'only displayName and bio can be changed')
+  if (!Object.keys(value).length) throw new ApiError(400, 'no profile fields to update')
+  const result: { displayName?: string; bio?: string } = {}
+  if ('displayName' in value) result.displayName = cleanString(value.displayName, 'displayName', 60)!
+  if ('bio' in value) {
+    if (typeof value.bio !== 'string') throw new ApiError(400, 'bio must be a string')
+    result.bio = cleanString(value.bio, 'bio', 160, false)!
+  }
+  return result
+}

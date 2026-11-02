@@ -1,7 +1,9 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import sam2Experiment from './data/experiments/top_left_sam2_polygons.json'
 import { polygonCandidates as holds } from './data/polygons'
-import { initializeAuth, accessToken, signIn, signOut, authConfigured } from './auth'
+import { initializeAuth, accountDetails, accessToken, signIn, signOut, authConfigured } from './auth'
+import Profile from './Profile'
+import { profileRequest, type UserProfile } from './profile'
 import { createApiProblemStore, createLocalProblemStore, readLocalProblems, ProblemStoreError, STORAGE_KEY } from './problemStore'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { HoldRole, Problem, ProblemHold, PolygonHoldCandidate, Point } from './types'
@@ -300,6 +302,10 @@ function WallViewer({
 
 function App() {
   const [identity, setIdentity] = useState<{ userId: string; isAdmin: boolean } | null>(null)
+  const [profile, setProfile] = useState<UserProfile>({ displayName: '', bio: '' })
+  const [email, setEmail] = useState('')
+  const [showProfile, setShowProfile] = useState(false)
+  const [profileNotice, setProfileNotice] = useState('')
   const [authError, setAuthError] = useState('')
   useEffect(() => {
     let live = true
@@ -311,6 +317,12 @@ function App() {
         const response = await fetch(apiBaseUrl + '/v1/me', { headers: { authorization: 'Bearer ' + token } })
         if (!response.ok) throw new Error('Could not verify your login. Please sign in again.')
         const value = await response.json()
+        const details = await accountDetails()
+        if (live) { setEmail(details.email); setProfile({ displayName: details.displayName, bio: '' }) }
+        try {
+          const saved = await profileRequest(apiBaseUrl, token)
+          if (live) setProfile({ ...saved, displayName: saved.displayName || details.displayName })
+        } catch { if (live) setAuthError('Could not load your profile. Refresh to retry.') }
         if (live) setIdentity(value)
       } catch (error) { if (live) setAuthError(error instanceof Error ? error.message : 'Login failed.') }
     })()
@@ -325,7 +337,7 @@ function App() {
   const [currentRole, setCurrentRole] = useState<HoldRole>('hold')
   const [name, setName] = useState('')
   const [grade, setGrade] = useState('V4')
-  const [setter, setSetter] = useState('Lu')
+  const [setter, setSetter] = useState('')
   const [storageError, setStorageError] = useState('')
   const [listError, setListError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -393,6 +405,7 @@ function App() {
 
   const startSetting = () => {
     if (!canWrite) { void signIn().catch((e) => setAuthError(e.message)); return }
+    setShowProfile(false)
     selectionSequence.current++
     setOpeningId(null)
     setEditing(null)
@@ -403,6 +416,7 @@ function App() {
     setCurrentRole('hold')
     setName('')
     setGrade('V4')
+    setSetter(profile.displayName || '')
     setMode('set')
   }
 
@@ -499,6 +513,12 @@ function App() {
           <button className="ghost small" disabled={!authConfigured} onClick={() => void signIn().catch((e) => setAuthError(e.message))}>Sign in with Google</button>}
         {authError && <p role="alert" className="error-message">{authError}</p>}
       </div>}
+      {identity && <div className="profile-nav">
+        <button className="ghost small" disabled={busy} onClick={() => { setShowProfile(true); setProfileNotice('') }}>Profile{profile.displayName ? ' · ' + profile.displayName : ''}</button>
+      </div>}
+      {profileNotice && <p className="profile-notice" role="status">{profileNotice}</p>}
+      {showProfile && identity ? <Profile baseUrl={apiBaseUrl} initial={profile} email={email}
+        onClose={() => setShowProfile(false)} onSave={(saved) => { setProfile(saved); setProfileNotice('Profile saved.'); setShowProfile(false) }} /> : <>
       <details className="polygon-debug-panel">
         <summary>Polygon debug</summary>
         <div className="polygon-debug-controls">
@@ -608,6 +628,7 @@ function App() {
           )}
         </section>
       )}
+      </>}
     </main>
   )
 }

@@ -38,3 +38,11 @@ export async function signOut() {
 }
 
 export function initializeAuth() { return initialization ??= completeLogin() }
+
+export async function accountDetails() {
+  const user = await manager?.getUser()
+  return {
+    displayName: typeof user?.profile.name === 'string' ? user.profile.name.slice(0, 60) : '',
+    email: typeof user?.profile.email === 'string' ? user.profile.email : '',
+  }
+}
