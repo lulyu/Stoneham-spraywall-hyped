@@ -1,6 +1,6 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
-import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb'
-import type { Problem, ProblemItem, UpdateProblemInput } from './model'
+import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, QueryCommand } from '@aws-sdk/lib-dynamodb'
+import type { Problem, UserProfile, ProblemItem, UpdateProblemInput } from './model'
 import { ApiError } from './walls'
 
 const tableName = process.env.DYNAMODB_TABLE
@@ -113,4 +113,31 @@ export async function updateProblem(existing: Problem, patch: UpdateProblemInput
     throw error
   }
   return next
+}
+
+const profileKey = (userId: string) => ({ pk: 'USER#' + userId, sk: 'PROFILE' })
+const publicProfile = (item: Record<string, unknown> = {}): UserProfile => ({
+  displayName: typeof item.displayName === 'string' ? item.displayName : '',
+  bio: typeof item.bio === 'string' ? item.bio : '',
+})
+export async function getProfile(userId: string): Promise<UserProfile> {
+  const result = await client.send(new GetCommand({ TableName: tableName, Key: profileKey(userId), ConsistentRead: true }))
+  return publicProfile(result.Item)
+}
+export async function updateProfile(userId: string, patch: Partial<UserProfile>): Promise<UserProfile> {
+  const names: Record<string, string> = { '#entity': 'entityType', '#updated': 'updatedAt' }
+  const values: Record<string, string> = { ':entity': 'profile', ':updated': new Date().toISOString() }
+  const sets = ['#entity = :entity', '#updated = :updated']
+  for (const field of ['displayName', 'bio'] as const) {
+    if (patch[field] === undefined) continue
+    names['#' + field] = field
+    values[':' + field] = patch[field]!
+    sets.push('#' + field + ' = :' + field)
+  }
+  const result = await client.send(new UpdateCommand({
+    TableName: tableName, Key: profileKey(userId),
+    UpdateExpression: 'SET ' + sets.join(', '),
+    ExpressionAttributeNames: names, ExpressionAttributeValues: values, ReturnValues: 'ALL_NEW',
+  }))
+  return publicProfile(result.Attributes)
 }

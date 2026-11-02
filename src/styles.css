@@ -105,3 +105,11 @@ input:focus, select:focus { border-color: #6e7b59; }
 .local-import { padding: 12px; border: 1px solid #34382e; border-radius: 12px; margin-bottom: 12px; font-size: 13px; }
 .local-import p { margin-top: 0; }
 button:disabled { cursor: default; opacity: .45; }
+
+.profile-nav, .profile-notice { margin: 0 14px 12px; }
+.profile-nav button { max-width: 100%; overflow-wrap: anywhere; }
+.profile-sheet { padding: 18px; max-width: 620px; margin: 0 auto; }
+.profile-fields { display: grid; gap: 14px; }
+.profile-fields textarea { width: 100%; box-sizing: border-box; resize: vertical; font: inherit; font-size: 16px; color: white; background: #191c16; border: 1px solid #34382e; border-radius: 11px; padding: 11px 12px; }
+.profile-fields p { overflow-wrap: anywhere; }
+.profile-notice { color: #c9ff53; font-size: 13px; }

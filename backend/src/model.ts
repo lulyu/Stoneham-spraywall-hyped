@@ -36,3 +36,5 @@ export type ProblemItem = Problem & {
   gsi1sk: string
   entityType: 'problem'
 }
+
+export type UserProfile = { displayName: string; bio: string }

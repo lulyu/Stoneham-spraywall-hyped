@@ -1,9 +1,9 @@
 import { requireIdentity, requireEditor } from './auth'
 import { randomUUID } from 'node:crypto'
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda'
-import { createProblem, listProblems, requireProblem, updateProblem } from './db'
+import { createProblem, getProfile, updateProfile, listProblems, requireProblem, updateProblem } from './db'
 import type { Problem } from './model'
-import { parseCreateProblem, parseUpdateProblem } from './validation'
+import { parseProfile, parseCreateProblem, parseUpdateProblem } from './validation'
 import { ApiError, requireWallVersion } from './walls'
 
 const headers = {
@@ -48,6 +48,13 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
     }
 
     if (method === 'GET' && path === '/v1/me') return response(200, requireIdentity(event))
+
+    if (path === '/v1/me/profile') {
+      const identity = requireIdentity(event)
+      if (method === 'GET') return response(200, await getProfile(identity.userId))
+      if (method === 'PATCH') return response(200, await updateProfile(identity.userId, parseProfile(parseJsonBody(event))))
+      return response(405, { error: 'method not allowed', requestId })
+    }
 
     const wallProblemPath = pathMatch(
       path,
