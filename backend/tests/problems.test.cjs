@@ -32,7 +32,7 @@ const request = (method, url, body) => handler({
   rawPath: url,
   body: body === undefined ? undefined : JSON.stringify(body),
   isBase64Encoded: false,
-  requestContext: { requestId: 'test', http: { method, path: url } },
+  requestContext: { authorizer: { jwt: { claims: { sub: 'owner' } } }, requestId: 'test', http: { method, path: url } },
 })
 const body = (response) => JSON.parse(response.body)
 const roleHolds = (roles) => roles.map((role, index) => ({ holdId: holds[index].id, role }))
@@ -45,7 +45,7 @@ beforeEach(() => {
     wallVersionId: '2026-10-v4', name: 'Latest name', grade: 'V1', setter: 'Tester',
     holds: roleHolds(['start', 'finish', 'hold', 'foot-only']),
     createdAt: '2026-11-01T00:00:00Z', updatedAt: '2026-11-01T00:01:00Z',
-    revision: 2, pk: 'PROBLEM#example', sk: 'META',
+    ownerId: 'owner', revision: 2, pk: 'PROBLEM#example', sk: 'META',
     gsi1pk: 'wall', gsi1sk: 'example', entityType: 'problem',
   }
 })
@@ -120,4 +120,39 @@ test('CORS preflight succeeds without accessing problem data', async () => {
   assert.equal((await request('OPTIONS', path)).statusCode, 204)
   assert.equal((await request('OPTIONS', base)).statusCode, 204)
   assert.equal(writes.length, 0)
+})
+
+test('anonymous writes fail, DELETE is unavailable, legacy records are not claimable', async () => {
+  const anonymous = (method, body) => handler({ rawPath: path, body: JSON.stringify(body),
+    requestContext: { requestId: 'anonymous', http: { method, path } } })
+  assert.equal((await anonymous('PATCH', { revision: 2, name: 'Attack' })).statusCode, 401)
+  assert.equal((await request('DELETE', path)).statusCode, 405)
+  delete item.ownerId
+  assert.equal((await request('PATCH', path, { revision: 2, name: 'Claim' })).statusCode, 403)
+  assert.equal(writes.length, 0)
+})
+test('another user cannot edit; administrator can maintain unowned routes', async () => {
+  item.ownerId = 'another-user'
+  assert.equal((await request('PATCH', path, { revision: 2, name: 'Attack' })).statusCode, 403)
+  delete item.ownerId
+  const result = await handler({ rawPath: path, body: JSON.stringify({ revision: 2, name: 'Admin edit', ownerId: 'stolen' }),
+    requestContext: { requestId: 'admin', http: { method: 'PATCH', path },
+      authorizer: { jwt: { claims: { sub: 'admin-user', 'cognito:groups': '["admins"]' } } } } })
+  assert.equal(result.statusCode, 200)
+  assert.equal(item.ownerId, undefined)
+})
+test('body and header role claims cannot authenticate a caller', async () => {
+  const result = await handler({ rawPath: base,
+    headers: { authorization: 'Bearer forged', 'x-user-id': 'owner', 'x-role': 'admins' },
+    body: JSON.stringify({ name: 'Forged', ownerId: 'owner', isAdmin: true }),
+    requestContext: { requestId: 'attack', http: { method: 'POST', path: base } } })
+  assert.equal(result.statusCode, 401)
+  assert.equal(writes.length, 0)
+})
+test('creator is assigned server-side, never from submitted ownership', async () => {
+  const created = await request('POST', base, {
+    name: 'New', setter: 'Tester', grade: 'V1', holds: item.holds, ownerId: 'victim',
+  })
+  assert.equal(created.statusCode, 201)
+  assert.equal(body(created).ownerId, 'owner')
 })

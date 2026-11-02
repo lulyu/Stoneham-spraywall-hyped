@@ -151,3 +151,8 @@ Validation:
   requests are intercepted by the test and do not modify production data.
 - The existing `scripts/hold-roles-smoke.cjs` continues to cover local-only
   persistence, four roles, rainbow effects, outer-only glow and route masking.
+
+## Cognito authentication branch
+
+See [authentication permissions and rollout](docs/auth.md). The layer is deployed;
+real user login verification and initial administrator assignment remain pending.

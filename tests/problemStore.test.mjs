@@ -58,3 +58,12 @@ test('network failure never silently saves locally', async () => {
   const store = createApiProblemStore('https://example.test', async () => { throw new TypeError('offline') })
   await assert.rejects(store.create(input), /Your draft is still here/)
 })
+test('authenticated writes send the access token and unauthorized responses retain status', async () => {
+  let seen
+  const store = createApiProblemStore('https://example.test', async (_url, options) => {
+    seen = options.headers.authorization
+    return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  }, async () => 'verified-access-token')
+  await assert.rejects(store.create(input), e => e.status === 401 && /draft/.test(e.message))
+  assert.equal(seen, 'Bearer verified-access-token')
+})

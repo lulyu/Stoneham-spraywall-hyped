@@ -36,4 +36,5 @@ export type Problem = {
   createdAt: string
   updatedAt?: string
   revision?: number
+  ownerId?: string
 }

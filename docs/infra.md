@@ -77,7 +77,7 @@ GET    /v1/gyms/{gymId}/walls/{wallId}/versions/{wallVersionId}/problems
 POST   /v1/gyms/{gymId}/walls/{wallId}/versions/{wallVersionId}/problems
 GET    /v1/problems/{problemId}
 PATCH  /v1/problems/{problemId}
-DELETE /v1/problems/{problemId}
+GET    /v1/me (authenticated identity)
 ```
 
 Problem creation validates the wall version, grade, hold IDs, duplicate holds,
@@ -92,9 +92,10 @@ revisions return 400. Stale revisions and concurrent write conflicts return 409;
 reload the problem before retrying. Successful updates increment the revision.
 The conditional DynamoDB write also protects against edits between read and write.
 
-Authentication is deliberately not part of this first backend. Do not put an API
-secret in the Vite app. When identity becomes useful, API Gateway can gain a JWT
-authorizer (for example Cognito) without changing problem IDs or table keys.
+The auth branch adds Cognito access-token authorization and ownership checks.
+See [auth permissions and rollout](auth.md). Anonymous reads remain public,
+writes require login, and DELETE is removed. This layer is deployed; initial
+real-user login verification and administrator assignment are pending.
 
 ## Build the Lambda bundle
 

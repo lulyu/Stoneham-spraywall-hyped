@@ -11,6 +11,15 @@
     "AllowedOrigin": {
       "Type": "String",
       "Default": "https://stoneham-spraywall-project.vercel.app"
+    },
+    "GoogleClientId": {
+      "Type": "String",
+      "Description": "Google OAuth web client ID"
+    },
+    "GoogleSecretArn": {
+      "Type": "String",
+      "AllowedPattern": "arn:aws:secretsmanager:.*",
+      "Description": "Secrets Manager secret ARN with a client_secret JSON key"
     }
   },
   "Resources": {
@@ -112,7 +121,6 @@
                   "Action": [
                     "dynamodb:GetItem",
                     "dynamodb:PutItem",
-                    "dynamodb:DeleteItem",
                     "dynamodb:UpdateItem",
                     "dynamodb:Query"
                   ],
@@ -203,7 +211,6 @@
             "GET",
             "POST",
             "PATCH",
-            "DELETE",
             "OPTIONS"
           ],
           "MaxAge": 3600
@@ -246,7 +253,11 @@
           "Ref": "Api"
         },
         "StageName": "$default",
-        "AutoDeploy": true
+        "AutoDeploy": true,
+        "DefaultRouteSettings": {
+          "ThrottlingBurstLimit": 20,
+          "ThrottlingRateLimit": 10
+        }
       }
     },
     "InvokePermission": {
@@ -263,6 +274,223 @@
         "SourceArn": {
           "Fn::Sub": "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${Api}/*"
         }
+      }
+    },
+    "UserPool": {
+      "Type": "AWS::Cognito::UserPool",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "UserPoolName": {
+          "Fn::Sub": "${AWS::StackName}-users"
+        },
+        "UserPoolTier": "ESSENTIALS",
+        "UsernameAttributes": [
+          "email"
+        ],
+        "AutoVerifiedAttributes": [
+          "email"
+        ],
+        "Policies": {
+          "PasswordPolicy": {
+            "MinimumLength": 12,
+            "RequireLowercase": true,
+            "RequireUppercase": true,
+            "RequireNumbers": true,
+            "RequireSymbols": true
+          }
+        },
+        "AdminCreateUserConfig": {
+          "AllowAdminCreateUserOnly": true
+        }
+      }
+    },
+    "Admins": {
+      "Type": "AWS::Cognito::UserPoolGroup",
+      "Properties": {
+        "UserPoolId": {
+          "Ref": "UserPool"
+        },
+        "GroupName": "admins",
+        "Description": "Gym administrators, assigned only through AWS administration"
+      }
+    },
+    "Google": {
+      "Type": "AWS::Cognito::UserPoolIdentityProvider",
+      "Properties": {
+        "UserPoolId": {
+          "Ref": "UserPool"
+        },
+        "ProviderName": "Google",
+        "ProviderType": "Google",
+        "ProviderDetails": {
+          "client_id": {
+            "Ref": "GoogleClientId"
+          },
+          "client_secret": {
+            "Fn::Sub": "{{resolve:secretsmanager:${GoogleSecretArn}:SecretString:client_secret}}"
+          },
+          "authorize_scopes": "openid email profile"
+        },
+        "AttributeMapping": {
+          "email": "email",
+          "name": "name",
+          "username": "sub"
+        }
+      }
+    },
+    "ResourceServer": {
+      "Type": "AWS::Cognito::UserPoolResourceServer",
+      "Properties": {
+        "UserPoolId": {
+          "Ref": "UserPool"
+        },
+        "Identifier": "stoneham-api",
+        "Name": "Stoneham API",
+        "Scopes": [
+          {
+            "ScopeName": "write",
+            "ScopeDescription": "Create and edit routes as permitted by ownership"
+          }
+        ]
+      }
+    },
+    "UserClient": {
+      "Type": "AWS::Cognito::UserPoolClient",
+      "DependsOn": [
+        "Google",
+        "ResourceServer"
+      ],
+      "Properties": {
+        "UserPoolId": {
+          "Ref": "UserPool"
+        },
+        "GenerateSecret": false,
+        "AllowedOAuthFlowsUserPoolClient": true,
+        "AllowedOAuthFlows": [
+          "code"
+        ],
+        "AllowedOAuthScopes": [
+          "openid",
+          "email",
+          "profile",
+          "stoneham-api/write"
+        ],
+        "SupportedIdentityProviders": [
+          "Google"
+        ],
+        "CallbackURLs": [
+          {
+            "Fn::Sub": "${AllowedOrigin}/"
+          }
+        ],
+        "LogoutURLs": [
+          {
+            "Fn::Sub": "${AllowedOrigin}/"
+          }
+        ],
+        "AccessTokenValidity": 15,
+        "IdTokenValidity": 15,
+        "RefreshTokenValidity": 30,
+        "TokenValidityUnits": {
+          "AccessToken": "minutes",
+          "IdToken": "minutes",
+          "RefreshToken": "days"
+        },
+        "EnableTokenRevocation": true,
+        "PreventUserExistenceErrors": "ENABLED"
+      }
+    },
+    "UserDomain": {
+      "Type": "AWS::Cognito::UserPoolDomain",
+      "Properties": {
+        "UserPoolId": {
+          "Ref": "UserPool"
+        },
+        "Domain": {
+          "Fn::Sub": "${AWS::StackName}-${AWS::AccountId}"
+        },
+        "ManagedLoginVersion": 1
+      }
+    },
+    "JwtAuthorizer": {
+      "Type": "AWS::ApiGatewayV2::Authorizer",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "Name": "Cognito",
+        "AuthorizerType": "JWT",
+        "IdentitySource": [
+          "$request.header.Authorization"
+        ],
+        "JwtConfiguration": {
+          "Audience": [
+            {
+              "Ref": "UserClient"
+            }
+          ],
+          "Issuer": {
+            "Fn::Sub": "https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}"
+          }
+        }
+      }
+    },
+    "CreateProblemRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "POST /v1/gyms/{gymId}/walls/{wallId}/versions/{versionId}/problems",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "JwtAuthorizer"
+        },
+        "AuthorizationScopes": [
+          "stoneham-api/write"
+        ]
+      }
+    },
+    "EditProblemRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "PATCH /v1/problems/{problemId}",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "JwtAuthorizer"
+        },
+        "AuthorizationScopes": [
+          "stoneham-api/write"
+        ]
+      }
+    },
+    "IdentityRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "GET /v1/me",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "JwtAuthorizer"
+        },
+        "AuthorizationScopes": [
+          "stoneham-api/write"
+        ]
       }
     }
   },
@@ -286,6 +514,26 @@
       "Description": "API Lambda function",
       "Value": {
         "Ref": "Function"
+      }
+    },
+    "UserPoolId": {
+      "Value": {
+        "Ref": "UserPool"
+      }
+    },
+    "UserClientId": {
+      "Value": {
+        "Ref": "UserClient"
+      }
+    },
+    "AuthAuthority": {
+      "Value": {
+        "Fn::Sub": "https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}"
+      }
+    },
+    "AuthDomain": {
+      "Value": {
+        "Fn::Sub": "https://${UserDomain}.auth.${AWS::Region}.amazoncognito.com"
       }
     }
   }

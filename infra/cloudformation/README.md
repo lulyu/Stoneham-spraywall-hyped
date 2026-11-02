@@ -15,8 +15,8 @@ Templates:
   least-privilege execution role, on-demand DynamoDB with GSI and PITR,
   and 14-day Lambda logs. The database is retained on deletion/replacement.
 
-Production CORS defaults to the existing Vercel production origin. Authentication
-remains outside this MVP. The frontend uses this API when `VITE_API_BASE_URL` is
+Production CORS defaults to the existing Vercel production origin. The auth branch adds Cognito; see [rollout requirements](../../docs/auth.md).
+Cognito is deployed; real-user login verification and administrator assignment are pending. The frontend uses this API when `VITE_API_BASE_URL` is
 configured; without that variable it uses localStorage.
 
 ## Rebuild and update
