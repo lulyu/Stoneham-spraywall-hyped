@@ -85,10 +85,10 @@ Run the smoke test against the stack's `ApiUrl` output:
 node backend/scripts/smoke-api.mjs https://API_ENDPOINT
 ```
 
-This creates one temporary route and deletes it in a `finally` block. It checks
-CORS preflight, health, all four hold roles, CRUD/list, required revision and stale
-revision rejection. In a proxy-managed Node.js 24 environment, prepend
-`NODE_USE_ENV_PROXY=1` so fetch uses the environment's HTTP proxy.
+The smoke test now verifies public reads, 401 for anonymous/forged writes and
+private profile access, disabled DELETE, and CORS preflight. It uses invalid
+write bodies and a unique nonexistent route ID, so it creates no records.
+In a proxy-managed Node.js 24 environment, prepend `NODE_USE_ENV_PROXY=1`.
 
 The initial live test found that the API's default route forwarded OPTIONS to
 Lambda, which returned 405. The handler now returns 204 for OPTIONS; API Gateway

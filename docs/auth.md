@@ -63,8 +63,8 @@ Do not assign administrator access based solely on a submitted email address.
    stack outputs, retaining VITE_API_BASE_URL, then deploy this branch's frontend.
 5. Test real Google login, sign-out, two distinct users and an administrator.
    Verify anonymous POST/PATCH = 401, non-owner PATCH = 403, admin edit of legacy
-   records succeeds, and DELETE = 405. Old anonymous-write smoke scripts need a
-   new authenticated harness and must not be used to clean up with public DELETE.
+   records succeeds, and DELETE = 405. The API smoke script now checks rejection without creating records; the
+   browser regression uses an isolated mocked authenticated session.
 
 The browser uses oidc-client-ts authorization code flow with PKCE, state/nonce
 validation, sessionStorage and renewal. Login occurs before setting a route.

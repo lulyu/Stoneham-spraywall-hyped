@@ -147,8 +147,10 @@ Validation:
 - `npm run build`: canonical data validation, TypeScript and production bundle.
 - `node scripts/frontend-api-smoke.cjs`: local mobile browser integration with
   deterministic mocked API, import/retry, conflict and layout scenarios. Run a
-  dev server on 5174 with `VITE_API_BASE_URL` pointing at the production URL;
-  requests are intercepted by the test and do not modify production data.
+  dev server on 5174 with `VITE_API_BASE_URL` pointing at the production URL and
+  `VITE_COGNITO_AUTHORITY` / `VITE_COGNITO_CLIENT_ID` from `production.json`.
+  Requests and the authenticated browser session are mocked; production data is
+  not modified.
 - The existing `scripts/hold-roles-smoke.cjs` continues to cover local-only
   persistence, four roles, rainbow effects, outer-only glow and route masking.
 

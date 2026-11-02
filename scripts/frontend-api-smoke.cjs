@@ -8,6 +8,12 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] })
   try {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+    await context.addInitScript(() => {
+      sessionStorage.setItem('oidc.user:https://cognito-idp.us-east-1.amazonaws.com/us-east-1_fvraMpcpi:537q15f8r1ppgtpucjoa5pad1r', JSON.stringify({
+        access_token: 'mock-route-token', token_type: 'Bearer', scope: 'openid email profile stoneham-api/write',
+        profile: { sub: 'route-owner', name: 'Tester' }, expires_at: Math.floor(Date.now() / 1000) + 3600,
+      }))
+    })
     const page = await context.newPage()
     page.setDefaultTimeout(15000)
     const errors = []
@@ -19,11 +25,14 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
       if (offline && method === 'POST') return route.abort('failed')
       const headers = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type', 'access-control-allow-methods': '*' }
       const send = (status, body) => route.fulfill({ status, headers, contentType: 'application/json', body: JSON.stringify(body) })
+      if (path === '/v1/me') return send(200, { userId: 'route-owner', isAdmin: false })
+      if (path === '/v1/me/profile') return send(200, { displayName: 'Tester', bio: '' })
+      if (method === 'POST' || method === 'PATCH') assert.equal(request.headers().authorization, 'Bearer mock-route-token')
       if (method === 'OPTIONS') return route.fulfill({ status: 204, headers })
       if (method === 'GET' && path.endsWith('/problems')) return send(listFailure ? 500 : 200, listFailure ? { error: 'Temporarily unavailable' } : { items: records })
       if (method === 'POST') {
         await delay(200)
-        const record = { ...request.postDataJSON(), id: 'remote-' + (records.length + 1), createdAt: new Date().toISOString(), revision: 1 }
+        const record = { ...request.postDataJSON(), id: 'remote-' + (records.length + 1), ownerId: 'route-owner', createdAt: new Date().toISOString(), revision: 1 }
         records.unshift(record)
         return send(201, record)
       }
