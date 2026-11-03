@@ -224,7 +224,7 @@ deployed frontend with those isolated fixtures.
 
 ## Continuous integration and recovery
 
-CI runs on pull requests, pushes to main and manual dispatch, using Node.js 24,
+CI runs on pull requests, branch pushes and manual dispatch, using Node.js 24,
 read-only repository permissions and pinned checkout/setup-node action SHAs.
 **Frontend checks** runs npm ci, tests and build. **Backend checks** independently
 runs npm ci, tests, typecheck and build. Both dependency trees have committed
