@@ -1,10 +1,12 @@
+import { emitSessionEvent } from './sessionEvents.ts'
 import type { Problem, ProblemHold } from './types'
 
 export const STORAGE_KEY = 'stoneham-spraywall:problems:v3'
 export type ProblemInput = Pick<Problem, 'name' | 'grade' | 'setter' | 'notes' | 'holds'>
+export type ProblemPage = { items: Problem[]; nextCursor?: string }
 export interface ProblemStore {
   shared: boolean
-  list(): Promise<Problem[]>
+  list(cursor?: string): Promise<ProblemPage>
   get(id: string): Promise<Problem>
   create(input: ProblemInput): Promise<Problem>
   update(existing: Problem, input: ProblemInput): Promise<Problem>
@@ -38,7 +40,7 @@ export function createLocalProblemStore(storage: Pick<Storage, 'getItem' | 'setI
   }
   return {
     shared: false,
-    async list() { return list() },
+    async list() { return { items: list() } },
     async get(id) {
       const p = list().find((p) => p.id === id)
       if (!p) throw new ProblemStoreError(404, 'This problem no longer exists.')
@@ -77,14 +79,14 @@ export function createApiProblemStore(baseUrl: string, fetcher: typeof fetch = f
       throw new Error('Could not reach the shared wall. Check your connection and try again. Your draft is still here.')
     }
     const data = await response.json().catch(() => null)
-    if (response.status === 401) throw new ProblemStoreError(401, 'Sign in to save or edit. Your draft is still here.')
+    if (response.status === 401) { emitSessionEvent('expired'); throw new ProblemStoreError(401, 'Sign in again to save or edit. Your draft is still here.') }
     if (!response.ok) throw new ProblemStoreError(response.status, data?.error || 'The shared wall request failed. Please try again.')
     if (!data || typeof data !== 'object') throw new Error('The shared wall returned an invalid response.')
     return data as T
   }
   return {
     shared: true,
-    async list() { return (await request<{ items: Problem[] }>('GET', collection)).items },
+    async list(cursor) { return request<ProblemPage>('GET', collection + (cursor ? '?cursor=' + encodeURIComponent(cursor) : '')) },
     get(id) { return request('GET', '/v1/problems/' + encodeURIComponent(id)) },
     create(input) { return request('POST', collection, input) },
     async update(existing, input) {

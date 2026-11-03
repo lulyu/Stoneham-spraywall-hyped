@@ -1,3 +1,4 @@
+import { logSend, listSends, rate, addComment, community, myActivity } from './community'
 import { requireIdentity, requireEditor } from './auth'
 import { randomUUID } from 'node:crypto'
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda'
@@ -56,6 +57,24 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
       return response(405, { error: 'method not allowed', requestId })
     }
 
+    if (path === '/v1/me/sends') {
+      const identity = requireIdentity(event)
+      if (method === 'GET') return response(200, await listSends(identity.userId, event.queryStringParameters?.cursor))
+      return response(405, { error: 'method not allowed', requestId })
+    }
+    const communityPath = pathMatch(path, /^\/v1\/problems\/([^/]+)\/(community|my-activity|sends|rating|comments)$/)
+    if (communityPath) {
+      const [problemId, action] = communityPath
+      const identity = action === 'community' && method === 'GET' ? undefined : requireIdentity(event)
+      const problem = await requireProblem(problemId)
+      if (method === 'GET' && action === 'community') return response(200, await community(problemId, event.queryStringParameters?.cursor))
+      if (method === 'GET' && action === 'my-activity') return response(200, await myActivity(identity!.userId, problemId))
+      if (method === 'POST' && action === 'sends') return response(200, await logSend(identity!.userId, problem))
+      if (method === 'PATCH' && action === 'rating') return response(200, await rate(identity!.userId, problemId, parseJsonBody(event)))
+      if (method === 'POST' && action === 'comments') return response(200, await addComment(identity!.userId, problemId, parseJsonBody(event)))
+      return response(405, { error: 'method not allowed', requestId })
+    }
+
     const wallProblemPath = pathMatch(
       path,
       /^\/v1\/gyms\/([^/]+)\/walls\/([^/]+)\/versions\/([^/]+)\/problems$/,
@@ -65,7 +84,7 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
       const wall = requireWallVersion(gymId, wallId, wallVersionId)
 
       if (method === 'GET') {
-        return response(200, { items: await listProblems(gymId, wallId, wallVersionId) })
+        return response(200, await listProblems(gymId, wallId, wallVersionId, event.queryStringParameters?.cursor))
       }
       if (method === 'POST') {
         const identity = requireIdentity(event)

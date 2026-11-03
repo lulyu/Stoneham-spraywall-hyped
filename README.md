@@ -17,7 +17,7 @@ The first version intentionally keeps everything local so we can validate the cl
 ## Run locally
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
@@ -41,7 +41,7 @@ The goal is deliberately not to build a full Stōkt clone. It is to build the sm
 
 ## Validation and wall image
 
-Use Node.js 22.12+ (or 24) and `npm ci` for the locked dependency versions.
+Use Node.js 24 for development/CI and `npm ci` for the locked dependency versions.
 `npm run build` checks TypeScript and creates the production bundle.
 
 The full-resolution canonical image is served from
@@ -139,7 +139,7 @@ to the shared wall only when clicked, normalizes legacy `hand` to `hold`, and
 records completed imports per API URL on that device so a reload/retry skips
 completed routes. Routes without a Start and Finish remain local and are reported.
 Import progress uses browser storage; clearing that storage also clears the
-import history. Backend filtering and pagination remain deferred (list limit 100).
+import history. The route list loads 50 at a time and offers Load more routes. Filtering/search remain deferred.
 
 Validation:
 - `npm test`: store persistence, legacy compatibility, API payloads/revisions,
@@ -180,3 +180,73 @@ Validation: backend profile regression tests plus
 `scripts/profile-smoke.cjs` (authenticated session/API mocks on local dev port
 5176 with the deployed Cognito public configuration) exercise save/reload,
 manual Setter overrides, existing Setter retention, retry and mobile layout.
+
+## Route sends, enjoyment ratings and comments
+
+Choose a saved shared route to see its activity panel. Public visitors can read
+the average enjoyment rating and comments. Signed-in users can:
+- Log one send per route; retries return the original send date instead of duplicates.
+- Rate enjoyment from 1 to 5 and update their own rating.
+- Post a plain-text comment (1–1000 characters). The server reads the author's
+  saved Profile display name, falling back to "Climber"; no email is published.
+
+Profile includes **Your sends**, newest first, with route name/grade/setter as
+recorded at send time. Clicking a log fetches the original route directly, even
+if it is outside the current route list's first page. History and comments have
+20-item pages and Load more controls. Their GSI lists are eventually consistent;
+Refresh sends reloads recent history. Rating totals are computed from per-user
+rows, so updating a rating never adds another vote.
+
+Authenticated endpoints:
+- GET /v1/me/sends
+- GET /v1/problems/:id/my-activity
+- POST /v1/problems/:id/sends
+- PATCH /v1/problems/:id/rating (`score`: integer 1–5)
+- POST /v1/problems/:id/comments (`text`, optional UUID-v4 `requestId`)
+
+Public endpoint: GET /v1/problems/:id/community. Paginated reads accept the
+returned `cursor`; the server validates it against the selected route/user.
+
+Data uses the existing DynamoDB table: send rows under USER#sub, rating/comment
+rows under PROBLEM#id, and separate GSI partitions for send history/comments.
+Identity always comes from the verified Cognito token. Comment request IDs make
+network retries idempotent. No route metadata or revision is changed by activity.
+This first version has no send removal, repeated ascent counting or comment
+editing/moderation UI. Existing routes and profiles require no data migration.
+
+Validation: backend community tests cover auth, identity isolation, send/comment
+retry safety, rating replacement/aggregation, cursor isolation and pagination.
+`scripts/community-smoke.cjs` uses isolated authenticated session/API fixtures on
+dev port 5178 (configure the deployed API URL and Cognito public identifiers) to
+exercise mobile flows, failure retry, literal comment rendering, profile history
+and anonymous read-only behavior. Optional APP_URL/BROWSER_PROXY can target the
+deployed frontend with those isolated fixtures.
+
+## Continuous integration and recovery
+
+CI runs on pull requests, branch pushes and manual dispatch, using Node.js 24,
+read-only repository permissions and pinned checkout/setup-node action SHAs.
+**Frontend checks** runs npm ci, tests and build. **Backend checks** independently
+runs npm ci, tests, typecheck and build. Both dependency trees have committed
+package-lock.json files; use npm ci (or npm ci --prefix backend), including for
+Lambda deployment builds.
+
+Configure both job names as required checks for main when the repository's plan
+and administrator permissions allow it. The connected integration currently
+receives 403 for branch protection, and GitHub reports that private-repository
+rules require Pro (or a public repository). CI can run without those settings,
+but cannot prevent a permitted operator from merging a failed PR until rules are
+enabled. No paid plan or repository visibility changes were made.
+
+Route pages return items and optional nextCursor. Load more appends pages without
+duplicates or losing already loaded routes on a failed request. Refresh resets
+pagination. Cursors are validated against the current wall version.
+
+Expired tokens get a single shared silent-renew attempt. Silent-renew failure or
+API 401 updates the UI to Sign in again and disables authenticated route saves.
+Reauthentication stores the current route draft in sessionStorage and restores
+it after login to the same Cognito subject, preserving the original editing
+revision for conflict checks. Recovery expires after 24 hours; switching accounts
+does not expose another account's draft. Explicit Cancel, successful save and
+sign-out clear the recovery copy. Profile/comment API 401s also invalidate the
+displayed login state.

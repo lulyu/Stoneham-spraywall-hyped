@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-11-02T01:56:26.382949+00:00",
+  "recordedAt": "2026-11-03T08:49:33.769289+00:00",
   "accountId": "010257981603",
   "region": "us-east-1",
   "manager": "cloudformation",
@@ -9,17 +9,17 @@
   "tableName": "stoneham-spraywall-prod",
   "functionName": "stoneham-spraywall-prod-api",
   "artifactBucket": "stoneham-spraywall-artifacts-artifacts-lyfxingppoxw",
-  "artifactKey": "backend/user-profile-20261102.zip",
-  "sourceCommit": "a84a80c9c70c28b1da055796e33bd2a11c7cbeaf",
-  "lambdaCodeSha256": "1z3tXtLrS/N+MqXMclfLaU2UIeBoYeREgWYBFIolp/Y=",
+  "artifactKey": "backend/213b59c5a4128eca5161677b99555ee6cd60c478.zip",
+  "sourceCommit": "213b59c5a4128eca5161677b99555ee6cd60c478",
+  "lambdaCodeSha256": "DsRsQ+ehc/ia8Bp9gnfsgc0eaWn4uTj5ji5fxQR3POs=",
   "stackStatus": "UPDATE_COMPLETE",
   "pointInTimeRecovery": "ENABLED",
   "userPoolId": "us-east-1_fvraMpcpi",
   "userClientId": "537q15f8r1ppgtpucjoa5pad1r",
   "authAuthority": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_fvraMpcpi",
   "authDomain": "https://stoneham-spraywall-prod-010257981603.auth.us-east-1.amazoncognito.com",
-  "frontendCommit": "a84a80c9c70c28b1da055796e33bd2a11c7cbeaf",
-  "frontendDeploymentId": "dpl_4Hauz7qt8KYoQQtA7h1LNSYmnnuG",
+  "frontendCommit": "213b59c5a4128eca5161677b99555ee6cd60c478",
+  "frontendDeploymentId": "dpl_FTZS8232vfnNimM9F9NhwT2VQgXs",
   "authVerification": {
     "anonymousWrites": "401",
     "forgedTokenWrites": "401",
@@ -37,5 +37,23 @@
     "temporaryTestProfile": "cleaned up",
     "deployedFrontend": "mobile regression passed with mocked session/API",
     "setterDefaultsAndOverrides": "verified"
+  },
+  "communityVerification": {
+    "anonymousWritesAndPrivateHistory": "401",
+    "publicCommunityReads": "200",
+    "realLambdaAndDynamoDB": "isolated test identities via IAM invocation",
+    "ratingReplacementAndAggregation": "verified: two votes average 4 after one rating was updated",
+    "sendAndCommentRetryDeduplication": "verified",
+    "testData": "all six temporary rows removed, prefix scan confirmed empty",
+    "deployedFrontend": "mobile regression passed with isolated mocked session/API data"
+  },
+  "hardeningVerification": {
+    "ciRun": "https://github.com/lulyu/Stoneham-spraywall-project/actions/runs/41604920197",
+    "frontendCI": "success",
+    "backendCI": "success",
+    "cleanInstalls": "npm ci and npm ci --prefix backend passed",
+    "pagination": "125 routes across 3 pages in backend and mobile fixtures; live schema and invalid cursor checks passed",
+    "sessionRecovery": "deployed frontend mobile fixtures verified 401 UI invalidation, silent-renew failure and same-account draft restoration",
+    "requiredChecks": "not enforced: GitHub 403 for protection settings; private repository plan/admin rights restriction"
   }
 }

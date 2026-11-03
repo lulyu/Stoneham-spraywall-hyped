@@ -24,6 +24,7 @@ configured; without that variable it uses localStorage.
 With AWS CLI credentials for the deployment account, from the repository root:
 
 ```bash
+npm ci --prefix backend
 npm run typecheck --prefix backend
 npm test --prefix backend
 npm run build --prefix backend

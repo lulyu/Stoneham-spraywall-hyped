@@ -1,10 +1,11 @@
+import SendHistory from './SendHistory'
 import { useId, useState } from 'react'
 import { accessToken } from './auth'
 import { profileRequest, type UserProfile } from './profile'
 
-export default function Profile({ baseUrl, initial, email, onSave, onClose }: {
+export default function Profile({ baseUrl, initial, email, onSave, onClose, onOpenSend }: {
   baseUrl: string; initial: UserProfile; email: string
-  onSave: (profile: UserProfile) => void; onClose: () => void
+  onSave: (profile: UserProfile) => void; onClose: () => void; onOpenSend: (id: string) => Promise<void>
 }) {
   const bioId = useId()
   const [displayName, setDisplayName] = useState(initial.displayName)
@@ -33,5 +34,6 @@ export default function Profile({ baseUrl, initial, email, onSave, onClose }: {
         <button className="primary" disabled={busy || !displayName.trim()}>{busy ? 'Saving…' : 'Save profile'}</button>
       </fieldset>
     </form>
+    <SendHistory baseUrl={baseUrl} onOpen={onOpenSend} />
   </section>
 }
