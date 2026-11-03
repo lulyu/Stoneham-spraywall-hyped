@@ -17,6 +17,11 @@ async function request(method, path, payload, extraHeaders = {}) {
 assert.equal(await request('GET', '/health'), 200)
 assert.equal(await request('GET', collection), 200)
 assert.equal(await request('GET', '/v1/me'), 401)
+assert.equal(await request('GET', '/v1/me/sends'), 401)
+assert.equal(await request('GET', nonexistent + '/my-activity'), 401)
+assert.equal(await request('POST', nonexistent + '/sends'), 401)
+assert.equal(await request('PATCH', nonexistent + '/rating', {}), 401)
+assert.equal(await request('POST', nonexistent + '/comments', {}), 401)
 for (const method of ['GET', 'PATCH']) {
   assert.equal(await request(method, '/v1/me/profile', method === 'PATCH' ? {} : undefined), 401)
 }
