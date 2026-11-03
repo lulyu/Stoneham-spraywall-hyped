@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-11-03T02:24:33.430845+00:00",
+  "recordedAt": "2026-11-03T08:49:33.769289+00:00",
   "accountId": "010257981603",
   "region": "us-east-1",
   "manager": "cloudformation",
@@ -9,17 +9,17 @@
   "tableName": "stoneham-spraywall-prod",
   "functionName": "stoneham-spraywall-prod-api",
   "artifactBucket": "stoneham-spraywall-artifacts-artifacts-lyfxingppoxw",
-  "artifactKey": "backend/route-community-20261103.zip",
-  "sourceCommit": "82edfe08e66aec6eff066386f138acbbe2f6f870",
-  "lambdaCodeSha256": "STHC32R/OVMM7ZgrqcKr/O1R3rjrPpv31fH67k8wjBU=",
+  "artifactKey": "backend/213b59c5a4128eca5161677b99555ee6cd60c478.zip",
+  "sourceCommit": "213b59c5a4128eca5161677b99555ee6cd60c478",
+  "lambdaCodeSha256": "DsRsQ+ehc/ia8Bp9gnfsgc0eaWn4uTj5ji5fxQR3POs=",
   "stackStatus": "UPDATE_COMPLETE",
   "pointInTimeRecovery": "ENABLED",
   "userPoolId": "us-east-1_fvraMpcpi",
   "userClientId": "537q15f8r1ppgtpucjoa5pad1r",
   "authAuthority": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_fvraMpcpi",
   "authDomain": "https://stoneham-spraywall-prod-010257981603.auth.us-east-1.amazoncognito.com",
-  "frontendCommit": "82edfe08e66aec6eff066386f138acbbe2f6f870",
-  "frontendDeploymentId": "dpl_DoMzNbw6Vue87XHwwZqkfb6gHuwg",
+  "frontendCommit": "213b59c5a4128eca5161677b99555ee6cd60c478",
+  "frontendDeploymentId": "dpl_FTZS8232vfnNimM9F9NhwT2VQgXs",
   "authVerification": {
     "anonymousWrites": "401",
     "forgedTokenWrites": "401",
@@ -46,5 +46,14 @@
     "sendAndCommentRetryDeduplication": "verified",
     "testData": "all six temporary rows removed, prefix scan confirmed empty",
     "deployedFrontend": "mobile regression passed with isolated mocked session/API data"
+  },
+  "hardeningVerification": {
+    "ciRun": "https://github.com/lulyu/Stoneham-spraywall-project/actions/runs/41604920197",
+    "frontendCI": "success",
+    "backendCI": "success",
+    "cleanInstalls": "npm ci and npm ci --prefix backend passed",
+    "pagination": "125 routes across 3 pages in backend and mobile fixtures; live schema and invalid cursor checks passed",
+    "sessionRecovery": "deployed frontend mobile fixtures verified 401 UI invalidation, silent-renew failure and same-account draft restoration",
+    "requiredChecks": "not enforced: GitHub 403 for protection settings; private repository plan/admin rights restriction"
   }
 }

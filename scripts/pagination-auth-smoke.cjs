@@ -6,7 +6,7 @@ const authority='https://cognito-idp.us-east-1.amazonaws.com/us-east-1_fvraMpcpi
 const domain='https://stoneham-spraywall-prod-010257981603.auth.us-east-1.amazoncognito.com'
 const app=process.env.APP_URL||'http://localhost:5178'
 ;(async()=>{
- const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']})
+ const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox'],proxy:process.env.BROWSER_PROXY?{server:process.env.BROWSER_PROXY}:undefined})
  try{
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true})
   await context.addInitScript(()=>{
