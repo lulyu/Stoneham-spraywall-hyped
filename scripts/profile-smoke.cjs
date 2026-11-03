@@ -16,6 +16,9 @@ const api = 'https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com'
   await context.route(api+'/**',async route=>{
    const req=route.request(),path=new URL(req.url()).pathname,method=req.method()
    const send=(status,body)=>route.fulfill({status,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(body)})
+   if(path==='/v1/me/sends')return send(200,{items:[]})
+   if(path.endsWith('/community'))return send(200,{ratingAverage:null,ratingCount:0,comments:[]})
+   if(path.endsWith('/my-activity'))return send(200,{sent:false,rating:null})
    if(path==='/v1/me')return send(200,{userId:'alice',isAdmin:false})
    if(path==='/v1/me/profile'){
     assert.equal(req.headers().authorization,'Bearer mock-profile-token')
@@ -51,7 +54,7 @@ const api = 'https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com'
   await page.locator('.hold-hit-polygon').nth(1).tap()
   await page.getByLabel('Problem name').fill('Profile route')
   await page.getByRole('button',{name:'Save problem',exact:true}).click()
-  await page.getByText('Profile route',{exact:true}).waitFor()
+  await page.locator('.problem-card').getByText('Profile route',{exact:true}).waitFor()
   assert.equal(records[0].setter,'Guest setter')
   await page.getByRole('button',{name:'Profile · Slab wizard',exact:true}).click()
   await page.getByLabel('Display name',{exact:true}).fill('New name')

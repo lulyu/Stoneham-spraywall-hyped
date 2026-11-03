@@ -180,3 +180,44 @@ Validation: backend profile regression tests plus
 `scripts/profile-smoke.cjs` (authenticated session/API mocks on local dev port
 5176 with the deployed Cognito public configuration) exercise save/reload,
 manual Setter overrides, existing Setter retention, retry and mobile layout.
+
+## Route sends, enjoyment ratings and comments
+
+Choose a saved shared route to see its activity panel. Public visitors can read
+the average enjoyment rating and comments. Signed-in users can:
+- Log one send per route; retries return the original send date instead of duplicates.
+- Rate enjoyment from 1 to 5 and update their own rating.
+- Post a plain-text comment (1–1000 characters). The server reads the author's
+  saved Profile display name, falling back to "Climber"; no email is published.
+
+Profile includes **Your sends**, newest first, with route name/grade/setter as
+recorded at send time. Clicking a log fetches the original route directly, even
+if it is outside the current route list's first page. History and comments have
+20-item pages and Load more controls. Their GSI lists are eventually consistent;
+Refresh sends reloads recent history. Rating totals are computed from per-user
+rows, so updating a rating never adds another vote.
+
+Authenticated endpoints:
+- GET /v1/me/sends
+- GET /v1/problems/:id/my-activity
+- POST /v1/problems/:id/sends
+- PATCH /v1/problems/:id/rating (`score`: integer 1–5)
+- POST /v1/problems/:id/comments (`text`, optional UUID-v4 `requestId`)
+
+Public endpoint: GET /v1/problems/:id/community. Paginated reads accept the
+returned `cursor`; the server validates it against the selected route/user.
+
+Data uses the existing DynamoDB table: send rows under USER#sub, rating/comment
+rows under PROBLEM#id, and separate GSI partitions for send history/comments.
+Identity always comes from the verified Cognito token. Comment request IDs make
+network retries idempotent. No route metadata or revision is changed by activity.
+This first version has no send removal, repeated ascent counting or comment
+editing/moderation UI. Existing routes and profiles require no data migration.
+
+Validation: backend community tests cover auth, identity isolation, send/comment
+retry safety, rating replacement/aggregation, cursor isolation and pagination.
+`scripts/community-smoke.cjs` uses isolated authenticated session/API fixtures on
+dev port 5178 (configure the deployed API URL and Cognito public identifiers) to
+exercise mobile flows, failure retry, literal comment rendering, profile history
+and anonymous read-only behavior. Optional APP_URL/BROWSER_PROXY can target the
+deployed frontend with those isolated fixtures.

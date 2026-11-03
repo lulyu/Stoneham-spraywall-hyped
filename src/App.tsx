@@ -3,6 +3,7 @@ import sam2Experiment from './data/experiments/top_left_sam2_polygons.json'
 import { polygonCandidates as holds } from './data/polygons'
 import { initializeAuth, accountDetails, accessToken, signIn, signOut, authConfigured } from './auth'
 import Profile from './Profile'
+import Community from './Community'
 import { profileRequest, type UserProfile } from './profile'
 import { createApiProblemStore, createLocalProblemStore, readLocalProblems, ProblemStoreError, STORAGE_KEY } from './problemStore'
 import type { PointerEvent as ReactPointerEvent } from 'react'
@@ -518,7 +519,11 @@ function App() {
       </div>}
       {profileNotice && <p className="profile-notice" role="status">{profileNotice}</p>}
       {showProfile && identity ? <Profile baseUrl={apiBaseUrl} initial={profile} email={email}
-        onClose={() => setShowProfile(false)} onSave={(saved) => { setProfile(saved); setProfileNotice('Profile saved.'); setShowProfile(false) }} /> : <>
+        onClose={() => setShowProfile(false)} onOpenSend={async (id) => {
+          const problem = await problemStore.get(id)
+          setProblems((previous) => [problem, ...previous.filter((p) => p.id !== id)])
+          setActiveId(id); setMode('browse'); setShowProfile(false)
+        }} onSave={(saved) => { setProfile(saved); setProfileNotice('Profile saved.'); setShowProfile(false) }} /> : <>
       <details className="polygon-debug-panel">
         <summary>Polygon debug</summary>
         <div className="polygon-debug-controls">
@@ -594,6 +599,7 @@ function App() {
             <button className="ghost small" disabled={busy || loading} onClick={() => void refreshProblems()}>{loading ? 'Loading…' : 'Refresh'}</button>
             {activeProblem && (!problemStore.shared || identity?.isAdmin || (identity && activeProblem.ownerId === identity.userId)) && <button className="ghost small" disabled={busy || openingId !== null} onClick={() => void openProblem(activeProblem, true)}>Edit problem</button>}
           </div>
+          {problemStore.shared && activeProblem && <Community key={activeProblem.id} baseUrl={apiBaseUrl} problemId={activeProblem.id} name={activeProblem.name} userId={identity?.userId} />}
           {listError && <p className="error-message" role="alert">{listError}</p>}
           {openingId && <p role="status" className="muted">Opening problem…</p>}
           {problemStore.shared && localProblems.length > 0 && <div className="local-import">

@@ -3,10 +3,10 @@ import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, QueryCom
 import type { Problem, UserProfile, ProblemItem, UpdateProblemInput } from './model'
 import { ApiError } from './walls'
 
-const tableName = process.env.DYNAMODB_TABLE
+export const tableName = process.env.DYNAMODB_TABLE
 if (!tableName) throw new Error('DYNAMODB_TABLE is required')
 
-const client = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
+export const client = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
   marshallOptions: { removeUndefinedValues: true },
 })
 
@@ -54,6 +54,7 @@ export async function getProblem(problemId: string): Promise<Problem | undefined
   const response = await client.send(new GetCommand({
     TableName: tableName,
     Key: { pk: problemPk(problemId), sk: 'META' },
+    ConsistentRead: true,
   }))
   return response.Item ? toProblem(response.Item as ProblemItem) : undefined
 }

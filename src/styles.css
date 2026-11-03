@@ -113,3 +113,13 @@ button:disabled { cursor: default; opacity: .45; }
 .profile-fields textarea { width: 100%; box-sizing: border-box; resize: vertical; font: inherit; font-size: 16px; color: white; background: #191c16; border: 1px solid #34382e; border-radius: 11px; padding: 11px 12px; }
 .profile-fields p { overflow-wrap: anywhere; }
 .profile-notice { color: #c9ff53; font-size: 13px; }
+
+.community-panel { border: 1px solid #34382e; border-radius: 14px; padding: 14px; margin: 14px 0; overflow-wrap: anywhere; }
+.community-panel h3 { margin: 0 0 8px; }
+.community-panel textarea { box-sizing: border-box; width: 100%; resize: vertical; font: inherit; font-size: 16px; background: #191c16; color: white; border: 1px solid #34382e; border-radius: 10px; padding: 10px; margin: 6px 0; }
+.rating-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 14px 0; }
+.rating-row button { min-height: 44px; min-width: 38px; }
+.rating-row button[aria-pressed=true] { background: #c9ff53; color: #12150d; }
+.comments-list article { border-top: 1px solid #34382e; padding: 12px 0; }
+.comments-list p { white-space: pre-wrap; margin-bottom: 0; }
+.send-history { border-top: 1px solid #34382e; margin-top: 28px; padding-top: 12px; display: grid; gap: 10px; }
