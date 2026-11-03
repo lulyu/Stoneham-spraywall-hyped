@@ -189,6 +189,9 @@ the average enjoyment rating and comments. Signed-in users can:
 - Rate enjoyment from 1 to 5 and update their own rating.
 - Post a plain-text comment (1–1000 characters). The server reads the author's
   saved Profile display name, falling back to "Climber"; no email is published.
+- Edit or delete their own comments. Editing preserves the original author/date
+  and shows an Edited marker; deletion requires confirmation. Failed requests keep
+  the edit draft or confirmation available for retry.
 
 Profile includes **Your sends**, newest first, with route name/grade/setter as
 recorded at send time. Clicking a log fetches the original route directly, even
@@ -203,6 +206,8 @@ Authenticated endpoints:
 - POST /v1/problems/:id/sends
 - PATCH /v1/problems/:id/rating (`score`: integer 1–5)
 - POST /v1/problems/:id/comments (`text`, optional UUID-v4 `requestId`)
+- PATCH /v1/problems/:id/comments/:commentId (`text`, 1–1000 characters)
+- DELETE /v1/problems/:id/comments/:commentId (comment author only)
 
 Public endpoint: GET /v1/problems/:id/community. Paginated reads accept the
 returned `cursor`; the server validates it against the selected route/user.
@@ -211,15 +216,25 @@ Data uses the existing DynamoDB table: send rows under USER#sub, rating/comment
 rows under PROBLEM#id, and separate GSI partitions for send history/comments.
 Identity always comes from the verified Cognito token. Comment request IDs make
 network retries idempotent. No route metadata or revision is changed by activity.
-This first version has no send removal, repeated ascent counting or comment
-editing/moderation UI. Existing routes and profiles require no data migration.
+The private my-activity response includes the caller's `commentIds`; public
+comments expose no account identifiers. Ownership checks use the JWT subject and
+are repeated in conditional DynamoDB writes. Admin status does not grant comment
+editing rights. Deletion removes the text, author and GSI membership, retaining a
+small tombstone so a delayed POST retry cannot recreate the comment. As with all
+GSI activity lists, another browser may briefly see a stale comment after a change.
+Ownership lookup queries all comments on the selected route; a separate ownership
+index may be useful if individual routes accumulate very large comment histories.
+This version has no send removal, repeated ascent counting or moderation UI.
+Existing comments already contain server-assigned ownership; no migration is needed.
+Route deletion remains disabled; the new DELETE endpoint only affects comments.
 
 Validation: backend community tests cover auth, identity isolation, send/comment
 retry safety, rating replacement/aggregation, cursor isolation and pagination.
 `scripts/community-smoke.cjs` uses isolated authenticated session/API fixtures on
 dev port 5178 (configure the deployed API URL and Cognito public identifiers) to
 exercise mobile flows, failure retry, literal comment rendering, profile history
-and anonymous read-only behavior. Optional APP_URL/BROWSER_PROXY can target the
+and anonymous read-only behavior, plus author-only comment editing/deletion,
+cancellation, reload persistence and failed-write retry. Optional APP_URL/BROWSER_PROXY can target the
 deployed frontend with those isolated fixtures.
 
 ## Continuous integration and recovery

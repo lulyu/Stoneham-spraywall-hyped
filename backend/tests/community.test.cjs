@@ -3,7 +3,7 @@ const {test,beforeEach}=require('node:test')
 const sdk=require('@aws-sdk/lib-dynamodb')
 const holds=require('../../src/data/polygons/holds.json')
 process.env.DYNAMODB_TABLE='community-test'
-let rows, pageCalls
+let rows, pageCalls, beforeUpdate
 const key=r=>r.pk+'|'+r.sk
 sdk.DynamoDBDocumentClient.from=()=>Object.setPrototypeOf({send:async command=>{
  const p=command.input,kind=command.constructor.name
@@ -11,6 +11,18 @@ sdk.DynamoDBDocumentClient.from=()=>Object.setPrototypeOf({send:async command=>{
  if(kind==='PutCommand'){
   if(p.ConditionExpression&&rows.has(key(p.Item)))throw Object.assign(new Error(),{name:'ConditionalCheckFailedException'})
   rows.set(key(p.Item),p.Item);return {}
+ }
+ if(kind==='UpdateCommand'){
+  assert.equal(p.ConditionExpression,'userId = :user AND attribute_not_exists(deleted)')
+  const existing=rows.get(key(p.Key))
+  if(beforeUpdate){const action=beforeUpdate;beforeUpdate=null;action(existing)}
+  if(!existing||existing.userId!==p.ExpressionAttributeValues[':user']||existing.deleted)
+   throw Object.assign(new Error(),{name:'ConditionalCheckFailedException'})
+  if(p.ExpressionAttributeValues[':deleted']){
+   existing.deleted=true
+   for(const field of ['text','author','gsi1pk','gsi1sk'])delete existing[field]
+  }else{existing.text=p.ExpressionAttributeValues[':text'];existing.updatedAt=p.ExpressionAttributeValues[':now']}
+  return {Attributes:{...existing}}
  }
  if(kind==='QueryCommand'){
   pageCalls++
@@ -22,10 +34,11 @@ sdk.DynamoDBDocumentClient.from=()=>Object.setPrototypeOf({send:async command=>{
    return {Items:items,...(start+items.length<matches.length?{LastEvaluatedKey:{pk:last.pk,sk:last.sk,gsi1pk:last.gsi1pk,gsi1sk:last.gsi1sk}}:{})}
   }
   // Return one rating per page to exercise the real paginator across pages.
-  const all=[...rows.values()].filter(r=>r.pk===pk&&r.sk.startsWith('RATING#')).sort((a,b)=>a.sk.localeCompare(b.sk))
+  const all=[...rows.values()].filter(r=>r.pk===pk&&r.sk.startsWith(p.ExpressionAttributeValues[':prefix'])).sort((a,b)=>a.sk.localeCompare(b.sk))
   const start=p.ExclusiveStartKey?all.findIndex(r=>r.sk===p.ExclusiveStartKey.sk)+1:0
   const selected=all.slice(start,start+1),last=selected.at(-1)
-  return {Items:selected,...(start+1<all.length?{LastEvaluatedKey:{pk:last.pk,sk:last.sk}}:{})}
+  const visible=p.FilterExpression?selected.filter(r=>r.userId===p.ExpressionAttributeValues[':user']&&!r.deleted):selected
+  return {Items:visible,...(start+1<all.length?{LastEvaluatedKey:{pk:last.pk,sk:last.sk}}:{})}
  }
  throw new Error('Unexpected '+kind)
 }},sdk.DynamoDBDocumentClient.prototype)
@@ -37,13 +50,13 @@ const request=(method,action,body,user='alice',cursor)=>handler({
 })
 const data=r=>JSON.parse(r.body)
 beforeEach(()=>{
- rows=new Map();pageCalls=0
+ rows=new Map();pageCalls=0;beforeUpdate=null
  const problem={pk:'PROBLEM#p1',sk:'META',id:'p1',name:'Route one',grade:'V4',setter:'Original setter',gymId:'stoneham-crg',wallId:'spray-wall-1',wallVersionId:'2026-10-v4',holds:[{holdId:holds[0].id,role:'start'},{holdId:holds[1].id,role:'finish'}],createdAt:'2026-11-03',updatedAt:'2026-11-03',revision:1}
  rows.set(key(problem),problem)
  rows.set('USER#alice|PROFILE',{pk:'USER#alice',sk:'PROFILE',displayName:'Alice',bio:'Private bio'})
 })
 test('all writes and private reads reject anonymous callers',async()=>{
- for(const [method,path,body] of [['POST','sends'],['PATCH','rating',{score:4}],['POST','comments',{text:'Hi'}],['GET','my-activity'],['GET','/v1/me/sends']]){
+ for(const [method,path,body] of [['POST','sends'],['PATCH','rating',{score:4}],['POST','comments',{text:'Hi'}],['PATCH','comments/c1',{text:'Edit'}],['DELETE','comments/c1'],['GET','my-activity'],['GET','/v1/me/sends']]){
   assert.equal((await request(method,path,body,null)).statusCode,401)
  }
  assert.equal((await request('GET','community',undefined,null)).statusCode,200)
@@ -116,4 +129,47 @@ test('comment pagination returns subsequent comments without exposing account id
  const second=data(await request('GET','community',undefined,null,first.nextCursor))
  assert.equal(second.comments.length,1)
  assert(!second.nextCursor)
+})
+
+test('only the comment author can edit or delete; attribution and creation order stay intact',async()=>{
+ const original=data(await request('POST','comments',{text:'Original'}))
+ const path='comments/'+original.id
+ assert.equal((await request('PATCH',path,{text:'Stolen'},'bob')).statusCode,403)
+ assert.equal((await request('DELETE',path,undefined,'bob')).statusCode,403)
+ const edited=await request('PATCH',path,{text:' Revised '})
+ assert.equal(edited.statusCode,200)
+ assert.equal(data(edited).text,'Revised')
+ assert.equal(data(edited).createdAt,original.createdAt)
+ assert.equal(data(edited).author,'Alice')
+ assert(data(edited).updatedAt)
+ assert.deepEqual(data(await request('GET','my-activity')).commentIds,[original.id])
+ assert.deepEqual(data(await request('GET','my-activity',undefined,'bob')).commentIds,[])
+ assert.equal((await request('PATCH','/v1/problems/p2/'+path,{text:'Wrong route'})).statusCode,404)
+ for(const body of [{text:''},{text:'x'.repeat(1001)},{text:'Hi',userId:'bob'},{text:'Hi',createdAt:'fake'},null,[]])
+  assert.equal((await request('PATCH',path,body)).statusCode,400)
+ assert.equal((await request('PATCH','comments/missing',{text:'Hi'})).statusCode,404)
+ assert.equal((await request('DELETE',path)).statusCode,200)
+ assert.equal((await request('DELETE',path)).statusCode,200)
+ assert.equal((await request('PATCH',path,{text:'Resurrect'})).statusCode,404)
+ assert.equal(data(await request('GET','community',undefined,null)).comments.length,0)
+ assert.deepEqual(data(await request('GET','my-activity')).commentIds,[])
+ const tombstone=rows.get('PROBLEM#p1|COMMENT#'+original.id)
+ assert(tombstone.deleted);assert(!tombstone.text);assert(!tombstone.gsi1pk)
+ // A delayed create retry cannot bring a deleted comment back.
+ assert.equal((await request('POST','comments',{text:'Original',requestId:original.id})).statusCode,410)
+})
+test('concurrent deletes block edits atomically and delete retries remain successful',async()=>{
+ const original=data(await request('POST','comments',{text:'Original'}))
+ const path='comments/'+original.id
+ beforeUpdate=row=>{row.deleted=true}
+ assert.equal((await request('PATCH',path,{text:'Late edit'})).statusCode,409)
+ assert.equal(rows.get('PROBLEM#p1|COMMENT#'+original.id).text,'Original')
+ const second=data(await request('POST','comments',{text:'Another'}))
+ beforeUpdate=row=>{row.deleted=true}
+ assert.equal((await request('DELETE','comments/'+second.id)).statusCode,200)
+})
+test('ownership lookup paginates through comments from other users',async()=>{
+ for(let i=0;i<5;i++)await request('POST','comments',{text:'Comment '+i},i%2?'bob':'alice')
+ assert.equal(data(await request('GET','my-activity')).commentIds.length,3)
+ assert.equal(data(await request('GET','my-activity',undefined,'bob')).commentIds.length,2)
 })

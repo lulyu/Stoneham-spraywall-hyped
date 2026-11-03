@@ -1,8 +1,8 @@
 import { emitSessionEvent } from './sessionEvents.ts'
 import { accessToken } from './auth'
-export type Comment = { id: string; text: string; author: string; createdAt: string }
+export type Comment = { id: string; text: string; author: string; createdAt: string; updatedAt?: string }
 export type CommunityData = { ratingAverage: number | null; ratingCount: number; comments: Comment[]; nextCursor?: string }
-export type MyActivity = { sent: boolean; sentAt?: string; rating: number | null }
+export type MyActivity = { sent: boolean; sentAt?: string; rating: number | null; commentIds?: string[] }
 export type SendLog = { problemId: string; name: string; grade: string; setter: string; sentAt: string }
 export async function communityRequest<T>(base: string, path: string, method = 'GET', payload?: unknown, privateRequest = false): Promise<T> {
   const token = privateRequest ? await accessToken() : undefined

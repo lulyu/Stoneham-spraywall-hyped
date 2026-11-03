@@ -18,7 +18,7 @@ checks have unit coverage; live testing with two Google accounts remains pending
 - Anonymous: health and problem list/read only.
 - Signed-in user: create; edit only rows with ownerId equal to the verified sub.
 - admins Cognito group: edit any row, including old unowned anonymous rows.
-- DELETE is removed for everyone, including admins; permanent deletion is not a UI feature.
+- Route DELETE remains disabled for everyone, including admins. The separate comment DELETE endpoint requires the comment author; it removes the comment body and public visibility while retaining an idempotency tombstone.
 - ownerId is assigned by the server on creation and is not accepted in updates.
 - Existing anonymous records remain unowned, not automatically claimable.
 - Display names, email addresses, form values and localStorage never grant authority.
