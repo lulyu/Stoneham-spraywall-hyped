@@ -296,7 +296,7 @@ function WallViewer({
             className={`hold-hit-polygon ${shownMap.has(hold.id) ? 'is-selected' : ''}`} points={polygonPoints(hold)} data-hold-id={hold.id} />)}
         </svg>
       </div>
-      <button className="fit-button" onPointerUp={(e) => { e.stopPropagation(); fit() }} onClick={fit}>Fit wall</button>
+      <button className="fit-button" onPointerUp={(e) => { e.stopPropagation(); fit() }} onClick={fit} aria-label="Fit wall" title="Fit wall"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M3 3l6 6m12-6-6 6M3 21l6-6m12 6-6-6" /></svg></button>
       {showCropFocus && <button className="crop-focus-button" onPointerUp={(e) => { e.stopPropagation(); focusCrop() }} onClick={focusCrop}>Focus top-left crop</button>}
       {mode === 'set' && <div className="tap-hint">Tap holds · drag to pan · pinch to zoom</div>}
     </div>
@@ -308,6 +308,19 @@ function App() {
   const [profile, setProfile] = useState<UserProfile>({ displayName: '', bio: '' })
   const [email, setEmail] = useState('')
   const [showProfile, setShowProfile] = useState(false)
+  const [routesOpen, setRoutesOpen] = useState(false)
+  const routesDialog = useRef<HTMLDialogElement>(null)
+  const accountMenu = useRef<HTMLDetailsElement>(null)
+  const closeAccount = () => { if (accountMenu.current) accountMenu.current.open = false }
+  useEffect(() => {
+    const outside = (event: globalThis.PointerEvent) => {
+      if (!accountMenu.current?.contains(event.target as Node)) closeAccount()
+    }
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') closeAccount() }
+    document.addEventListener('pointerdown', outside)
+    document.addEventListener('keydown', escape)
+    return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', escape) }
+  }, [])
   const [profileNotice, setProfileNotice] = useState('')
   const [authError, setAuthError] = useState('')
   const [needsSignIn, setNeedsSignIn] = useState(false)
@@ -341,6 +354,13 @@ function App() {
   const [debugDataset, setDebugDataset] = useState<'current' | 'sam2'>('current')
   const experimentHolds = sam2Holds
   const debugHolds = debugDataset === 'current' ? holds : experimentHolds
+
+  useEffect(() => {
+    const dialog = routesDialog.current
+    if (!dialog) return
+    if (routesOpen && mode === 'browse' && !showProfile) dialog.showModal()
+    else dialog.close()
+  }, [routesOpen, mode, showProfile])
 
   const activeProblem = problems.find((p) => p.id === activeId) ?? null
 
@@ -456,6 +476,7 @@ function App() {
       if (sequence !== selectionSequence.current) return
       setProblems((prev) => prev.map((item) => item.id === fresh.id ? fresh : item))
       setActiveId(fresh.id)
+      setRoutesOpen(false)
       if (edit) {
         draftUserId.current = identity?.userId ?? null
         setEditing(fresh)
@@ -480,6 +501,8 @@ function App() {
     draftUserId.current = identity?.userId ?? null
     clearRecovery()
     setShowProfile(false)
+    closeAccount()
+    setRoutesOpen(false)
     selectionSequence.current++
     setOpeningId(null)
     setEditing(null)
@@ -571,34 +594,19 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell ${mode === 'set' ? 'is-setting' : ''}`}>
       <header className="topbar">
         <div>
           <div className="eyebrow">STONEHAM</div>
           <h1>Spray Wall</h1>
         </div>
-        {mode === 'browse' ? (
-          <button className="primary small" disabled={busy} onClick={startSetting}>＋ Set</button>
-        ) : (
-          <button className="ghost small" disabled={busy} onClick={() => { clearRecovery(); setMode('browse'); setHighlightedHoldId(null) }}>Cancel</button>
-        )}
-      </header>
-
-      {problemStore.shared && <div className="problem-tools auth-tools">
-        {identity ? <><span className="muted">{identity.isAdmin ? 'Gym administrator' : 'Signed in'}</span><button className="ghost small" disabled={busy} onClick={() => { clearRecovery(); void signOut().catch((e) => setAuthError(e.message)) }}>Sign out</button></> :
-          <button className="ghost small" disabled={!authConfigured} onClick={() => void signInWithRecovery()}>{needsSignIn ? 'Sign in again' : 'Sign in with Google'}</button>}
-        {authError && <p role="alert" className="error-message">{authError}</p>}
-      </div>}
-      {identity && <div className="profile-nav">
-        <button className="ghost small" disabled={busy} onClick={() => { setShowProfile(true); setProfileNotice('') }}>Profile{profile.displayName ? ' · ' + profile.displayName : ''}</button>
-      </div>}
-      {profileNotice && <p className="profile-notice" role="status">{profileNotice}</p>}
-      {showProfile && (identity || needsSignIn) ? <Profile baseUrl={apiBaseUrl} initial={profile} email={email}
-        onClose={() => setShowProfile(false)} onOpenSend={async (id) => {
-          const problem = await problemStore.get(id)
-          setProblems((previous) => [problem, ...previous.filter((p) => p.id !== id)])
-          setActiveId(id); setMode('browse'); setShowProfile(false)
-        }} onSave={(saved) => { setProfile(saved); setProfileNotice('Profile saved.'); setShowProfile(false) }} /> : <>
+        {identity && <details className="account-menu" ref={accountMenu}>
+          <summary aria-label="Account menu" title="Account menu">{(profile.displayName || 'U').slice(0, 1).toUpperCase()}</summary>
+          <div className="account-popover">
+            <strong>{profile.displayName || 'Your account'}</strong>
+            <button className="ghost small" disabled={busy} onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); setRoutesOpen(false); setShowProfile(true); setProfileNotice('') }}>Profile{profile.displayName ? ' · ' + profile.displayName : ''}</button>
+            <button className="ghost small" disabled={busy} onClick={() => { clearRecovery(); void signOut().catch((e) => setAuthError(e.message)) }}>Sign out</button>
+            {identity.isAdmin && <><span className="muted">Gym administrator</span>
       <details className="polygon-debug-panel">
         <summary>Polygon debug</summary>
         <div className="polygon-debug-controls">
@@ -613,9 +621,28 @@ function App() {
           <p>{debugHolds.length} polygons · Overlay only. Route setting continues to use current candidates.</p>
         </div>
       </details>
+            </>}
+          </div>
+        </details>}
+      </header>
+      {!showProfile && <nav className="home-actions" aria-label="Wall actions">
+        {mode === 'browse' ? <>
+          <button className="primary" disabled={busy || (problemStore.shared && !identity && !authConfigured)} onClick={startSetting}>{problemStore.shared && !identity ? (needsSignIn ? 'Sign in again' : 'Login to set') : '＋ Set'}</button>
+          <button className="primary" aria-haspopup="dialog" aria-expanded={routesOpen} aria-controls="routes-drawer" onClick={() => setRoutesOpen(true)}>Explore routes <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10" /></svg></button>
+        </> : <button className="ghost small" disabled={busy} onClick={() => { clearRecovery(); setMode('browse'); setHighlightedHoldId(null) }}>Cancel</button>}
+        {mode === 'set' && problemStore.shared && !identity && <button className="primary small" disabled={!authConfigured} onClick={() => void signInWithRecovery()}>{needsSignIn ? 'Sign in again' : 'Login to set'}</button>}
+      </nav>}
+      {authError && <p role="alert" className="error-message auth-notice">{authError}</p>}
+      {profileNotice && <p className="profile-notice" role="status">{profileNotice}</p>}
+      {showProfile && (identity || needsSignIn) ? <Profile baseUrl={apiBaseUrl} initial={profile} email={email}
+        onClose={() => setShowProfile(false)} onOpenSend={async (id) => {
+          const problem = await problemStore.get(id)
+          setProblems((previous) => [problem, ...previous.filter((p) => p.id !== id)])
+          setActiveId(id); setMode('browse'); setShowProfile(false)
+        }} onSave={(saved) => { setProfile(saved); setProfileNotice('Profile saved.'); setShowProfile(false) }} /> : <>
       <section className="wall-card">
         <WallViewer mode={mode} draft={draft} activeProblem={activeProblem} onHoldTap={tapHold}
-          debugPolygons={showAllPolygons ? debugHolds : []} showPolygonLabels={showPolygonLabels} showCropFocus={showAllPolygons && debugDataset === 'sam2'} highlightedHoldId={highlightedHoldId} />
+          debugPolygons={identity?.isAdmin && showAllPolygons ? debugHolds : []} showPolygonLabels={Boolean(identity?.isAdmin && showPolygonLabels)} showCropFocus={Boolean(identity?.isAdmin && showAllPolygons) && debugDataset === 'sam2'} highlightedHoldId={highlightedHoldId} />
       </section>
 
       {mode === 'set' ? (
@@ -661,20 +688,33 @@ function App() {
           </fieldset>
         </section>
       ) : (
+        <>
+        {activeProblem && <section className="active-route" aria-label="Selected route">
+          <div className="active-route-heading">
+            <div><span className="muted">{activeProblem.grade} · {activeProblem.setter}</span><h2>{activeProblem.name}</h2></div>
+            <button className="ghost small" aria-label="Clear selected route" onClick={() => setActiveId(null)}>✕</button>
+          </div>
+            {activeProblem && (!problemStore.shared || identity?.isAdmin || (identity && activeProblem.ownerId === identity.userId)) && <button className="ghost small" disabled={busy || openingId !== null} onClick={() => void openProblem(activeProblem, true)}>Edit problem</button>}
+          {problemStore.shared && activeProblem && <Community key={activeProblem.id} baseUrl={apiBaseUrl} problemId={activeProblem.id} name={activeProblem.name} userId={identity?.userId} />}
+        </section>}
+        <dialog id="routes-drawer" className="routes-drawer" ref={routesDialog} aria-labelledby="routes-title"
+          onCancel={() => setRoutesOpen(false)}
+          onClick={(e) => { if (e.target === e.currentTarget) { const rect = e.currentTarget.getBoundingClientRect(); if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) setRoutesOpen(false) } }}>
         <section className="problem-sheet">
+          <div className="drawer-heading"><h2 id="routes-title">Explore routes</h2><button className="ghost small" aria-label="Close routes" onClick={() => setRoutesOpen(false)}>✕</button></div>
           <div className="section-heading">
             <div>
               <div className="eyebrow">{problemStore.shared ? 'SHARED WALL' : 'LOCAL MODE'}</div>
-              <h2>Problems</h2>
+              <span className="muted">Choose a problem to see it on the wall</span>
             </div>
             <span className="muted">{problems.length} {problemStore.shared ? (nextCursor ? 'routes loaded' : 'shared problems') : 'saved on this device'}</span>
           </div>
 
           <div className="problem-tools">
             <button className="ghost small" disabled={busy || loading} onClick={() => void refreshProblems()}>{loading ? 'Loading…' : 'Refresh'}</button>
-            {activeProblem && (!problemStore.shared || identity?.isAdmin || (identity && activeProblem.ownerId === identity.userId)) && <button className="ghost small" disabled={busy || openingId !== null} onClick={() => void openProblem(activeProblem, true)}>Edit problem</button>}
+
           </div>
-          {problemStore.shared && activeProblem && <Community key={activeProblem.id} baseUrl={apiBaseUrl} problemId={activeProblem.id} name={activeProblem.name} userId={identity?.userId} />}
+
           {listError && <p className="error-message" role="alert">{listError}</p>}
           {openingId && <p role="status" className="muted">Opening problem…</p>}
           {problemStore.shared && localProblems.length > 0 && <div className="local-import">
@@ -709,6 +749,8 @@ function App() {
           )}
           {nextCursor && <button className="ghost load-more" disabled={busy || loading || loadingMore} onClick={() => void loadMoreProblems()}>{loadingMore ? 'Loading more…' : 'Load more routes'}</button>}
         </section>
+        </dialog>
+        </>
       )}
       </>}
     </main>

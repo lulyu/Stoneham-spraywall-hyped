@@ -2,6 +2,23 @@ const assert=require('node:assert/strict')
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright')
 const holds=require('../src/data/polygons/holds.json')
 const api='https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com'
+
+async function openRoutes(page) {
+  if (await page.locator('.account-menu[open]').count()) await page.getByLabel('Account menu', { exact: true }).click()
+  if (!await page.getByRole('dialog', { name: 'Explore routes' }).isVisible())
+    await page.getByRole('button', { name: 'Explore routes' }).click()
+}
+async function closeRoutes(page) {
+  await page.getByText('Opening problem…', { exact: true }).waitFor({ state: 'hidden' })
+  if (await page.getByRole('dialog', { name: 'Explore routes' }).isVisible())
+    await page.getByRole('button', { name: 'Close routes' }).click()
+}
+async function openAccount(page) {
+  await closeRoutes(page)
+  const menu = page.locator('.account-menu')
+  await menu.waitFor()
+  if (await menu.getAttribute('open') === null) await page.getByLabel('Account menu', { exact: true }).click()
+}
 ;(async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox'],proxy:process.env.BROWSER_PROXY?{server:process.env.BROWSER_PROXY}:undefined})
  try{
@@ -51,7 +68,9 @@ const api='https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com'
   const page=await context.newPage();page.setDefaultTimeout(15000)
   const errors=[];page.on('pageerror',e=>errors.push(e.message))
   await page.goto(process.env.APP_URL||'http://localhost:5178')
+  await openAccount(page)
   await page.getByRole('button',{name:'Profile · Alice',exact:true}).waitFor()
+  await openRoutes(page)
   await page.locator('.problem-card').filter({hasText:'Route one'}).click()
   const panel=page.getByRole('region',{name:'Route activity'})
   await panel.getByRole('button',{name:'Log send',exact:true}).click()
@@ -74,13 +93,16 @@ const api='https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com'
   assert.equal(comments.get('p1').length,1);assert.equal(commentAttempts,2)
   assert.equal(await panel.locator('article img').count(),0)
   await page.reload()
+  await openRoutes(page)
   await page.locator('.problem-card').filter({hasText:'Route one'}).click()
   await panel.getByRole('button',{name:'Send logged',exact:true}).waitFor()
   assert.equal(await panel.getByRole('button',{name:'Rate 5 out of 5'}).getAttribute('aria-pressed'),'true')
+  await openRoutes(page)
   await page.locator('.problem-card').filter({hasText:'Route two'}).click()
   await panel.getByRole('button',{name:'Log send',exact:true}).waitFor()
   assert.equal(await panel.getByText(text,{exact:true}).count(),0)
   sends.set('p3',{problemId:'p3',...records[2],sentAt:'2026-10-30T00:00:00Z'})
+  await openAccount(page)
   await page.getByRole('button',{name:'Profile · Alice',exact:true}).click()
   const history=page.getByRole('region',{name:'Your sends'})
   await history.getByRole('button').filter({hasText:'Route one'}).waitFor()
@@ -94,6 +116,7 @@ const api='https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com'
   await anon.route(api+'/**',mock)
   const guest=await anon.newPage()
   await guest.goto(process.env.APP_URL||'http://localhost:5178')
+  await openRoutes(guest)
   await guest.locator('.problem-card').filter({hasText:'Route one'}).click()
   const guestPanel=guest.getByRole('region',{name:'Route activity'})
   await guestPanel.getByRole('button',{name:'Sign in to log a send, rate or comment',exact:true}).waitFor()

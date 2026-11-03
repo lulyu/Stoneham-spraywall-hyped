@@ -4,6 +4,23 @@ const holds = require('../src/data/polygons/holds.json')
 const api = 'https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com'
 const roles = ['start', 'finish', 'hold', 'foot-only']
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
+
+async function openRoutes(page) {
+  if (await page.locator('.account-menu[open]').count()) await page.getByLabel('Account menu', { exact: true }).click()
+  if (!await page.getByRole('dialog', { name: 'Explore routes' }).isVisible())
+    await page.getByRole('button', { name: 'Explore routes' }).click()
+}
+async function closeRoutes(page) {
+  await page.getByText('Opening problem…', { exact: true }).waitFor({ state: 'hidden' })
+  if (await page.getByRole('dialog', { name: 'Explore routes' }).isVisible())
+    await page.getByRole('button', { name: 'Close routes' }).click()
+}
+async function openAccount(page) {
+  await closeRoutes(page)
+  const menu = page.locator('.account-menu')
+  await menu.waitFor()
+  if (await menu.getAttribute('open') === null) await page.getByLabel('Account menu', { exact: true }).click()
+}
 ;(async () => {
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] })
   try {
@@ -60,17 +77,21 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
       }]))
     }, { holds })
     await page.goto(process.env.APP_URL || 'http://localhost:5174')
+    await openRoutes(page)
     await page.getByText('SHARED WALL', { exact: true }).waitFor()
     await page.getByRole('button', { name: 'Import local problems', exact: true }).click()
+    await openRoutes(page)
     await page.locator('.problem-card').getByText('Local original', { exact: true }).waitFor()
     assert.equal(records.length, 1)
     assert.equal(records[0].holds[2].role, 'hold')
     assert.equal(await page.getByRole('button', { name: 'Import local problems', exact: true }).count(), 0)
     await page.reload()
+    await openRoutes(page)
     await page.locator('.problem-card').getByText('Local original', { exact: true }).waitFor()
     assert.equal(records.length, 1)
     assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('stoneham-spraywall:problems:v3'))[0].id), 'local-old')
 
+    await closeRoutes(page)
     await page.getByRole('button', { name: '＋ Set', exact: true }).click()
     const group = page.getByRole('group', { name: 'Hold role' })
     for (const [i, role] of ['START', 'FINISH', 'HOLD', 'FOOT-ONLY'].entries()) {
@@ -79,17 +100,22 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
     }
     await page.getByLabel('Problem name').fill('Shared mobile route')
     await page.getByRole('button', { name: 'Save problem', exact: true }).click()
+    await openRoutes(page)
     await page.locator('.problem-card').getByText('Shared mobile route', { exact: true }).waitFor()
     assert.deepEqual(records[0].holds.map(h => h.role), roles)
     assert.equal(await page.locator('.selected-hold').count(), 4)
     await page.reload()
+    await openRoutes(page)
     await page.locator('.problem-card').getByText('Shared mobile route', { exact: true }).click()
+    await closeRoutes(page)
     await page.getByRole('button', { name: 'Edit problem', exact: true }).click()
     await page.getByLabel('Problem name').fill('Edited shared route')
     await page.getByRole('button', { name: 'Save changes', exact: true }).click()
+    await openRoutes(page)
     await page.locator('.problem-card').getByText('Edited shared route', { exact: true }).waitFor()
     assert.equal(records[0].revision, 2)
 
+    await closeRoutes(page)
     await page.getByRole('button', { name: 'Edit problem', exact: true }).click()
     await page.getByLabel('Problem name').fill('Preserved conflicting draft')
     conflict = true
@@ -105,6 +131,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
     assert.equal(await page.locator('.selected-hold').count(), 4)
     offline = false
     await page.getByRole('button', { name: 'Save problem', exact: true }).click()
+    await openRoutes(page)
     await page.locator('.problem-card').getByText('Preserved conflicting draft (copy)', { exact: true }).waitFor()
     assert.equal(records.length, 3)
 
@@ -121,6 +148,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
     }
     const second = await context.newPage()
     await second.goto(process.env.APP_URL || 'http://localhost:5174')
+    await openRoutes(second)
     await second.locator('.problem-card').getByText('Edited shared route', { exact: true }).waitFor()
     assert.deepEqual(errors, [])
     console.log('PASS: mobile four-role save, API reload/read/edit, revision conflict, draft retention on network error, retry, local import without repeat, list recovery, second page and 320–980px layout')

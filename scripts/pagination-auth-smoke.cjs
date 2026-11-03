@@ -5,6 +5,23 @@ const api='https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com'
 const authority='https://cognito-idp.us-east-1.amazonaws.com/us-east-1_fvraMpcpi'
 const domain='https://stoneham-spraywall-prod-010257981603.auth.us-east-1.amazoncognito.com'
 const app=process.env.APP_URL||'http://localhost:5178'
+
+async function openRoutes(page) {
+  if (await page.locator('.account-menu[open]').count()) await page.getByLabel('Account menu', { exact: true }).click()
+  if (!await page.getByRole('dialog', { name: 'Explore routes' }).isVisible())
+    await page.getByRole('button', { name: 'Explore routes' }).click()
+}
+async function closeRoutes(page) {
+  await page.getByText('Opening problem…', { exact: true }).waitFor({ state: 'hidden' })
+  if (await page.getByRole('dialog', { name: 'Explore routes' }).isVisible())
+    await page.getByRole('button', { name: 'Close routes' }).click()
+}
+async function openAccount(page) {
+  await closeRoutes(page)
+  const menu = page.locator('.account-menu')
+  await menu.waitFor()
+  if (await menu.getAttribute('open') === null) await page.getByLabel('Account menu', { exact: true }).click()
+}
 ;(async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox'],proxy:process.env.BROWSER_PROXY?{server:process.env.BROWSER_PROXY}:undefined})
  try{
@@ -59,16 +76,20 @@ const app=process.env.APP_URL||'http://localhost:5178'
   const page=await context.newPage();page.setDefaultTimeout(15000)
   const errors=[];page.on('pageerror',e=>errors.push(e.message))
   await page.goto(app)
+  await openAccount(page)
   await page.getByRole('button',{name:'Profile · alice',exact:true}).waitFor()
+  await openRoutes(page)
   assert.equal(await page.locator('.problem-card').count(),50)
   await page.getByRole('button',{name:'Load more routes',exact:true}).click()
   await page.getByRole('alert').filter({hasText:'Page failed'}).waitFor()
   assert.equal(await page.locator('.problem-card').count(),50)
   await page.getByRole('button',{name:'Load more routes',exact:true}).click()
+  await openRoutes(page)
   await page.locator('.problem-card').getByText('Route 99',{exact:true}).waitFor()
   assert.equal(await page.locator('.problem-card').count(),100)
   assert.equal(await page.getByText('Stale duplicate',{exact:true}).count(),0)
   await page.getByRole('button',{name:'Load more routes',exact:true}).click()
+  await openRoutes(page)
   await page.locator('.problem-card').getByText('Route 124',{exact:true}).waitFor()
   assert.equal(await page.locator('.problem-card').count(),125)
   assert.equal(await page.getByRole('button',{name:'Load more routes',exact:true}).count(),0)
@@ -86,6 +107,7 @@ const app=process.env.APP_URL||'http://localhost:5178'
   assert.equal(await page.getByText('STALE PAGE',{exact:true}).count(),0)
   assert.equal(await page.locator('.problem-card').count(),50)
 
+  await closeRoutes(page)
   await page.getByRole('button',{name:'＋ Set',exact:true}).click()
   await page.getByRole('group',{name:'Hold role'}).getByRole('button',{name:'START',exact:true}).tap()
   await page.locator('.hold-hit-polygon').nth(0).tap()
@@ -107,6 +129,7 @@ const app=process.env.APP_URL||'http://localhost:5178'
   assert.equal(await page.getByLabel('Setter',{exact:true}).inputValue(),'Guest setter')
   assert.equal(await page.locator('.selected-hold').count(),2)
   await page.getByRole('button',{name:'Save problem',exact:true}).click()
+  await openRoutes(page)
   await page.locator('.problem-card').getByText('Reauth draft',{exact:true}).waitFor()
   assert.equal(saved.setter,'Guest setter');assert.equal(saved.holds.length,2)
 
