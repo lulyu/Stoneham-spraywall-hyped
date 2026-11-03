@@ -2,6 +2,23 @@ const assert = require('node:assert/strict')
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE_PATH || 'playwright')
 const holds = require('../src/data/polygons/holds.json')
 const api = 'https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com'
+
+async function openRoutes(page) {
+  if (await page.locator('.account-menu[open]').count()) await page.getByLabel('Account menu', { exact: true }).click()
+  if (!await page.getByRole('dialog', { name: 'Explore routes' }).isVisible())
+    await page.getByRole('button', { name: 'Explore routes' }).click()
+}
+async function closeRoutes(page) {
+  await page.getByText('Opening problem…', { exact: true }).waitFor({ state: 'hidden' })
+  if (await page.getByRole('dialog', { name: 'Explore routes' }).isVisible())
+    await page.getByRole('button', { name: 'Close routes' }).click()
+}
+async function openAccount(page) {
+  await closeRoutes(page)
+  const menu = page.locator('.account-menu')
+  await menu.waitFor()
+  if (await menu.getAttribute('open') === null) await page.getByLabel('Account menu', { exact: true }).click()
+}
 ;(async () => {
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox'],proxy:process.env.BROWSER_PROXY?{server:process.env.BROWSER_PROXY}:undefined})
  try {
@@ -38,13 +55,16 @@ const api = 'https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com'
   const page=await context.newPage();page.setDefaultTimeout(15000)
   const errors=[];page.on('pageerror',e=>errors.push(e.message))
   await page.goto(process.env.APP_URL||'http://localhost:5176')
+  await openAccount(page)
   await page.getByRole('button',{name:'Profile · Google Name',exact:true}).click()
   await page.getByLabel('Display name',{exact:true}).fill('Slab wizard')
   await page.getByLabel('Short bio',{exact:true}).fill('Learning delicate footwork.')
   await page.getByRole('button',{name:'Save profile',exact:true}).click()
   await page.getByText('Profile saved.',{exact:true}).waitFor()
   await page.reload()
+  await openAccount(page)
   await page.getByRole('button',{name:'Profile · Slab wizard',exact:true}).waitFor()
+  await closeRoutes(page)
   await page.getByRole('button',{name:'＋ Set',exact:true}).click()
   assert.equal(await page.getByLabel('Setter',{exact:true}).inputValue(),'Slab wizard')
   await page.getByLabel('Setter',{exact:true}).fill('Guest setter')
@@ -54,8 +74,10 @@ const api = 'https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com'
   await page.locator('.hold-hit-polygon').nth(1).tap()
   await page.getByLabel('Problem name').fill('Profile route')
   await page.getByRole('button',{name:'Save problem',exact:true}).click()
+  await openRoutes(page)
   await page.locator('.problem-card').getByText('Profile route',{exact:true}).waitFor()
   assert.equal(records[0].setter,'Guest setter')
+  await openAccount(page)
   await page.getByRole('button',{name:'Profile · Slab wizard',exact:true}).click()
   await page.getByLabel('Display name',{exact:true}).fill('New name')
   await page.getByLabel('Short bio',{exact:true}).fill('')
@@ -65,12 +87,15 @@ const api = 'https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com'
   assert.equal(await page.getByLabel('Display name',{exact:true}).inputValue(),'New name')
   fail=false
   await page.getByRole('button',{name:'Save profile',exact:true}).click()
+  await closeRoutes(page)
   await page.getByRole('button',{name:'Edit problem',exact:true}).click()
   assert.equal(await page.getByLabel('Setter',{exact:true}).inputValue(),'Guest setter')
   await page.getByRole('button',{name:'Cancel',exact:true}).click()
+  await closeRoutes(page)
   await page.getByRole('button',{name:'＋ Set',exact:true}).click()
   assert.equal(await page.getByLabel('Setter',{exact:true}).inputValue(),'New name')
   await page.getByRole('button',{name:'Cancel',exact:true}).click()
+  await openAccount(page)
   await page.getByRole('button',{name:'Profile · New name',exact:true}).click()
   assert.equal(await page.getByLabel('Short bio',{exact:true}).inputValue(),'')
   for(const width of [320,390,680,980]){

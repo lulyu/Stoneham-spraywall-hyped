@@ -31,7 +31,7 @@ export default function Community({ baseUrl, problemId, name, userId }: { baseUr
     try { await action() } catch (e) { setError(e instanceof Error ? e.message : 'Please retry.') }
     finally { saving.current = false; setBusy(false) }
   }
-  return <section className="community-panel" aria-label="Route activity">
+  return <section id="route-activity" className="community-panel" aria-label="Route activity">
     <h3>{name}</h3>
     {loading && <p role="status">Loading route activity…</p>}
     {error && <p role="alert" className="error-message">{error} <button className="ghost small" disabled={busy} onClick={() => setReload((n) => n + 1)}>Retry activity</button></p>}
