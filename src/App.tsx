@@ -153,8 +153,11 @@ function WallViewer({
     viewport?.addEventListener('wheel', preventScroll, { passive: false })
     const handler = () => fit()
     window.addEventListener('resize', handler)
+    const observer = new ResizeObserver(handler)
+    if (viewport) observer.observe(viewport)
     return () => {
       window.removeEventListener('resize', handler)
+      observer.disconnect()
       viewport?.removeEventListener('wheel', preventScroll)
     }
   }, [])
@@ -594,7 +597,7 @@ function App() {
   }
 
   return (
-    <main className={`app-shell ${mode === 'set' ? 'is-setting' : ''}`}>
+    <main className={`app-shell ${mode === 'set' ? 'is-setting' : activeProblem ? 'has-active-route' : ''}`}>
       <header className="topbar">
         <div>
           <div className="eyebrow">STONEHAM</div>
@@ -695,6 +698,7 @@ function App() {
             <button className="ghost small" aria-label="Clear selected route" onClick={() => setActiveId(null)}>✕</button>
           </div>
             {activeProblem && (!problemStore.shared || identity?.isAdmin || (identity && activeProblem.ownerId === identity.userId)) && <button className="ghost small" disabled={busy || openingId !== null} onClick={() => void openProblem(activeProblem, true)}>Edit problem</button>}
+          {problemStore.shared && <a className="route-activity-link" href="#route-activity">Send · Rate · Comments <span aria-hidden="true">↓</span></a>}
           {problemStore.shared && activeProblem && <Community key={activeProblem.id} baseUrl={apiBaseUrl} problemId={activeProblem.id} name={activeProblem.name} userId={identity?.userId} />}
         </section>}
         <dialog id="routes-drawer" className="routes-drawer" ref={routesDialog} aria-labelledby="routes-title"

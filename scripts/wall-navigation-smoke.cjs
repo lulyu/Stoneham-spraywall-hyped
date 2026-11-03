@@ -49,6 +49,17 @@ const api = 'https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com'
       await dialog.waitFor({ state: 'hidden' })
       await page.getByRole('region', { name: 'Selected route', exact: true }).waitFor()
       assert.equal(await page.locator('.route-gray-layer').count(), 1)
+      const activity = page.getByRole('region', { name: 'Route activity', exact: true })
+      await activity.getByRole('heading', { name: 'Navigation route', exact: true }).waitFor()
+      const activityBox = await activity.boundingBox()
+      assert(activityBox.y < 844, 'route activity must begin within the mobile viewport')
+      await page.getByRole('link', { name: 'Send · Rate · Comments' }).click()
+      await activity.getByRole('heading', { name: 'Comments', exact: true }).waitFor()
+      if (role !== 'guest') {
+        await activity.getByRole('button', { name: 'Log send', exact: true }).waitFor()
+        await activity.getByRole('group', { name: 'Rate this route' }).waitFor()
+      }
+      await page.screenshot({ path: 'artifacts/wall-route-activity-' + role + '.png' })
       await page.getByRole('button', { name: 'Fit wall', exact: true }).click()
       if (role !== 'guest') {
         await page.getByLabel('Account menu', { exact: true }).click()

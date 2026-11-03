@@ -162,3 +162,7 @@ body:has(.routes-drawer[open]) { overflow: hidden; }
   .wall-card { height: calc(100svh - 138px); min-height: 320px; }
 }
 .is-setting .wall-card { height: min(57svh, 660px); min-height: 320px; }
+
+.has-active-route .wall-card { height: min(42svh, 480px); min-height: 240px; }
+.route-activity-link { display: inline-flex; align-items: center; gap: 8px; color: #c9ff53; padding: 12px 0; margin-right: 12px; font-size: 14px; text-underline-offset: 4px; }
+.community-panel { scroll-margin-top: 14px; }
