@@ -17,7 +17,7 @@ The first version intentionally keeps everything local so we can validate the cl
 ## Run locally
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
@@ -41,7 +41,7 @@ The goal is deliberately not to build a full Stōkt clone. It is to build the sm
 
 ## Validation and wall image
 
-Use Node.js 22.12+ (or 24) and `npm ci` for the locked dependency versions.
+Use Node.js 24 for development/CI and `npm ci` for the locked dependency versions.
 `npm run build` checks TypeScript and creates the production bundle.
 
 The full-resolution canonical image is served from
@@ -139,7 +139,7 @@ to the shared wall only when clicked, normalizes legacy `hand` to `hold`, and
 records completed imports per API URL on that device so a reload/retry skips
 completed routes. Routes without a Start and Finish remain local and are reported.
 Import progress uses browser storage; clearing that storage also clears the
-import history. Backend filtering and pagination remain deferred (list limit 100).
+import history. The route list loads 50 at a time and offers Load more routes. Filtering/search remain deferred.
 
 Validation:
 - `npm test`: store persistence, legacy compatibility, API payloads/revisions,
@@ -221,3 +221,32 @@ dev port 5178 (configure the deployed API URL and Cognito public identifiers) to
 exercise mobile flows, failure retry, literal comment rendering, profile history
 and anonymous read-only behavior. Optional APP_URL/BROWSER_PROXY can target the
 deployed frontend with those isolated fixtures.
+
+## Continuous integration and recovery
+
+CI runs on pull requests, pushes to main and manual dispatch, using Node.js 24,
+read-only repository permissions and pinned checkout/setup-node action SHAs.
+**Frontend checks** runs npm ci, tests and build. **Backend checks** independently
+runs npm ci, tests, typecheck and build. Both dependency trees have committed
+package-lock.json files; use npm ci (or npm ci --prefix backend), including for
+Lambda deployment builds.
+
+Configure both job names as required checks for main when the repository's plan
+and administrator permissions allow it. The connected integration currently
+receives 403 for branch protection, and GitHub reports that private-repository
+rules require Pro (or a public repository). CI can run without those settings,
+but cannot prevent a permitted operator from merging a failed PR until rules are
+enabled. No paid plan or repository visibility changes were made.
+
+Route pages return items and optional nextCursor. Load more appends pages without
+duplicates or losing already loaded routes on a failed request. Refresh resets
+pagination. Cursors are validated against the current wall version.
+
+Expired tokens get a single shared silent-renew attempt. Silent-renew failure or
+API 401 updates the UI to Sign in again and disables authenticated route saves.
+Reauthentication stores the current route draft in sessionStorage and restores
+it after login to the same Cognito subject, preserving the original editing
+revision for conflict checks. Recovery expires after 24 hours; switching accounts
+does not expose another account's draft. Explicit Cancel, successful save and
+sign-out clear the recovery copy. Profile/comment API 401s also invalidate the
+displayed login state.

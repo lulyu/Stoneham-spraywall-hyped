@@ -1,3 +1,5 @@
+import { createSessionAccess } from './sessionAccess.ts'
+import { emitSessionEvent, onSessionEvent } from './sessionEvents.ts'
 import { UserManager, WebStorageStateStore } from 'oidc-client-ts'
 const authority = import.meta.env.VITE_COGNITO_AUTHORITY
 const clientId = import.meta.env.VITE_COGNITO_CLIENT_ID
@@ -18,10 +20,13 @@ async function completeLogin() {
     finally { window.history.replaceState({}, '', window.location.pathname) }
   }
 }
-export async function accessToken() {
-  const user = await manager?.getUser()
-  return user && !user.expired ? user.access_token : undefined
-}
+const sessionAccess = createSessionAccess(manager, () => emitSessionEvent('expired'))
+onSessionEvent((event) => { if (event === 'expired') sessionAccess.invalidate() })
+manager?.events.addSilentRenewError(() => { sessionAccess.invalidate(); emitSessionEvent('expired') })
+manager?.events.addAccessTokenExpired(() => { void sessionAccess.token() })
+manager?.events.addUserLoaded(() => { sessionAccess.acceptUser(); emitSessionEvent('loaded') })
+manager?.events.addUserUnloaded(() => emitSessionEvent('signedout'))
+export const accessToken = () => sessionAccess.token()
 export async function signIn() {
   if (!manager) throw new Error('Login has not been configured yet.')
   await manager.signinRedirect({ extraQueryParams: { identity_provider: 'Google' } })

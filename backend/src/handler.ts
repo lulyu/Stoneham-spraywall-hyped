@@ -84,7 +84,7 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
       const wall = requireWallVersion(gymId, wallId, wallVersionId)
 
       if (method === 'GET') {
-        return response(200, { items: await listProblems(gymId, wallId, wallVersionId) })
+        return response(200, await listProblems(gymId, wallId, wallVersionId, event.queryStringParameters?.cursor))
       }
       if (method === 'POST') {
         const identity = requireIdentity(event)

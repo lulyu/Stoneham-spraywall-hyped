@@ -11,7 +11,7 @@ test('local routes remain persistent and stale local edits are rejected', async 
   const storage = memory()
   const store = createLocalProblemStore(storage, new Set(['a', 'b']))
   const first = await store.create(input)
-  assert.equal((await store.list())[0].id, first.id)
+  assert.equal((await store.list()).items[0].id, first.id)
   const next = await store.update(first, { ...input, name: 'New' })
   assert.equal(next.revision, 2)
   await assert.rejects(store.update(first, input), (e) => e.status === 409)
@@ -26,7 +26,7 @@ test('legacy hand records normalize without erasing local originals', () => {
 test('unavailable browser storage is safe to read and reported on save', async () => {
   const storage = { getItem() { throw new Error('blocked') }, setItem() { throw new Error('blocked') } }
   const store = createLocalProblemStore(storage, new Set(['a', 'b']))
-  assert.deepEqual(await store.list(), [])
+  assert.deepEqual(await store.list(), { items: [] })
   await assert.rejects(store.create(input), /Could not save on this device/)
 })
 test('API uses exact collection and server IDs; updates send the fetched revision', async () => {
@@ -36,7 +36,7 @@ test('API uses exact collection and server IDs; updates send the fetched revisio
     calls.push({ url, ...options })
     return Response.json(url.endsWith('/problems') && options.method === 'GET' ? { items: [server] } : server)
   })
-  assert.equal((await store.list())[0].id, 'server-id')
+  assert.equal((await store.list()).items[0].id, 'server-id')
   assert.equal((await store.create(input)).id, 'server-id')
   await store.update(server, input)
   assert.match(calls[0].url, /2026-10-v4\/problems$/)
@@ -66,4 +66,13 @@ test('authenticated writes send the access token and unauthorized responses reta
   }, async () => 'verified-access-token')
   await assert.rejects(store.create(input), e => e.status === 401 && /draft/.test(e.message))
   assert.equal(seen, 'Bearer verified-access-token')
+})
+test('route list preserves and encodes the continuation cursor', async () => {
+  let seen
+  const store = createApiProblemStore('https://example.test', async url => {
+    seen = url
+    return Response.json({ items: [], nextCursor: 'next-page' })
+  })
+  assert.deepEqual(await store.list('cursor/+?='), { items: [], nextCursor: 'next-page' })
+  assert.equal(new URL(seen).searchParams.get('cursor'), 'cursor/+?=')
 })

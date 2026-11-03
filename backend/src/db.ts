@@ -65,18 +65,35 @@ export async function requireProblem(problemId: string): Promise<Problem> {
   return problem
 }
 
-export async function listProblems(gymId: string, wallId: string, wallVersionId: string): Promise<Problem[]> {
+export async function listProblems(gymId: string, wallId: string, wallVersionId: string, cursor?: string): Promise<{ items: Problem[]; nextCursor?: string }> {
+  const partition = wallVersionPk(gymId, wallId, wallVersionId)
+  let after: Record<string, string> | undefined
+  if (cursor) {
+    try {
+      if (cursor.length > 4096) throw new Error()
+      const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'))
+      if (!parsed || Object.keys(parsed).length !== 4 ||
+        !['pk', 'sk', 'gsi1pk', 'gsi1sk'].every((key) => typeof parsed[key] === 'string') ||
+        parsed.gsi1pk !== partition || parsed.sk !== 'META' ||
+        !parsed.pk.startsWith('PROBLEM#') || !parsed.gsi1sk.startsWith('PROBLEM#')) throw new Error()
+      after = parsed
+    } catch { throw new ApiError(400, 'invalid route cursor') }
+  }
   const response = await client.send(new QueryCommand({
     TableName: tableName,
     IndexName: 'gsi1',
     KeyConditionExpression: 'gsi1pk = :pk',
     ExpressionAttributeValues: {
-      ':pk': wallVersionPk(gymId, wallId, wallVersionId),
+      ':pk': partition,
     },
     ScanIndexForward: false,
-    Limit: 100,
+    Limit: 50,
+    ExclusiveStartKey: after,
   }))
-  return (response.Items ?? []).map((item: Record<string, unknown>) => toProblem(item as ProblemItem))
+  return {
+    items: (response.Items ?? []).map((item: Record<string, unknown>) => toProblem(item as ProblemItem)),
+    ...(response.LastEvaluatedKey ? { nextCursor: Buffer.from(JSON.stringify(response.LastEvaluatedKey)).toString('base64url') } : {}),
+  }
 }
 
 export async function updateProblem(existing: Problem, patch: UpdateProblemInput): Promise<Problem> {

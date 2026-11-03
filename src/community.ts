@@ -1,3 +1,4 @@
+import { emitSessionEvent } from './sessionEvents.ts'
 import { accessToken } from './auth'
 export type Comment = { id: string; text: string; author: string; createdAt: string }
 export type CommunityData = { ratingAverage: number | null; ratingCount: number; comments: Comment[]; nextCursor?: string }
@@ -13,6 +14,7 @@ export async function communityRequest<T>(base: string, path: string, method = '
       body: payload === undefined ? undefined : JSON.stringify(payload), signal: AbortSignal.timeout(20000),
     })
   } catch { throw new Error('Could not connect. Please retry; your draft is kept.') }
+  if (response.status === 401) emitSessionEvent('expired')
   const data = await response.json()
   if (!response.ok) throw new Error(response.status === 401 ? 'Your session expired. Please sign in again.' : data.error || 'Request failed. Please retry.')
   return data

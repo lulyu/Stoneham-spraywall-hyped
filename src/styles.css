@@ -123,3 +123,5 @@ button:disabled { cursor: default; opacity: .45; }
 .comments-list article { border-top: 1px solid #34382e; padding: 12px 0; }
 .comments-list p { white-space: pre-wrap; margin-bottom: 0; }
 .send-history { border-top: 1px solid #34382e; margin-top: 28px; padding-top: 12px; display: grid; gap: 10px; }
+
+.load-more { width: 100%; margin-top: 12px; }

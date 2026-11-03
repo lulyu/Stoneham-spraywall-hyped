@@ -1,6 +1,8 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import sam2Experiment from './data/experiments/top_left_sam2_polygons.json'
 import { polygonCandidates as holds } from './data/polygons'
+import { emitSessionEvent, onSessionEvent } from './sessionEvents.ts'
+import { DRAFT_RECOVERY_KEY, readRecoveryDraft, storeRecoveryDraft } from './draftRecovery.ts'
 import { initializeAuth, accountDetails, accessToken, signIn, signOut, authConfigured } from './auth'
 import Profile from './Profile'
 import Community from './Community'
@@ -308,30 +310,13 @@ function App() {
   const [showProfile, setShowProfile] = useState(false)
   const [profileNotice, setProfileNotice] = useState('')
   const [authError, setAuthError] = useState('')
-  useEffect(() => {
-    let live = true
-    void (async () => {
-      try {
-        await initializeAuth()
-        const token = await accessToken()
-        if (!token) return
-        const response = await fetch(apiBaseUrl + '/v1/me', { headers: { authorization: 'Bearer ' + token } })
-        if (!response.ok) throw new Error('Could not verify your login. Please sign in again.')
-        const value = await response.json()
-        const details = await accountDetails()
-        if (live) { setEmail(details.email); setProfile({ displayName: details.displayName, bio: '' }) }
-        try {
-          const saved = await profileRequest(apiBaseUrl, token)
-          if (live) setProfile({ ...saved, displayName: saved.displayName || details.displayName })
-        } catch { if (live) setAuthError('Could not load your profile. Refresh to retry.') }
-        if (live) setIdentity(value)
-      } catch (error) { if (live) setAuthError(error instanceof Error ? error.message : 'Login failed.') }
-    })()
-    return () => { live = false }
-  }, [])
+  const [needsSignIn, setNeedsSignIn] = useState(false)
+  const draftUserId = useRef<string | null>(null)
   const canWrite = !problemStore.shared || Boolean(identity)
   const [mode, setMode] = useState<'browse' | 'set'>('browse')
   const [problems, setProblems] = useState<Problem[]>([])
+  const [nextCursor, setNextCursor] = useState<string | undefined>()
+  const [loadingMore, setLoadingMore] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [draft, setDraft] = useState<ProblemHold[]>([])
   const [highlightedHoldId, setHighlightedHoldId] = useState<string | null>(null)
@@ -359,13 +344,75 @@ function App() {
 
   const activeProblem = problems.find((p) => p.id === activeId) ?? null
 
+  const clearRecovery = () => { try { window.sessionStorage.removeItem(DRAFT_RECOVERY_KEY) } catch { /* Browser storage can be unavailable. */ } }
+  const signInWithRecovery = async () => {
+    try {
+      if (mode === 'set' && draftUserId.current) storeRecoveryDraft(window.sessionStorage, {
+        userId: draftUserId.current, name, grade, setter, draft, editing,
+      })
+      await signIn()
+    } catch (e) { setAuthError(e instanceof Error ? e.message : 'Could not preserve your draft and sign in. Please retry.') }
+  }
+
+  useEffect(() => {
+    let live = true
+    let sequence = 0
+    const loadIdentity = async () => {
+      const request = ++sequence
+      const current = () => live && request === sequence
+      try {
+        await initializeAuth()
+        const token = await accessToken()
+        if (!current()) return
+        if (!token) { setIdentity(null); return }
+        const response = await fetch(apiBaseUrl + '/v1/me', { headers: { authorization: 'Bearer ' + token } })
+        if (response.status === 401) { emitSessionEvent('expired'); return }
+        if (!response.ok) throw new Error('Could not verify your login. Please sign in again.')
+        const value = await response.json()
+        const details = await accountDetails()
+        if (!current()) return
+        let nextProfile: UserProfile = { displayName: details.displayName, bio: '' }
+        let warning = ''
+        try {
+          const saved = await profileRequest(apiBaseUrl, token)
+          nextProfile = { ...saved, displayName: saved.displayName || details.displayName }
+        } catch { warning = 'Could not load your profile. Refresh to retry.' }
+        if (!current()) return
+        setEmail(details.email); setProfile(nextProfile); setIdentity(value)
+        setNeedsSignIn(false); setAuthError(warning)
+        const recovery = readRecoveryDraft(window.sessionStorage, value.userId, validHoldIds)
+        if (recovery) {
+          draftUserId.current = value.userId
+          setDraft(recovery.draft); setName(recovery.name); setGrade(recovery.grade); setSetter(recovery.setter)
+          setEditing(recovery.editing); setMode('set'); setConflict(false)
+          setProfileNotice('Draft restored. You can save it now.')
+        }
+        clearRecovery()
+      } catch (e) { if (current()) setAuthError(e instanceof Error ? e.message : 'Login failed.') }
+    }
+    const unsubscribe = onSessionEvent((event) => {
+      if (!live) return
+      if (event === 'loaded') { void loadIdentity(); return }
+      sequence++
+      setIdentity(null)
+      if (event === 'expired') {
+        setNeedsSignIn(true)
+        setAuthError('Your session expired. Sign in again to continue; your route draft is kept.')
+      } else { setNeedsSignIn(false); setShowProfile(false) }
+    })
+    void loadIdentity()
+    return () => { live = false; sequence++; unsubscribe() }
+  }, [])
+
+
   const refreshProblems = async () => {
     const sequence = ++listSequence.current
     setLoading(true)
+    setLoadingMore(false)
     setListError('')
     try {
-      const items = await problemStore.list()
-      if (sequence === listSequence.current) setProblems(items)
+      const page = await problemStore.list()
+      if (sequence === listSequence.current) { setProblems(page.items); setNextCursor(page.nextCursor) }
     } catch (error) {
       if (sequence === listSequence.current) setListError(error instanceof Error ? error.message : 'Could not load problems.')
     } finally {
@@ -377,6 +424,29 @@ function App() {
     return () => { listSequence.current++; selectionSequence.current++ }
   }, [])
 
+  const moreInFlight = useRef<number | null>(null)
+  const loadMoreProblems = async () => {
+    if (!nextCursor || moreInFlight.current === listSequence.current || loading) return
+    const sequence = listSequence.current
+    moreInFlight.current = sequence
+    setLoadingMore(true); setListError('')
+    try {
+      const page = await problemStore.list(nextCursor)
+      if (sequence === listSequence.current) {
+        setProblems((previous) => {
+          const ids = new Set(previous.map((p) => p.id))
+          return [...previous, ...page.items.filter((p) => { if (ids.has(p.id)) return false; ids.add(p.id); return true })]
+        })
+        setNextCursor(page.nextCursor)
+      }
+    } catch (e) {
+      if (sequence === listSequence.current) setListError(e instanceof Error ? e.message : 'Could not load more routes.')
+    } finally {
+      if (moreInFlight.current === sequence) moreInFlight.current = null
+      if (sequence === listSequence.current) setLoadingMore(false)
+    }
+  }
+
   const openProblem = async (problem: Problem, edit = false) => {
     const sequence = ++selectionSequence.current
     setOpeningId(problem.id)
@@ -387,6 +457,7 @@ function App() {
       setProblems((prev) => prev.map((item) => item.id === fresh.id ? fresh : item))
       setActiveId(fresh.id)
       if (edit) {
+        draftUserId.current = identity?.userId ?? null
         setEditing(fresh)
         setDraft(fresh.holds)
         setName(fresh.name)
@@ -405,7 +476,9 @@ function App() {
   }
 
   const startSetting = () => {
-    if (!canWrite) { void signIn().catch((e) => setAuthError(e.message)); return }
+    if (!canWrite) { void signInWithRecovery(); return }
+    draftUserId.current = identity?.userId ?? null
+    clearRecovery()
     setShowProfile(false)
     selectionSequence.current++
     setOpeningId(null)
@@ -439,16 +512,18 @@ function App() {
     draft.some((hold) => hold.role === 'start') && draft.some((hold) => hold.role === 'finish')
 
   const saveProblem = async () => {
-    if (!validDraft || mutation.current || conflict) return
+    if (!validDraft || mutation.current || conflict || !canWrite) return
     mutation.current = true
     setBusy(true)
     setStorageError('')
     listSequence.current++
     setLoading(false)
+    setLoadingMore(false)
     const input = { name: name.trim(), grade, setter: setter.trim() || 'Anonymous', holds: draft, ...(editing?.notes !== undefined ? { notes: editing.notes } : {}) }
     try {
       const problem = editing ? await problemStore.update(editing, input) : await problemStore.create(input)
       setProblems((prev) => [problem, ...prev.filter((p) => p.id !== problem.id)])
+      clearRecovery()
       setActiveId(problem.id)
       setHighlightedHoldId(null)
       setEditing(null)
@@ -505,20 +580,20 @@ function App() {
         {mode === 'browse' ? (
           <button className="primary small" disabled={busy} onClick={startSetting}>＋ Set</button>
         ) : (
-          <button className="ghost small" disabled={busy} onClick={() => { setMode('browse'); setHighlightedHoldId(null) }}>Cancel</button>
+          <button className="ghost small" disabled={busy} onClick={() => { clearRecovery(); setMode('browse'); setHighlightedHoldId(null) }}>Cancel</button>
         )}
       </header>
 
       {problemStore.shared && <div className="problem-tools auth-tools">
-        {identity ? <><span className="muted">{identity.isAdmin ? 'Gym administrator' : 'Signed in'}</span><button className="ghost small" disabled={busy} onClick={() => void signOut().catch((e) => setAuthError(e.message))}>Sign out</button></> :
-          <button className="ghost small" disabled={!authConfigured} onClick={() => void signIn().catch((e) => setAuthError(e.message))}>Sign in with Google</button>}
+        {identity ? <><span className="muted">{identity.isAdmin ? 'Gym administrator' : 'Signed in'}</span><button className="ghost small" disabled={busy} onClick={() => { clearRecovery(); void signOut().catch((e) => setAuthError(e.message)) }}>Sign out</button></> :
+          <button className="ghost small" disabled={!authConfigured} onClick={() => void signInWithRecovery()}>{needsSignIn ? 'Sign in again' : 'Sign in with Google'}</button>}
         {authError && <p role="alert" className="error-message">{authError}</p>}
       </div>}
       {identity && <div className="profile-nav">
         <button className="ghost small" disabled={busy} onClick={() => { setShowProfile(true); setProfileNotice('') }}>Profile{profile.displayName ? ' · ' + profile.displayName : ''}</button>
       </div>}
       {profileNotice && <p className="profile-notice" role="status">{profileNotice}</p>}
-      {showProfile && identity ? <Profile baseUrl={apiBaseUrl} initial={profile} email={email}
+      {showProfile && (identity || needsSignIn) ? <Profile baseUrl={apiBaseUrl} initial={profile} email={email}
         onClose={() => setShowProfile(false)} onOpenSend={async (id) => {
           const problem = await problemStore.get(id)
           setProblems((previous) => [problem, ...previous.filter((p) => p.id !== id)])
@@ -581,7 +656,7 @@ function App() {
           {conflict && <button className="ghost" onClick={() => { setEditing(null); setConflict(false); setStorageError(''); setName((previous) => previous.slice(0, 112) + ' (copy)') }}>Keep draft as new problem</button>}
           <div className="editor-actions">
             <button className="ghost" onClick={() => { setDraft([]); setHighlightedHoldId(null) }}>Clear</button>
-            <button className="primary" disabled={!validDraft || busy || conflict} onClick={() => void saveProblem()}>{busy ? 'Saving…' : editing ? 'Save changes' : 'Save problem'}</button>
+            <button className="primary" disabled={!validDraft || busy || conflict || !canWrite} onClick={() => void saveProblem()}>{busy ? 'Saving…' : editing ? 'Save changes' : 'Save problem'}</button>
           </div>
           </fieldset>
         </section>
@@ -592,7 +667,7 @@ function App() {
               <div className="eyebrow">{problemStore.shared ? 'SHARED WALL' : 'LOCAL MODE'}</div>
               <h2>Problems</h2>
             </div>
-            <span className="muted">{problems.length} {problemStore.shared ? 'shared problems' : 'saved on this device'}</span>
+            <span className="muted">{problems.length} {problemStore.shared ? (nextCursor ? 'routes loaded' : 'shared problems') : 'saved on this device'}</span>
           </div>
 
           <div className="problem-tools">
@@ -632,6 +707,7 @@ function App() {
               ))}
             </div>
           )}
+          {nextCursor && <button className="ghost load-more" disabled={busy || loading || loadingMore} onClick={() => void loadMoreProblems()}>{loadingMore ? 'Loading more…' : 'Load more routes'}</button>}
         </section>
       )}
       </>}
