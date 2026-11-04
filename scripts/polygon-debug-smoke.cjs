@@ -14,7 +14,7 @@ async function main() {
     page.on('pageerror', error => errors.push(error.message))
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
     await page.goto(process.env.APP_URL || 'http://127.0.0.1:4173')
-    await page.getByRole('heading', { name: 'Spray Wall', exact: true }).waitFor()
+    await page.getByRole('heading', { name: 'Hyped@Stoneham SprayWall', exact: true }).waitFor()
     assert.equal(await page.locator('.debug-polygon').count(), 0)
     await page.getByText('Polygon debug', { exact: true }).click()
     await page.getByLabel('Show all polygons', { exact: true }).check()
