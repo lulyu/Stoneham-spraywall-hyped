@@ -652,8 +652,7 @@ function App() {
     <main className={`app-shell ${mode === 'set' ? 'is-setting' : activeProblem ? 'has-active-route' : ''}`}>
       <header className="topbar">
         <div>
-          <div className="eyebrow">STONEHAM</div>
-          <h1>Spray Wall</h1>
+          <h1><span className="brand-location">Hyped@Stoneham</span> SprayWall</h1>
         </div>
         {identity && <details className="account-menu" ref={accountMenu}>
           <summary aria-label="Account menu" title="Account menu">{(profile.displayName || 'U').slice(0, 1).toUpperCase()}</summary>

@@ -1,4 +1,4 @@
-# Stoneham Spray Wall
+# Hyped@Stoneham SprayWall
 
 A small, mobile-first spray-wall route-setting app for the Stoneham wall.
 
