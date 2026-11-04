@@ -333,7 +333,14 @@ function App() {
   const [problems, setProblems] = useState<Problem[]>([])
   const [nextCursor, setNextCursor] = useState<string | undefined>()
   const [loadingMore, setLoadingMore] = useState(false)
-  const [activeId, setActiveId] = useState<string | null>(null)
+  const [activeProblem, setActiveProblem] = useState<Problem | null>(null)
+  const [shareMessage, setShareMessage] = useState('')
+  const [manualShareLink, setManualShareLink] = useState('')
+  const shareSequence = useRef(0)
+  const [initialRouteId, setInitialRouteId] = useState(() => new URLSearchParams(window.location.search).get('route'))
+  const [linkAttempt, setLinkAttempt] = useState(0)
+  const [linkLoading, setLinkLoading] = useState(false)
+  const [linkError, setLinkError] = useState('')
   const [draft, setDraft] = useState<ProblemHold[]>([])
   const [highlightedHoldId, setHighlightedHoldId] = useState<string | null>(null)
   const [currentRole, setCurrentRole] = useState<HoldRole>('hold')
@@ -365,7 +372,32 @@ function App() {
     else dialog.close()
   }, [routesOpen, mode, showProfile])
 
-  const activeProblem = problems.find((p) => p.id === activeId) ?? null
+  const selectProblem = (problem: Problem | null) => {
+    setActiveProblem(problem)
+    shareSequence.current++
+    setShareMessage(''); setManualShareLink('')
+    const url = new URL(window.location.href)
+    if (problem) url.searchParams.set('route', problem.id)
+    else url.searchParams.delete('route')
+    url.hash = ''
+    window.history.replaceState(window.history.state, '', url)
+  }
+  const copyRouteLink = async () => {
+    if (!activeProblem) return
+    const sequence = ++shareSequence.current
+    const url = new URL(window.location.pathname, window.location.origin)
+    url.searchParams.set('route', activeProblem.id)
+    setShareMessage(''); setManualShareLink('')
+    try {
+      await navigator.clipboard.writeText(url.href)
+      if (sequence === shareSequence.current) setShareMessage('Link copied')
+    } catch {
+      if (sequence === shareSequence.current) {
+        setManualShareLink(url.href)
+        setShareMessage('Copy the link below to share this route.')
+      }
+    }
+  }
 
   const clearRecovery = () => { try { window.sessionStorage.removeItem(DRAFT_RECOVERY_KEY) } catch { /* Browser storage can be unavailable. */ } }
   const signInWithRecovery = async () => {
@@ -385,6 +417,8 @@ function App() {
       const current = () => live && request === sequence
       try {
         await initializeAuth()
+        if (!current()) return
+        setInitialRouteId(new URLSearchParams(window.location.search).get('route'))
         const token = await accessToken()
         if (!current()) return
         if (!token) { setIdentity(null); return }
@@ -472,13 +506,14 @@ function App() {
 
   const openProblem = async (problem: Problem, edit = false) => {
     const sequence = ++selectionSequence.current
+    setLinkLoading(false); setLinkError('')
     setOpeningId(problem.id)
     setListError('')
     try {
       const fresh = await problemStore.get(problem.id)
       if (sequence !== selectionSequence.current) return
       setProblems((prev) => prev.map((item) => item.id === fresh.id ? fresh : item))
-      setActiveId(fresh.id)
+      selectProblem(fresh)
       setRoutesOpen(false)
       if (edit) {
         draftUserId.current = identity?.userId ?? null
@@ -499,6 +534,21 @@ function App() {
     }
   }
 
+  useEffect(() => {
+    if (!initialRouteId) return
+    let live = true
+    const sequence = ++selectionSequence.current
+    setLinkLoading(true); setLinkError('')
+    void problemStore.get(initialRouteId).then((problem) => {
+      if (live && sequence === selectionSequence.current) selectProblem(problem)
+    }).catch((error) => {
+      if (live && sequence === selectionSequence.current) setLinkError(error instanceof Error ? error.message : 'Could not open the shared route.')
+    }).finally(() => {
+      if (live && sequence === selectionSequence.current) setLinkLoading(false)
+    })
+    return () => { live = false }
+  }, [initialRouteId, linkAttempt])
+
   const startSetting = () => {
     if (!canWrite) { void signInWithRecovery(); return }
     draftUserId.current = identity?.userId ?? null
@@ -507,6 +557,7 @@ function App() {
     closeAccount()
     setRoutesOpen(false)
     selectionSequence.current++
+    setLinkLoading(false); setLinkError('')
     setOpeningId(null)
     setEditing(null)
     setConflict(false)
@@ -550,7 +601,7 @@ function App() {
       const problem = editing ? await problemStore.update(editing, input) : await problemStore.create(input)
       setProblems((prev) => [problem, ...prev.filter((p) => p.id !== problem.id)])
       clearRecovery()
-      setActiveId(problem.id)
+      selectProblem(problem)
       setHighlightedHoldId(null)
       setEditing(null)
       setMode('browse')
@@ -641,8 +692,10 @@ function App() {
         onClose={() => setShowProfile(false)} onOpenSend={async (id) => {
           const problem = await problemStore.get(id)
           setProblems((previous) => [problem, ...previous.filter((p) => p.id !== id)])
-          setActiveId(id); setMode('browse'); setShowProfile(false)
+          selectProblem(problem); setMode('browse'); setShowProfile(false)
         }} onSave={(saved) => { setProfile(saved); setProfileNotice('Profile saved.'); setShowProfile(false) }} /> : <>
+      {linkLoading && <p className="link-notice" role="status">Opening shared route…</p>}
+      {linkError && <div className="link-notice" role="alert"><p>{linkError}</p><button className="ghost small" onClick={() => setLinkAttempt((previous) => previous + 1)}>Retry shared route</button><button className="ghost small" onClick={() => { setLinkError(''); selectProblem(null) }}>Dismiss</button></div>}
       <section className="wall-card">
         <WallViewer mode={mode} draft={draft} activeProblem={activeProblem} onHoldTap={tapHold}
           debugPolygons={identity?.isAdmin && showAllPolygons ? debugHolds : []} showPolygonLabels={Boolean(identity?.isAdmin && showPolygonLabels)} showCropFocus={Boolean(identity?.isAdmin && showAllPolygons) && debugDataset === 'sam2'} highlightedHoldId={highlightedHoldId} />
@@ -695,10 +748,14 @@ function App() {
         {activeProblem && <section className="active-route" aria-label="Selected route">
           <div className="active-route-heading">
             <div><span className="muted">{activeProblem.grade} · {activeProblem.setter}</span><h2>{activeProblem.name}</h2></div>
-            <button className="ghost small" aria-label="Clear selected route" onClick={() => setActiveId(null)}>✕</button>
+            <button className="ghost small" aria-label="Clear selected route" onClick={() => { selectionSequence.current++; selectProblem(null); setLinkError(''); setLinkLoading(false) }}>✕</button>
           </div>
             {activeProblem && (!problemStore.shared || identity?.isAdmin || (identity && activeProblem.ownerId === identity.userId)) && <button className="ghost small" disabled={busy || openingId !== null} onClick={() => void openProblem(activeProblem, true)}>Edit problem</button>}
-          {problemStore.shared && <a className="route-activity-link" href="#route-activity">Send · Rate · Comments <span aria-hidden="true">↓</span></a>}
+          {problemStore.shared && <button className="ghost share-route-button" aria-label="Copy route link" title="Share route" onClick={() => void copyRouteLink()}>
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 10.5 6.8-4m-6.8 7 6.8 4" /></svg>
+          </button>}
+          {shareMessage && <p className="share-notice" role="status">{shareMessage}</p>}
+          {manualShareLink && <label className="share-link-field">Route link<input readOnly autoFocus value={manualShareLink} onFocus={(e) => e.currentTarget.select()} /></label>}
           {problemStore.shared && activeProblem && <Community key={activeProblem.id} baseUrl={apiBaseUrl} problemId={activeProblem.id} name={activeProblem.name} userId={identity?.userId} />}
         </section>}
         <dialog id="routes-drawer" className="routes-drawer" ref={routesDialog} aria-labelledby="routes-title"
@@ -737,7 +794,7 @@ function App() {
               {problems.map((problem) => (
                 <button
                   key={problem.id}
-                  className={`problem-card ${activeId === problem.id ? 'active' : ''}`}
+                  className={`problem-card ${activeProblem?.id === problem.id ? 'active' : ''}`}
                   disabled={busy}
                   onClick={() => void openProblem(problem)}
                 >

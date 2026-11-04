@@ -16,8 +16,15 @@ async function completeLogin() {
   if (!manager) return
   const params = new URLSearchParams(window.location.search)
   if (params.has('code') || params.has('error')) {
-    try { await manager.signinRedirectCallback() }
-    finally { window.history.replaceState({}, '', window.location.pathname) }
+    let routeId: unknown
+    try {
+      const user = await manager.signinRedirectCallback()
+      routeId = (user.state as { routeId?: unknown } | undefined)?.routeId
+    } finally {
+      const url = new URL(window.location.pathname, window.location.origin)
+      if (typeof routeId === 'string' && routeId.length <= 200) url.searchParams.set('route', routeId)
+      window.history.replaceState({}, '', url)
+    }
   }
 }
 const sessionAccess = createSessionAccess(manager, () => emitSessionEvent('expired'))
@@ -29,7 +36,7 @@ manager?.events.addUserUnloaded(() => emitSessionEvent('signedout'))
 export const accessToken = () => sessionAccess.token()
 export async function signIn() {
   if (!manager) throw new Error('Login has not been configured yet.')
-  await manager.signinRedirect({ extraQueryParams: { identity_provider: 'Google' } })
+  await manager.signinRedirect({ state: { routeId: new URLSearchParams(window.location.search).get('route') }, extraQueryParams: { identity_provider: 'Google' } })
 }
 export async function signOut() {
   if (!manager) return

@@ -53,7 +53,7 @@ const api = 'https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com'
       await activity.getByRole('heading', { name: 'Navigation route', exact: true }).waitFor()
       const activityBox = await activity.boundingBox()
       assert(activityBox.y < 844, 'route activity must begin within the mobile viewport')
-      await page.getByRole('link', { name: 'Send · Rate · Comments' }).click()
+      await page.getByRole('button', { name: 'Copy route link', exact: true }).waitFor()
       await activity.getByRole('heading', { name: 'Comments', exact: true }).waitFor()
       if (role !== 'guest') {
         await activity.getByRole('button', { name: 'Log send', exact: true }).waitFor()

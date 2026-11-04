@@ -164,9 +164,14 @@ body:has(.routes-drawer[open]) { overflow: hidden; }
 .is-setting .wall-card { height: min(57svh, 660px); min-height: 320px; }
 
 .has-active-route .wall-card { height: min(42svh, 480px); min-height: 240px; }
-.route-activity-link { display: inline-flex; align-items: center; gap: 8px; color: #c9ff53; padding: 12px 0; margin-right: 12px; font-size: 14px; text-underline-offset: 4px; }
 .community-panel { scroll-margin-top: 14px; }
 
 .comment-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .comment-actions button { min-height: 44px; }
 .comment-actions .danger { color: #ffb8bf; border: 1px solid #80434a; }
+
+.share-route-button { display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 0; margin-left: 8px; vertical-align: middle; color: #c9ff53; }
+.share-notice { color: #c9ff53; font-size: 13px; }
+.share-link-field { margin-top: 12px; }
+.link-notice { margin: 0 18px 14px; font-size: 13px; }
+.link-notice button { margin-right: 8px; }

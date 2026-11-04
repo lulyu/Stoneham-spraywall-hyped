@@ -33,3 +33,19 @@ editor entry, admin-only polygon overlays and widths from 320 to 980 px. It
 writes `artifacts/wall-home-mobile.png` and `artifacts/wall-routes-mobile.png`.
 The profile, frontend API, community and pagination/auth smoke checks use the
 new navigation too.
+
+## Route sharing
+
+Shared routes have a copy-link icon beside Edit problem, replacing the activity
+jump link. It copies `/?route=<id>` and announces Link copied. If clipboard access
+is unavailable or denied, a selectable Route link field provides manual copying.
+The public link fetches its route directly by ID, including routes outside page
+one; a late list load or refresh does not clear the selection. Invalid or failed
+links show a visible error with retry/dismiss controls. Selecting or clearing a
+route keeps the query parameter in sync. Login carries that route ID through
+OIDC user state, so the callback can return to it without including OAuth tokens
+in a shared URL. Local-only routes are not shareable across devices.
+
+`scripts/route-share-smoke.cjs` verifies the copy and manual-copy flows, a fresh
+anonymous deep link, a route outside page one, late list/refresh responses, and
+missing/failed-link handling with isolated API fixtures.
