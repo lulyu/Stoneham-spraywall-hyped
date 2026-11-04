@@ -1,4 +1,4 @@
-import { logSend, listSends, rate, addComment, community, myActivity } from './community'
+import { logSend, listSends, rate, addComment, community, myActivity, changeComment } from './community'
 import { requireIdentity, requireEditor } from './auth'
 import { randomUUID } from 'node:crypto'
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda'
@@ -60,6 +60,15 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
     if (path === '/v1/me/sends') {
       const identity = requireIdentity(event)
       if (method === 'GET') return response(200, await listSends(identity.userId, event.queryStringParameters?.cursor))
+      return response(405, { error: 'method not allowed', requestId })
+    }
+    const commentPath = pathMatch(path, /^\/v1\/problems\/([^/]+)\/comments\/([^/]+)$/)
+    if (commentPath) {
+      const identity = requireIdentity(event)
+      const [problemId, commentId] = commentPath
+      await requireProblem(problemId)
+      if (method === 'PATCH') return response(200, await changeComment(identity.userId, problemId, commentId, parseJsonBody(event)))
+      if (method === 'DELETE') return response(200, await changeComment(identity.userId, problemId, commentId))
       return response(405, { error: 'method not allowed', requestId })
     }
     const communityPath = pathMatch(path, /^\/v1\/problems\/([^/]+)\/(community|my-activity|sends|rating|comments)$/)

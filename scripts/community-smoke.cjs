@@ -29,7 +29,7 @@ async function openAccount(page) {
   })))
   const records=['p1','p2','p3'].map((id,i)=>({id,name:['Route one','Route two','Older route'][i],grade:'V4',setter:'Setter',ownerId:'alice',revision:1,createdAt:'2026-11-03',holds:[{holdId:holds[0].id,role:'start'},{holdId:holds[1].id,role:'finish'}]}))
   const sends=new Map(),ratings=new Map(),comments=new Map()
-  let failSend=true,failComment=true,sendAttempts=0,commentAttempts=0
+  let failSend=true,failComment=true,failEdit=true,failDelete=true,sendAttempts=0,commentAttempts=0
   const mock=async route=>{
    const req=route.request(),method=req.method(),url=new URL(req.url()),path=url.pathname
    const send=(status,body)=>route.fulfill({status,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(body)})
@@ -46,7 +46,7 @@ async function openAccount(page) {
    if(!action)return send(200,records.find(r=>r.id===id))
    if(action==='community')return send(200,{ratingAverage:ratings.get(id)||null,ratingCount:ratings.has(id)?1:0,comments:comments.get(id)||[]})
    assert.equal(req.headers().authorization,'Bearer community-test-token')
-   if(action==='my-activity')return send(200,{sent:sends.has(id),sentAt:sends.get(id)?.sentAt,rating:ratings.get(id)||null})
+   if(action==='my-activity')return send(200,{sent:sends.has(id),sentAt:sends.get(id)?.sentAt,rating:ratings.get(id)||null,commentIds:(comments.get(id)||[]).filter(c=>c.author==='Alice').map(c=>c.id)})
    if(action==='sends'){
     sendAttempts++
     if(!sends.has(id))sends.set(id,{problemId:id,...records.find(r=>r.id===id),sentAt:'2026-11-03T12:00:00Z'})
@@ -54,6 +54,18 @@ async function openAccount(page) {
     return send(200,sends.get(id))
    }
    if(action==='rating'){ratings.set(id,req.postDataJSON().score);return send(200,{score:ratings.get(id)})}
+   if(action.startsWith('comments/')){
+    const commentId=action.slice('comments/'.length),list=comments.get(id)||[],existing=list.find(c=>c.id===commentId)
+    if(method==='PATCH'){
+     if(failEdit){failEdit=false;return send(503,{error:'Edit failed; retry'})}
+     Object.assign(existing,{text:req.postDataJSON().text,updatedAt:'2026-11-03T12:02:00Z'})
+     return send(200,existing)
+    }
+    if(method==='DELETE'){
+     if(failDelete){failDelete=false;return send(503,{error:'Delete failed; retry'})}
+     comments.set(id,list.filter(c=>c.id!==commentId));return send(200,{deleted:true})
+    }
+   }
    if(action==='comments'){
     commentAttempts++
     const body=req.postDataJSON(),list=comments.get(id)||[]
@@ -97,6 +109,38 @@ async function openAccount(page) {
   await page.locator('.problem-card').filter({hasText:'Route one'}).click()
   await panel.getByRole('button',{name:'Send logged',exact:true}).waitFor()
   assert.equal(await panel.getByRole('button',{name:'Rate 5 out of 5'}).getAttribute('aria-pressed'),'true')
+  const own=panel.locator('article').filter({hasText:text})
+  await own.getByRole('button',{name:'Edit comment',exact:true}).click()
+  await own.getByLabel('Edit your comment',{exact:true}).fill('Cancelled edit')
+  await panel.getByRole('button',{name:'Cancel edit',exact:true}).click()
+  await own.getByText(text,{exact:true}).waitFor()
+  await own.getByRole('button',{name:'Edit comment',exact:true}).click()
+  await panel.getByLabel('Edit your comment',{exact:true}).fill('Updated footwork advice')
+  await panel.getByRole('button',{name:'Save comment',exact:true}).click()
+  await panel.getByRole('alert').filter({hasText:'Edit failed'}).waitFor()
+  assert.equal(await panel.getByLabel('Edit your comment',{exact:true}).inputValue(),'Updated footwork advice')
+  await panel.getByRole('button',{name:'Save comment',exact:true}).click()
+  const revised=panel.locator('article').filter({hasText:'Updated footwork advice'})
+  await revised.getByText('· Edited',{exact:true}).waitFor()
+  await page.reload()
+  await openRoutes(page)
+  await page.locator('.problem-card').filter({hasText:'Route one'}).click()
+  await revised.getByRole('button',{name:'Delete comment',exact:true}).click()
+  await revised.getByRole('button',{name:'Keep comment',exact:true}).click()
+  assert.equal(comments.get('p1').length,1)
+  await revised.getByRole('button',{name:'Delete comment',exact:true}).click()
+  await revised.getByRole('button',{name:'Confirm delete',exact:true}).click()
+  await panel.getByRole('alert').filter({hasText:'Delete failed'}).waitFor()
+  await revised.getByRole('button',{name:'Confirm delete',exact:true}).click()
+  await revised.waitFor({state:'detached'})
+  assert.equal(comments.get('p1').length,0)
+  comments.set('p1',[{id:'bob-comment',text:'Another climber comment',author:'Bob',createdAt:'2026-11-03'}])
+  await page.reload()
+  await openRoutes(page)
+  await page.locator('.problem-card').filter({hasText:'Route one'}).click()
+  await panel.getByText('Another climber comment',{exact:true}).waitFor()
+  assert.equal(await panel.getByRole('button',{name:'Edit comment',exact:true}).count(),0)
+  assert.equal(await panel.getByRole('button',{name:'Delete comment',exact:true}).count(),0)
   await openRoutes(page)
   await page.locator('.problem-card').filter({hasText:'Route two'}).click()
   await panel.getByRole('button',{name:'Log send',exact:true}).waitFor()
@@ -121,8 +165,10 @@ async function openAccount(page) {
   const guestPanel=guest.getByRole('region',{name:'Route activity'})
   await guestPanel.getByRole('button',{name:'Sign in to log a send, rate or comment',exact:true}).waitFor()
   assert.equal(await guestPanel.getByRole('button',{name:'Log send',exact:true}).count(),0)
-  await guestPanel.getByText(text,{exact:true}).waitFor()
+  await guestPanel.getByText('Another climber comment',{exact:true}).waitFor()
+  assert.equal(await guestPanel.getByRole('button',{name:'Edit comment',exact:true}).count(),0)
+  assert.equal(await guestPanel.getByRole('button',{name:'Delete comment',exact:true}).count(),0)
   assert.deepEqual(errors,[])
-  console.log('PASS: logged-in send/rating/comment persistence, idempotent network retries, literal comment rendering, route isolation, profile send history/deep-open, anonymous read-only and 320–980px layout')
+  console.log('PASS: logged-in send/rating/comment persistence, idempotent network retries, literal comment rendering, route isolation, profile send history/deep-open, anonymous read-only, own-comment edit/delete/cancel/reload/failure retries, other-author isolation and 320–980px layout')
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1})

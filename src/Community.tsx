@@ -10,6 +10,9 @@ export default function Community({ baseUrl, problemId, name, userId }: { baseUr
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [text, setText] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editText, setEditText] = useState('')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const pendingComment = useRef<string | null>(null)
   const saving = useRef(false)
   const [reload, setReload] = useState(0)
@@ -24,6 +27,8 @@ export default function Community({ baseUrl, problemId, name, userId }: { baseUr
       .finally(() => { if (live) setLoading(false) })
     return () => { live = false }
   }, [baseUrl, path, userId, reload])
+
+  useEffect(() => { setEditingId(null); setDeletingId(null); setEditText('') }, [userId])
 
   async function mutate(action: () => Promise<void>) {
     if (saving.current) return
@@ -40,7 +45,7 @@ export default function Community({ baseUrl, problemId, name, userId }: { baseUr
       {!userId ? <button className="ghost" onClick={() => void signIn().catch((e) => setError(e.message))}>Sign in to log a send, rate or comment</button> : <>
         <button className="primary" disabled={busy || !mine || mine.sent} onClick={() => void mutate(async () => {
           const sent = await communityRequest<{ sentAt: string }>(baseUrl, path + '/sends', 'POST', undefined, true)
-          setMine((previous) => ({ sent: true, sentAt: sent.sentAt, rating: previous?.rating ?? null }))
+          setMine((previous) => ({ sent: true, sentAt: sent.sentAt, rating: previous?.rating ?? null, commentIds: previous?.commentIds ?? [] }))
         })}>{mine?.sent ? 'Send logged' : 'Log send'}</button>
         {mine?.sentAt && <p className="muted">Sent {new Date(mine.sentAt).toLocaleDateString()}</p>}
         <div className="rating-row" role="group" aria-label="Rate this route">
@@ -58,6 +63,7 @@ export default function Community({ baseUrl, problemId, name, userId }: { baseUr
         pendingComment.current ??= crypto.randomUUID()
         const added = await communityRequest<Comment>(baseUrl, path + '/comments', 'POST', { text: text.trim(), requestId: pendingComment.current }, true)
         setData((previous) => previous ? { ...previous, comments: [added, ...previous.comments.filter((c) => c.id !== added.id)] } : previous)
+        setMine((previous) => previous ? { ...previous, commentIds: [...new Set([...(previous.commentIds ?? []), added.id])] } : previous)
         setText(''); pendingComment.current = null
       }) }}>
         <label htmlFor={'comment-' + problemId}>Your comment</label>
@@ -67,7 +73,37 @@ export default function Community({ baseUrl, problemId, name, userId }: { baseUr
       {!data.comments.length && <p className="muted">No comments yet.</p>}
       <div className="comments-list">{data.comments.map((c) => <article key={c.id}>
         <strong>{c.author}</strong> <time className="muted" dateTime={c.createdAt}>{new Date(c.createdAt).toLocaleDateString()}</time>
-        <p>{c.text}</p>
+        {c.updatedAt && <span className="muted"> · Edited</span>}
+        {editingId === c.id && userId && mine?.commentIds?.includes(c.id) ? <form onSubmit={(event) => {
+          event.preventDefault()
+          void mutate(async () => {
+            const saved = await communityRequest<Comment>(baseUrl, path + '/comments/' + encodeURIComponent(c.id), 'PATCH', { text: editText.trim() }, true)
+            setData((previous) => previous ? { ...previous, comments: previous.comments.map((item) => item.id === c.id ? saved : item) } : previous)
+            setEditingId(null); setEditText('')
+          })
+        }}>
+          <label htmlFor={'edit-comment-' + c.id}>Edit your comment</label>
+          <textarea id={'edit-comment-' + c.id} rows={3} maxLength={1000} autoFocus value={editText} disabled={busy} onChange={(e) => setEditText(e.target.value)} />
+          <div className="comment-actions">
+            <button className="primary small" disabled={busy || !editText.trim()}>Save comment</button>
+            <button type="button" className="ghost small" disabled={busy} onClick={() => { setEditingId(null); setEditText('') }}>Cancel edit</button>
+          </div>
+        </form> : <p>{c.text}</p>}
+        {userId && mine?.commentIds?.includes(c.id) && editingId !== c.id && <div className="comment-actions">
+          {deletingId === c.id ? <>
+            <span role="status">Delete this comment?</span>
+            <button className="ghost small danger" disabled={busy} onClick={() => void mutate(async () => {
+              await communityRequest(baseUrl, path + '/comments/' + encodeURIComponent(c.id), 'DELETE', undefined, true)
+              setData((previous) => previous ? { ...previous, comments: previous.comments.filter((item) => item.id !== c.id) } : previous)
+              setMine((previous) => previous ? { ...previous, commentIds: previous.commentIds?.filter((id) => id !== c.id) } : previous)
+              setDeletingId(null)
+            })}>Confirm delete</button>
+            <button className="ghost small" disabled={busy} onClick={() => setDeletingId(null)}>Keep comment</button>
+          </> : <>
+            <button className="ghost small" disabled={busy} onClick={() => { setEditingId(c.id); setEditText(c.text); setDeletingId(null) }}>Edit comment</button>
+            <button className="ghost small" disabled={busy} onClick={() => { setDeletingId(c.id); setEditingId(null) }}>Delete comment</button>
+          </>}
+        </div>}
       </article>)}</div>
       {data.nextCursor && <button className="ghost small" disabled={busy} onClick={() => void mutate(async () => {
         const next = await communityRequest<CommunityData>(baseUrl, path + '/community?cursor=' + encodeURIComponent(data.nextCursor!))

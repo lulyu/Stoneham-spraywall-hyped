@@ -211,7 +211,8 @@
             "GET",
             "POST",
             "PATCH",
-            "OPTIONS"
+            "OPTIONS",
+            "DELETE"
           ],
           "MaxAge": 3600
         }
@@ -614,6 +615,44 @@
           "Ref": "Api"
         },
         "RouteKey": "POST /v1/problems/{problemId}/comments",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "JwtAuthorizer"
+        },
+        "AuthorizationScopes": [
+          "stoneham-api/write"
+        ]
+      }
+    },
+    "EditCommentRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "PATCH /v1/problems/{problemId}/comments/{commentId}",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "JwtAuthorizer"
+        },
+        "AuthorizationScopes": [
+          "stoneham-api/write"
+        ]
+      }
+    },
+    "DeleteCommentRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "DELETE /v1/problems/{problemId}/comments/{commentId}",
         "Target": {
           "Fn::Sub": "integrations/${Integration}"
         },

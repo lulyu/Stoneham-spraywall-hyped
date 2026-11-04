@@ -166,3 +166,7 @@ body:has(.routes-drawer[open]) { overflow: hidden; }
 .has-active-route .wall-card { height: min(42svh, 480px); min-height: 240px; }
 .route-activity-link { display: inline-flex; align-items: center; gap: 8px; color: #c9ff53; padding: 12px 0; margin-right: 12px; font-size: 14px; text-underline-offset: 4px; }
 .community-panel { scroll-margin-top: 14px; }
+
+.comment-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.comment-actions button { min-height: 44px; }
+.comment-actions .danger { color: #ffb8bf; border: 1px solid #80434a; }
