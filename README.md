@@ -1,4 +1,4 @@
-# Hyped@Stoneham SprayWall
+# Hyped@Stoneham CRG Spray Wall
 
 A small, mobile-first spray-wall route-setting app for the Stoneham wall.
 
