@@ -175,3 +175,14 @@ body:has(.routes-drawer[open]) { overflow: hidden; }
 .share-link-field { margin-top: 12px; }
 .link-notice { margin: 0 18px 14px; font-size: 13px; }
 .link-notice button { margin-right: 8px; }
+
+.route-attribution { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 10px; row-gap: 4px; }
+.added-by { color: #9fa596; font-size: 12px; }
+.profile-link { display: inline; padding: 4px 0; border: 0; background: transparent; color: #c9ff53; font: inherit; font-weight: 650; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; overflow-wrap: anywhere; }
+.public-profile-dialog { width: min(360px, calc(100vw - 40px)); max-height: 80dvh; overflow: auto; padding: 22px; color: #f4f4ef; background: #171b14; border: 1px solid #46533a; border-radius: 20px; box-shadow: 0 24px 80px #0009; }
+.public-profile-dialog::backdrop { background: #05080599; backdrop-filter: blur(4px); }
+.public-profile-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.public-profile-heading h2 { margin: 4px 0 12px; font-size: 22px; overflow-wrap: anywhere; }
+.public-profile-heading button { min-height: 44px; min-width: 44px; }
+.public-profile-bio { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; color: #c9cebf; }
+body:has(.public-profile-dialog[open]) { overflow: hidden; }

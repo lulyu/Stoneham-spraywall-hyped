@@ -6,6 +6,7 @@ import { DRAFT_RECOVERY_KEY, readRecoveryDraft, storeRecoveryDraft } from './dra
 import { initializeAuth, accountDetails, accessToken, signIn, signOut, authConfigured } from './auth'
 import Profile from './Profile'
 import Community from './Community'
+import PublicProfileLink from './PublicProfileLink'
 import { profileRequest, type UserProfile } from './profile'
 import { createApiProblemStore, createLocalProblemStore, readLocalProblems, ProblemStoreError, STORAGE_KEY } from './problemStore'
 import type { PointerEvent as ReactPointerEvent } from 'react'
@@ -747,7 +748,9 @@ function App() {
         <>
         {activeProblem && <section className="active-route" aria-label="Selected route">
           <div className="active-route-heading">
-            <div><span className="muted">{activeProblem.grade} · {activeProblem.setter}</span><h2>{activeProblem.name}</h2></div>
+            <div><div className="route-attribution"><span className="muted">{activeProblem.grade} · {activeProblem.setter}</span>
+              {problemStore.shared && activeProblem.ownerId && <span className="added-by"><span aria-hidden="true">∆ </span>added by <PublicProfileLink key={activeProblem.id} baseUrl={apiBaseUrl} path={'/v1/problems/' + encodeURIComponent(activeProblem.id) + '/creator-profile'} /></span>}
+            </div><h2>{activeProblem.name}</h2></div>
             <button className="ghost small" aria-label="Clear selected route" onClick={() => { selectionSequence.current++; selectProblem(null); setLinkError(''); setLinkLoading(false) }}>✕</button>
           </div>
             {activeProblem && (!problemStore.shared || identity?.isAdmin || (identity && activeProblem.ownerId === identity.userId)) && <button className="ghost small" disabled={busy || openingId !== null} onClick={() => void openProblem(activeProblem, true)}>Edit problem</button>}

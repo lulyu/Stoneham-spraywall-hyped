@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { communityRequest, type CommunityData, type MyActivity, type Comment } from './community'
 import { signIn } from './auth'
+import PublicProfileLink from './PublicProfileLink'
 
 export default function Community({ baseUrl, problemId, name, userId }: { baseUrl: string; problemId: string; name: string; userId?: string }) {
   const path = '/v1/problems/' + encodeURIComponent(problemId)
@@ -72,7 +73,7 @@ export default function Community({ baseUrl, problemId, name, userId }: { baseUr
       </form>}
       {!data.comments.length && <p className="muted">No comments yet.</p>}
       <div className="comments-list">{data.comments.map((c) => <article key={c.id}>
-        <strong>{c.author}</strong> <time className="muted" dateTime={c.createdAt}>{new Date(c.createdAt).toLocaleDateString()}</time>
+        {c.hasAuthorProfile ? <PublicProfileLink baseUrl={baseUrl} path={path + '/comments/' + encodeURIComponent(c.id) + '/author-profile'} name={c.author} /> : <strong>{c.author}</strong>} <time className="muted" dateTime={c.createdAt}>{new Date(c.createdAt).toLocaleDateString()}</time>
         {c.updatedAt && <span className="muted"> · Edited</span>}
         {editingId === c.id && userId && mine?.commentIds?.includes(c.id) ? <form onSubmit={(event) => {
           event.preventDefault()

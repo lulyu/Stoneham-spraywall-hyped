@@ -265,3 +265,27 @@ revision for conflict checks. Recovery expires after 24 hours; switching account
 does not expose another account's draft. Explicit Cancel, successful save and
 sign-out clear the recovery copy. Profile/comment API 401s also invalidate the
 displayed login state.
+
+## Public profile cards
+
+The selected route retains its grade and editable setter credit, and adds
+`∆ added by <display name>` for its authenticated creator. Click that name or a
+linked comment author to open a small read-only display-name/bio dialog. Empty
+bios say No bio yet; failed reads can be retried. Names and bios render as text.
+
+These public reads resolve the identity from stored route/comment attribution:
+- GET /v1/problems/:id/creator-profile
+- GET /v1/problems/:id/comments/:commentId/author-profile
+
+They return only `displayName` and `bio`, with no email, user subject, or admin
+fields. There is no public user directory. Comment responses include a boolean
+`hasAuthorProfile`, without publishing their account IDs. Deleted comments return
+404 for their author-profile link. Legacy routes without an owner and comments
+without recorded authors remain unlinked; setter text is never used to infer an
+account. A missing saved name falls back to Climber (or the comment attribution).
+Public cards load the latest saved profile; existing setter credit is unchanged.
+
+Validation: `scripts/public-profile-smoke.cjs` exercises creator/comment cards,
+setters different from creators, privacy-safe plain text, empty bios, retry,
+focus return, Escape/backdrop dismissal, legacy data and 320–980px layout, using
+isolated API fixtures. Backend tests check projection and attribution.

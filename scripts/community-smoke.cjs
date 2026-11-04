@@ -33,6 +33,7 @@ async function openAccount(page) {
   const mock=async route=>{
    const req=route.request(),method=req.method(),url=new URL(req.url()),path=url.pathname
    const send=(status,body)=>route.fulfill({status,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(body)})
+   if(path.endsWith('/creator-profile')||path.endsWith('/author-profile'))return send(200,{displayName:'Alice',bio:'Enjoys slabs.'})
    if(path==='/v1/me')return send(200,{userId:'alice',isAdmin:false})
    if(path==='/v1/me/profile')return send(200,{displayName:'Alice',bio:''})
    if(path==='/v1/me/sends'){

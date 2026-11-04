@@ -1,4 +1,4 @@
-import { logSend, listSends, rate, addComment, community, myActivity, changeComment } from './community'
+import { logSend, listSends, rate, addComment, community, myActivity, changeComment, commentAuthorProfile } from './community'
 import { requireIdentity, requireEditor } from './auth'
 import { randomUUID } from 'node:crypto'
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda'
@@ -61,6 +61,20 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
       const identity = requireIdentity(event)
       if (method === 'GET') return response(200, await listSends(identity.userId, event.queryStringParameters?.cursor))
       return response(405, { error: 'method not allowed', requestId })
+    }
+    const creatorProfilePath = pathMatch(path, /^\/v1\/problems\/([^/]+)\/creator-profile$/)
+    if (creatorProfilePath) {
+      if (method !== 'GET') return response(405, { error: 'method not allowed', requestId })
+      const problem = await requireProblem(creatorProfilePath[0])
+      if (!problem.ownerId) throw new ApiError(404, 'Creator profile is unavailable for this route')
+      const profile = await getProfile(problem.ownerId)
+      return response(200, { displayName: profile.displayName || 'Climber', bio: profile.bio })
+    }
+    const commentProfilePath = pathMatch(path, /^\/v1\/problems\/([^/]+)\/comments\/([^/]+)\/author-profile$/)
+    if (commentProfilePath) {
+      if (method !== 'GET') return response(405, { error: 'method not allowed', requestId })
+      await requireProblem(commentProfilePath[0])
+      return response(200, await commentAuthorProfile(commentProfilePath[0], commentProfilePath[1]))
     }
     const commentPath = pathMatch(path, /^\/v1\/problems\/([^/]+)\/comments\/([^/]+)$/)
     if (commentPath) {
