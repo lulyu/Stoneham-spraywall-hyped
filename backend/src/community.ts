@@ -9,7 +9,7 @@ const problemKey = (id: string) => 'PROBLEM#' + id
 const userKey = (id: string) => 'USER#' + id
 const sendKey = (userId: string, id: string) => ({ pk: userKey(userId), sk: 'SEND#' + id })
 const ratingKey = (userId: string, id: string) => ({ pk: problemKey(id), sk: 'RATING#' + userId })
-const commentView = (r: Item) => ({ id: r.id, text: r.text, author: r.author, createdAt: r.createdAt, ...(r.updatedAt ? { updatedAt: r.updatedAt } : {}) })
+const commentView = (r: Item) => ({ id: r.id, text: r.text, author: r.author, hasAuthorProfile: typeof r.userId === 'string' && Boolean(r.userId), createdAt: r.createdAt, ...(r.updatedAt ? { updatedAt: r.updatedAt } : {}) })
 const sendView = (r: Item) => ({
   problemId: r.problemId, name: r.name, grade: r.grade, setter: r.setter, sentAt: r.sentAt,
 })
@@ -147,4 +147,12 @@ export async function changeComment(userId: string, problemId: string, id: strin
     }
     throw e
   }
+}
+
+export async function commentAuthorProfile(problemId: string, commentId: string) {
+  const comment = await get({ pk: problemKey(problemId), sk: 'COMMENT#' + commentId })
+  if (!comment || comment.deleted || typeof comment.userId !== 'string' || !comment.userId)
+    throw new ApiError(404, 'Comment author profile is unavailable')
+  const profile = await getProfile(comment.userId)
+  return { displayName: profile.displayName || comment.author || 'Climber', bio: profile.bio }
 }

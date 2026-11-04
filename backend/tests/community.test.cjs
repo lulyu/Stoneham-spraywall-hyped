@@ -173,3 +173,34 @@ test('ownership lookup paginates through comments from other users',async()=>{
  assert.equal(data(await request('GET','my-activity')).commentIds.length,3)
  assert.equal(data(await request('GET','my-activity',undefined,'bob')).commentIds.length,2)
 })
+
+test('public profile cards identify the actual creator and comment author without private fields',async()=>{
+ const problem=rows.get('PROBLEM#p1|META')
+ problem.ownerId='alice';problem.setter='Guest setter'
+ Object.assign(rows.get('USER#alice|PROFILE'),{email:'private@example.com',isAdmin:true,groups:['admins']})
+ let profile=await request('GET','creator-profile',undefined,null)
+ assert.equal(profile.statusCode,200)
+ assert.deepEqual(data(profile),{displayName:'Alice',bio:'Private bio'})
+ const comment=data(await request('POST','comments',{text:'Nice'}))
+ assert.equal(comment.hasAuthorProfile,true)
+ assert(!('userId' in comment))
+ rows.get('USER#alice|PROFILE').displayName='New name'
+ profile=await request('GET','comments/'+comment.id+'/author-profile',undefined,null)
+ assert.equal(profile.statusCode,200)
+ assert.deepEqual(data(profile),{displayName:'New name',bio:'Private bio'})
+ assert.equal((await request('PATCH','creator-profile',{bio:'Hacked'},null)).statusCode,405)
+ assert.equal((await request('PATCH','comments/'+comment.id+'/author-profile',{bio:'Hacked'},null)).statusCode,405)
+ assert.equal((await request('GET','comments/missing/author-profile',undefined,null)).statusCode,404)
+ await request('DELETE','comments/'+comment.id)
+ assert.equal((await request('GET','comments/'+comment.id+'/author-profile',undefined,null)).statusCode,404)
+ delete problem.ownerId
+ assert.equal((await request('GET','creator-profile',undefined,null)).statusCode,404)
+})
+test('public cards handle empty profiles and never infer users from setter names',async()=>{
+ const problem=rows.get('PROBLEM#p1|META')
+ problem.ownerId='bob';problem.setter='Alice'
+ assert.deepEqual(data(await request('GET','creator-profile',undefined,null)),{displayName:'Climber',bio:''})
+ const comment=data(await request('POST','comments',{text:'Hi'},'bob'))
+ assert.deepEqual(data(await request('GET','comments/'+comment.id+'/author-profile',undefined,null)),{displayName:'Climber',bio:''})
+ assert.equal((await request('GET','/v1/problems/missing/creator-profile',undefined,null)).statusCode,404)
+})
