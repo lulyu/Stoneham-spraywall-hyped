@@ -192,4 +192,7 @@ body:has(.routes-drawer[open]) { overflow: hidden; }
 .public-profile-bio { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; color: #c9cebf; }
 body:has(.public-profile-dialog[open]) { overflow: hidden; }
 
-.brand-location { display: block; font-size: 10px; font-weight: 800; line-height: 1.4; letter-spacing: .18em; color: #9ea792; margin-bottom: 2px; }
+
+.topbar > div { flex: 1; min-width: 0; }
+.topbar h1 { white-space: nowrap; font-size: clamp(13px, 3.85vw, 20px); font-weight: 650; line-height: 1.4; letter-spacing: -.025em; color: #eef1e8; }
+.brand-highlight { color: #c9ff53; font-weight: 750; }
