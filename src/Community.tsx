@@ -51,12 +51,12 @@ export default function Community({ baseUrl, problemId, name, userId }: { baseUr
         {mine?.sentAt && <p className="muted">Sent {new Date(mine.sentAt).toLocaleDateString()}</p>}
         <div className="rating-row" role="group" aria-label="Rate this route">
           <span>Enjoyment</span>
-          {[1, 2, 3, 4, 5].map((score) => <button className="ghost small" key={score} aria-label={'Rate ' + score + ' out of 5'} aria-pressed={mine?.rating === score} disabled={busy || !mine} onClick={() => void mutate(async () => {
+          <div className="rating-stars">{[1, 2, 3, 4, 5].map((score) => <button className={`rating-star ${(mine?.rating ?? 0) >= score ? 'is-filled' : ''}`} key={score} aria-label={'Rate ' + score + ' out of 5'} aria-pressed={mine?.rating === score} disabled={busy || !mine} onClick={() => void mutate(async () => {
             await communityRequest(baseUrl, path + '/rating', 'PATCH', { score }, true)
             setMine((previous) => previous ? { ...previous, rating: score } : previous)
             const summary = await communityRequest<CommunityData>(baseUrl, path + '/community')
             setData((previous) => previous ? { ...previous, ratingAverage: summary.ratingAverage, ratingCount: summary.ratingCount } : summary)
-          })}><svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.9-6.2-3.3-6.2 3.3 1.2-6.9-5-4.9 6.9-1z" /></svg> {score}</button>)}
+          })}><svg aria-hidden="true" viewBox="0 0 24 24" width="30" height="30"><path fill={(mine?.rating ?? 0) >= score ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.9-6.2-3.3-6.2 3.3 1.2-6.9-5-4.9 6.9-1z" /></svg></button>)}</div>
         </div>
       </>}
       <h4>Comments</h4>

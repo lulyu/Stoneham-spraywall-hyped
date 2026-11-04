@@ -117,9 +117,14 @@ button:disabled { cursor: default; opacity: .45; }
 .community-panel { border: 1px solid #34382e; border-radius: 14px; padding: 14px; margin: 14px 0; overflow-wrap: anywhere; }
 .community-panel h3 { margin: 0 0 8px; }
 .community-panel textarea { box-sizing: border-box; width: 100%; resize: vertical; font: inherit; font-size: 16px; background: #191c16; color: white; border: 1px solid #34382e; border-radius: 10px; padding: 10px; margin: 6px 0; }
-.rating-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 14px 0; }
-.rating-row button { min-height: 44px; min-width: 38px; }
-.rating-row button[aria-pressed=true] { background: #c9ff53; color: #12150d; }
+.rating-row { display: grid; gap: 6px; margin: 18px 0; }
+.rating-row > span { color: #b8c0ad; font-size: 13px; }
+.rating-stars { display: flex; gap: 2px; width: fit-content; }
+.rating-star { display: grid; place-items: center; min-width: 44px; min-height: 44px; padding: 6px; border: 0; border-radius: 10px; background: transparent; color: #89917f; cursor: pointer; }
+.rating-star.is-filled { color: #ffd36a; }
+.rating-star:not(:disabled):hover { color: #ffe29b; background: #ffd36a0c; }
+.rating-star:not(:disabled):active { background: #ffd36a18; }
+.rating-star svg { filter: drop-shadow(0 1px 2px #0004); }
 .comments-list article { border-top: 1px solid #34382e; padding: 12px 0; }
 .comments-list p { white-space: pre-wrap; margin-bottom: 0; }
 .send-history { border-top: 1px solid #34382e; margin-top: 28px; padding-top: 12px; display: grid; gap: 10px; }
