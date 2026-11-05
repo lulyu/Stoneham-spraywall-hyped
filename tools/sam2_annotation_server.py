@@ -96,7 +96,9 @@ def prediction_region(prompts, box):
 
 
 class Annotator:
-    def __init__(self, checkpoint: Path, storage: Path, threads: int, seed: Path | None = None):
+    def __init__(self, checkpoint: Path, storage: Path, threads: int, seed: Path | None = None, rescan=None, review_only=False):
+        self.rescan = rescan
+        self.image_path = rescan.file('wall_registered.png') if rescan else ROOT / 'public/wall/stoneham-spraywall-canonical.jpg'
         self.storage = storage
         self.lock = threading.Lock()
         self.model_lock = threading.Lock()
@@ -106,11 +108,16 @@ class Annotator:
         self.image = None
         self.predictors = OrderedDict()
         self.seed = seed
-        if not storage.exists() and seed and seed.exists():
+        if rescan:
+            self.status.update(sessionId=rescan.session['sessionId'], image_sha256=rescan.session['registeredImageSha256'])
+        if not rescan and not storage.exists() and seed and seed.exists():
             self.write(dict(holds=clean_dataset(json.loads(seed.read_text()))))
         self.crop_bytes = None
         self.executor = ThreadPoolExecutor(max_workers=1)
-        self.executor.submit(self.load, checkpoint, threads)
+        if review_only:
+            self.status.update(state='error', device='unavailable', error='Review-only server: manual editing is available; SAM2 is not loaded.')
+        else:
+            self.executor.submit(self.load, checkpoint, threads)
 
     def load(self, checkpoint, threads):
         try:
@@ -124,11 +131,11 @@ class Annotator:
             if not checkpoint.is_file():
                 raise RuntimeError(f'Missing checkpoint: {checkpoint}')
             torch.set_num_threads(threads)
-            image = Image.open(ROOT / 'public/wall/stoneham-spraywall-canonical.jpg').convert('RGB')
+            image = Image.open(self.image_path).convert('RGB')
             if image.size != (WIDTH, HEIGHT):
                 raise RuntimeError('Canonical image size must be 7292 × 5514.')
             self.image = image
-            self.crop_bytes = (ROOT / 'public/wall/stoneham-spraywall-canonical.jpg').read_bytes()
+            self.crop_bytes = self.image_path.read_bytes()
             model = build_sam2(CONFIG, str(checkpoint), device=self.status['device'], apply_postprocessing=False)
             self.model = model
             with torch.inference_mode():
@@ -151,6 +158,10 @@ class Annotator:
         return self.predictors[region]
 
     def predict(self, body):
+        if self.rescan:
+            self.rescan.validate_prediction(body)
+        elif 'sessionId' in body or 'image_sha256' in body:
+            raise ValueError('This is a legacy server, not a rescan server.')
         import cv2
         import numpy as np
         import torch
@@ -188,6 +199,8 @@ class Annotator:
         return dict(candidates=results, region=list(region), elapsed_seconds=round(time.monotonic() - started, 3))
 
     def read(self):
+        if self.rescan:
+            raise ValueError('Rescan mode has no legacy accepted-annotation storage.')
         if not self.storage.exists():
             return dict(holds=[])
         data = json.loads(self.storage.read_text())
@@ -196,6 +209,8 @@ class Annotator:
         return data
 
     def write(self, data):
+        if self.rescan:
+            raise ValueError('Rescan mode cannot write legacy accepted annotations.')
         data.update(wallId='stoneham-spraywall-v1', image_size=[WIDTH, HEIGHT], crop_box=[0, 0, WIDTH, HEIGHT],
                     source='manual-sam2.1-small', updated_at=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()))
         self.storage.parent.mkdir(parents=True, exist_ok=True)
@@ -246,7 +261,7 @@ class Handler(SimpleHTTPRequestHandler):
             if not hmac.compare_digest(key, self.access_key):
                 return self.json(401, dict(error='Invalid session link.'))
             self.send_response(303)
-            self.send_header('Location', '/?annotate=1')
+            self.send_header('Location', '/?annotate=1&review=1' if self.annotator.rescan else '/?annotate=1')
             self.send_header('Set-Cookie', f'stoneham_session={self.access_key}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400')
             self.send_header('Cache-Control', 'no-store')
             self.send_header('Referrer-Policy', 'no-referrer')
@@ -258,6 +273,25 @@ class Handler(SimpleHTTPRequestHandler):
         path = urlparse(self.path).path
         if path == '/api/sam2/status':
             return self.json(200, self.annotator.status)
+        if path == '/api/sam2/review-bundle':
+            if not self.annotator.rescan:
+                return self.json(404, dict(error='Start with --rescan-session DIRECTORY.'))
+            return self.json(200, dict(files=list(self.annotator.rescan.paths)))
+        if path.startswith('/api/sam2/review-file/'):
+            try:
+                if not self.annotator.rescan: raise ValueError('No rescan session configured.')
+                artifact = self.annotator.rescan.file(path.rsplit('/', 1)[-1])
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json' if artifact.suffix == '.json' else 'image/png' if artifact.suffix == '.png' else 'image/jpeg')
+                self.send_header('Cache-Control', 'no-store')
+                self.send_header('Content-Length', str(artifact.stat().st_size)); self.end_headers()
+                import shutil
+                with artifact.open('rb') as stream: shutil.copyfileobj(stream, self.wfile)
+            except ValueError as error:
+                return self.json(409, dict(error=str(error)))
+            return
+        if self.annotator.rescan and path in ('/api/sam2/annotations', '/api/sam2/suggestions'):
+            return self.json(409, dict(error='Rescan mode uses review checkpoints; legacy accepted annotations are disabled.'))
         if path == '/api/sam2/annotations':
             try:
                 with self.annotator.lock:
@@ -270,7 +304,7 @@ class Handler(SimpleHTTPRequestHandler):
         if path in ('/api/sam2/crop.jpg', '/api/sam2/image.jpg'):
             if self.annotator.crop_bytes is None:
                 return self.json(503, dict(error='Crop is loading; wait for SAM2 status.'))
-            self.send_response(200); self.send_header('Content-Type', 'image/jpeg')
+            self.send_response(200); self.send_header('Content-Type', 'image/png' if self.annotator.rescan else 'image/jpeg')
             self.send_header('Content-Length', str(len(self.annotator.crop_bytes)))
             self.end_headers(); return self.wfile.write(self.annotator.crop_bytes)
         if path.startswith('/api/'):
@@ -298,6 +332,12 @@ class Handler(SimpleHTTPRequestHandler):
             if not isinstance(body, dict):
                 raise ValueError('Request must be a JSON object.')
             path = urlparse(self.path).path
+            if self.annotator.rescan:
+                if path != '/api/sam2/predict':
+                    return self.json(409, dict(error='Legacy writes/accepted exports are disabled in rescan mode. Export non-publishable review progress in the editor.'))
+                self.annotator.rescan.validate_prediction(body)
+            elif 'sessionId' in body or 'image_sha256' in body:
+                raise ValueError('A rescan prediction requires --rescan-session; the production image will not be used.')
             if path == '/api/sam2/predict':
                 validate_prompts(body)
                 if self.annotator.status['state'] != 'ready':
@@ -359,7 +399,9 @@ class Handler(SimpleHTTPRequestHandler):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--checkpoint', type=Path, required=True)
+    parser.add_argument('--checkpoint', type=Path)
+    parser.add_argument('--rescan-session', type=Path, help='Read-only Phase B output directory; disables all legacy annotation writes.')
+    parser.add_argument('--review-only', action='store_true', help='Serve scan review without loading SAM2; requires --rescan-session.')
     parser.add_argument('--host', default='127.0.0.1')
     parser.add_argument('--port', type=int, default=8787)
     parser.add_argument('--storage', type=Path, default=ROOT / 'artifacts/full-wall-annotations/holds.json')
@@ -367,6 +409,19 @@ def main():
     parser.add_argument('--access-key-file', type=Path, help='Optional private session key file for HTTPS preview access.')
     parser.add_argument('--threads', type=int, default=4)
     args = parser.parse_args()
+    if not args.checkpoint and not args.review_only:
+        parser.error('Supply --checkpoint for SAM2, or --review-only --rescan-session DIRECTORY.')
+    if args.review_only and not args.rescan_session:
+        parser.error('--review-only requires --rescan-session.')
+    rescan = None
+    if args.rescan_session:
+        import sys
+        sys.path.insert(0, str(ROOT))
+        from tools.wall_rescan.review_bundle import ReviewBundle
+        try:
+            rescan = ReviewBundle(args.rescan_session, ROOT)
+        except (ValueError, OSError, KeyError) as error:
+            parser.error(str(error))
     if args.threads < 1:
         parser.error('--threads must be positive')
     if not (ROOT / 'dist/index.html').exists():
@@ -375,9 +430,9 @@ def main():
         Handler.access_key = args.access_key_file.read_text().strip()
         if len(Handler.access_key) < 32:
             parser.error('Session key must contain at least 32 characters.')
-    Handler.annotator = Annotator(args.checkpoint, args.storage, args.threads, args.seed)
+    Handler.annotator = Annotator(args.checkpoint, args.storage, args.threads, args.seed, rescan, args.review_only)
     server = ThreadingHTTPServer((args.host, args.port), Handler)
-    print(f'Annotator: http://{args.host}:{args.port}/?annotate=1', flush=True)
+    print(f'Annotator: http://{args.host}:{args.port}/?annotate=1' + ('&review=1' if rescan else ''), flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
