@@ -1,6 +1,6 @@
 # Repeatable wall re-scan, registration, and annotation transfer
 
-Status: **design proposal only**. No production wall, routes, DynamoDB records, or deployment should change as part of this document.
+Status: **design proposal only**. This branch currently contains this document only; the proposed `tools/wall_rescan/` pipeline and rescan review mode have not been implemented. Existing SAM2 tools are integration points, not an implementation of this proposal. No production wall, routes, DynamoDB records, or deployment should change as part of this document.
 
 ## Problem and goals
 
@@ -109,7 +109,11 @@ For each inherited hold, calculate an evidence score using multiple signals:
 
 **Neither raw RGB difference nor SAM2 confidence alone is a reliable removed/unchanged classifier.** New lighting and image seams can mimic changes. Similarly, SAM2 might segment a background patch or adjacent hold. Treat automated statuses as review recommendations, not ground truth.
 
-In a second pass, search unclaimed regions for new holds using the existing candidate/grid prompting and SAM2 pipeline. Deduplicate against inherited labels and other proposals. Produce a user-visible queue of likely missing, moved, split/merged, changed, or newly added holds.
+In a second pass, search observed regions for new holds using the existing candidate/grid prompting and SAM2 pipeline. An inherited outline is not proof that its region is already occupied by a valid annotation. A replacement hold may occupy almost exactly the removed hold's old outline.
+
+Only current-scan, human-verified `verified-unchanged` or `verified-refined` holds may act as exclusion masks for already-accounted-for holds. Overlap with `inherited-unreviewed`, `likely-unchanged`, `needs-review`, or `removed` entries must **not** discard a new candidate. Keep that candidate and associate it with the old entry as a possible replacement, move, split, or merge for review. Deduplicate proposals against each other while retaining their evidence and possible old-hold associations. Produce a user-visible queue of likely missing, moved, split/merged, changed, or newly added holds.
+
+Integration warning: `tools/sam2_seed_full_wall.py` currently defaults `--groundtruth` to the accepted old map and discards proposals with high overlap against that map. Rescan mode must replace this unconditional old-ground-truth filter with the reviewed-region policy above. Do not pass all inherited polygons as new-scan ground truth. The script's image and seed sources must also be supplied from the rescan session, rather than its current hardcoded production paths.
 
 Use provisional review statuses such as:
 
@@ -118,7 +122,8 @@ Use provisional review statuses such as:
 - needs-review: uncertain alignment, appearance, mask, or overlap;
 - removed: explicitly confirmed absent by a human;
 - verified-unchanged / verified-refined: human-approved;
-- new: human-approved new hold.
+- new: human-approved new hold;
+- dismissed: a human-rejected automatic candidate, with a reason such as noise or duplicate; this is not a substitute for explicitly confirming an inherited hold as removed.
 
 Do not assign a confident removed label purely from a low model score or an uncovered pixel region.
 
@@ -201,6 +206,23 @@ Example review_queue entry (illustrative only):
 
 Scores are evidence, not calibrated probabilities unless measured. No production mutation should occur when these JSON files are generated.
 
+### 7.1 Scan/session identity is enforced, not merely logged
+
+Every annotation working copy, prelabel import, review history, and export must reference one immutable session manifest. Required identity fields are:
+
+- `scanId`, `gymId`, `wallId`, `referenceVersion`, and `candidateVersion`;
+- the reference image and reference hold-map SHA-256 hashes;
+- `registeredImageSha256` for the exact new image being annotated;
+- the reference coordinate-frame definition, including image dimensions and orientation.
+
+Working copies additionally carry a monotonically increasing `reviewRevision` for optimistic concurrency checks; this mutable revision is separate from the immutable scan identity.
+
+The manifest identifies the image bytes, not just a filename or the common 7292 x 5514 dimensions. The editor must use an explicitly configured candidate image, session manifest, and scan-specific working-storage path. It must not silently retain the existing annotator's hardcoded production image, default seed, or default working file.
+
+Opening a working copy and every import/save/export must validate its session identity. Reject mismatched or missing identity fields in rescan mode, even when dimensions and hold IDs happen to match. Replacing the candidate image or changing the registered mosaic creates a new image identity and invalidates prior review approval for that image. An explicit transfer may create a new session with inherited-unreviewed entries; it may not silently carry forward verified statuses. Importing a legacy geometry-only file likewise requires an explicit source/session assignment and produces unreviewed suggestions, never accepted holds.
+
+Store geometry, review decisions, and lineage atomically under the same `reviewRevision`, or use a single authoritative review file from which the other artifacts are derived. A stale save must be rejected rather than overwriting another tab's decisions. Record the exact session and review revision used by an export, so geometry cannot be paired with a different scan's review queue.
+
 ## 8. Review UX
 
 Extend the **existing** SAM2 local annotator instead of making a new production route-setting mode immediately. Proposed editor features:
@@ -214,6 +236,18 @@ Extend the **existing** SAM2 local annotator instead of making a new production 
 - clear distinction between **candidate** data and **published** wall version.
 
 Color and role choices should be consistent with existing annotator conventions. Review progress must survive restart. Never overwrite old ground truth. New version should have its own immutable accepted export.
+
+### 8.1 Explicit approval and export gate
+
+The current annotator cannot be reused unchanged for rescan review: imported holds enter its accepted collection, `clean_hold`/`clean_dataset` discard additional review fields, and the UI offers `Accept all >=0.95`. Rescan mode needs a separate suggestion/review representation and a server-side approval/export gate before inherited data is loaded into it.
+
+- Keep inherited polygons as suggestions. An import, model score, or geometry edit alone cannot mark them accepted. Persist review status, reviewer, decision time, reason, and session identity without stripping them during normalization.
+- Only `verified-unchanged`, `verified-refined`, and human-approved `new` entries may appear in the accepted geometry export. `removed` and `dismissed` entries remain in review history/lineage but are excluded from accepted holds. All provisional states are excluded as well.
+- Disable score-based `Accept all >=0.95` in rescan mode. A bulk human confirmation may be supported only as an explicit review action over identified entries, recording the reviewer and decisions; a threshold alone cannot approve them.
+- Enforce these rules on the server/exporter, not only through colors or hidden buttons. Normalize the four geometry fields only after resolving approval from the authoritative review state.
+- An accepted-subset export for inspection must report pending counts and `publishable: false` while any required review entries are unresolved. Publishing a final WallVersion requires completed review plus the coverage/registration QA gates. Bind that publication check to the exact exported image/hold hashes, session identity, and review revision.
+
+This keeps the accepted `holds.json` geometry contract simple while making its approval evidence mandatory and independently inspectable.
 
 ## 9. Rollout plan, acceptance criteria, and tests
 
@@ -244,6 +278,10 @@ Regression/tests for the pipeline:
 - 1:1 old polygon coordinates and IDs in the initial prelabels, valid normalized coordinates, no duplicate IDs;
 - removed/new/replaced examples cannot silently remap old hold IDs; old route/version records remain untouched;
 - illumination-only changes do not automatically delete annotations; no claim that changed regions were perfectly detected;
+- reject a working copy/import/export from another scan or image hash even when image dimensions and hold IDs match; changing image bytes invalidates approval;
+- round-trip review status, reviewer, lineage, and revision through restart/save; reject stale revisions and prevent mixing geometry and decisions from different revisions;
+- exporting inherited-unreviewed, likely-unchanged, or high-score-only proposals cannot turn them into accepted holds; unresolved review keeps the export non-publishable;
+- a removed old hold replaced by a new hold at the same location retains the replacement candidate despite overlap, requires a new ID, and preserves the old ID's removed lineage;
 - integration smoke test with a small real photo subset and human-inspected overlay.
 
 ## Open questions for the first experiment
