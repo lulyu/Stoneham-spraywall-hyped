@@ -1,0 +1,77 @@
+{
+  "format": "stoneham-wall-candidate-v1",
+  "gymId": "stoneham-crg",
+  "wallId": "spray-wall-1",
+  "wallVersionId": "2026-11-v5",
+  "referenceVersion": "2026-10-v4",
+  "status": "candidate-needs-review",
+  "publishable": false,
+  "image": "wall.jpg",
+  "imageRole": "registered-new-photos-with-old-reference-in-no-observation-gaps",
+  "imageSha256": "f61c00c838109ab29383d7a1eebe9a2b6ff8c69ac6b970eb9d81d90593722000",
+  "imageSize": [
+    7292,
+    5514
+  ],
+  "coverage": "coverage.png",
+  "coverageSha256": "682add29dd8d189dd8e2d41bf9eada2bb471eb187dd22e2b94c4886d074b8932",
+  "uncertainty": "uncertainty.png",
+  "uncertaintySha256": "57a956b880c3d344ac32c736e079b02feed0e8463ce48a7edeaa57d850711b53",
+  "sourceIndex": "source-index.png",
+  "sourceIndexSha256": "f379966212d9845bc1947fabc8e5791e41441b4973dca81a1e4eadc9612175a6",
+  "sourceSession": {
+    "scanId": "scan-20261105-four-photos-bf",
+    "gymId": "stoneham-crg",
+    "wallId": "spray-wall-1",
+    "referenceVersion": "2026-10-v4",
+    "candidateVersion": "2026-11-05-four-photos-bf-candidate",
+    "referenceImageSha256": "0dddcf36d5e9df223bea360cb9a6a03c7871d40be20f7d73a976c14d1a2a7693",
+    "referenceHoldsSha256": "8296a7b5683441bedcea9e1e32dc2d6099bcc9e788200c577869dd87a9ba09fc",
+    "inputManifestSha256": "1975d2f87889ee73a6ffb58eea3ae24be8e0d67e786352c27d9546a40d4cb528",
+    "sourceContents": [
+      {
+        "id": "1-1000059313",
+        "hashes": {
+          "image": "5d4b065af73e941cfff1b69112bc1a4adae0a3af40a296440c9985f8bb442c2b"
+        }
+      },
+      {
+        "id": "2-1000059312",
+        "hashes": {
+          "image": "c45c76484e984b88e49acbf970bb847594eea20e0b18564bc60bb1d2068e481a"
+        }
+      },
+      {
+        "id": "3-1000059311",
+        "hashes": {
+          "image": "6ed3ea1cdb5f6697217f2fd9b9dc66859b0016ffb18068c785ff086e5ecc3f8f"
+        }
+      },
+      {
+        "id": "4-1000059310",
+        "hashes": {
+          "image": "a3734577e86019c6e7da591e6490740a29fe273b311d10993e57c78d0f3485e5"
+        }
+      }
+    ],
+    "registeredImageSha256": "d2ae6d84673fc7b8d465aae8ed32e77860c18573424f16c0917a5daec5bae316",
+    "coordinateFrame": {
+      "size": [
+        7292,
+        5514
+      ],
+      "orientation": "EXIF-prepared canonical reference"
+    },
+    "sessionId": "328fa9ba27f9dc9e79a39f51cb64c281914dce7589f744018a25c67c024ecdab"
+  },
+  "referenceImageSha256": "0dddcf36d5e9df223bea360cb9a6a03c7871d40be20f7d73a976c14d1a2a7693",
+  "referenceHoldsSha256": "8296a7b5683441bedcea9e1e32dc2d6099bcc9e788200c577869dd87a9ba09fc",
+  "observedCoverageFraction": 0.9209729395737495,
+  "referenceFilledFraction": 0.07902706042625052,
+  "qaFailures": [
+    "required-region-coverage-below-threshold",
+    "overlap-alignment-not-verified"
+  ],
+  "sam2Result": "../../../../src/data/experiments/wall-v5-sam2-refresh.json",
+  "note": "Reference-filled pixels are display fallback only. No new observation or accepted hold identity is inferred there. Candidate version is not registered as active in the production catalog."
+}
