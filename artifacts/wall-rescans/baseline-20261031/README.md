@@ -36,3 +36,6 @@ The code commit recorded in the manifest is the exact implementation used for
 this run; tool/test sources were clean. A second real-photo run reproduced the
 registration, masks, registered image, prelabels, queue and report byte-for-byte.
 Both canonical production files were checked against main and remained identical.
+
+The unreviewed export carries the actual backend wallId, so the legacy annotator
+rejects it instead of silently treating its polygons as accepted.
