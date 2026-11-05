@@ -48,16 +48,25 @@ def working_image(image, max_side):
     return gray, resize_matrix(image.size, size)
 
 
-def matches(source, reference, max_side, features, seed):
+def matches(source, reference, max_side, features, seed, reference_cache=None, matcher_kind='bf', source_mask=None):
     cv2.setRNGSeed(seed)
     sift = cv2.SIFT_create(nfeatures=features)
     a, sa = working_image(source, max_side)
-    b, sb = working_image(reference, max_side)
-    ka, da = sift.detectAndCompute(a, None)
-    kb, db = sift.detectAndCompute(b, None)
+    working_mask = None if source_mask is None else cv2.resize(source_mask,a.shape[::-1],interpolation=cv2.INTER_NEAREST)
+    ka, da = sift.detectAndCompute(a, working_mask)
+    if reference_cache is None: reference_cache = {}
+    if reference_cache.get('_reference') is not reference:
+        reference_cache.clear(); reference_cache['_reference'] = reference
+    cache_key = (max_side, features, reference.size)
+    if cache_key not in reference_cache:
+        b, sb = working_image(reference, max_side)
+        kb, db = sift.detectAndCompute(b, None)
+        reference_cache[cache_key] = (b.shape[::-1], sb, kb, db)
+    reference_working_size, sb, kb, db = reference_cache[cache_key]
     if da is None or db is None or len(da) < 2 or len(db) < 2:
         raise ValueError('Not enough SIFT features. Use a sharper overlapping photo or --alignment-anchors.')
-    matcher = cv2.BFMatcher(cv2.NORM_L2)
+    cv2.setRNGSeed(seed)
+    matcher = cv2.FlannBasedMatcher({'algorithm':1,'trees':4},{'checks':96}) if matcher_kind == 'flann' else cv2.BFMatcher(cv2.NORM_L2)
     nearest = matcher.knnMatch(da, db, k=2)
     reverse = matcher.match(db, da)
     mutual = {m.queryIdx: m.trainIdx for m in reverse}
@@ -66,9 +75,9 @@ def matches(source, reference, max_side, features, seed):
     selected.sort(key=lambda m: (m.queryIdx, m.trainIdx))
     src = project([ka[m.queryIdx].pt for m in selected], np.linalg.inv(sa))
     dst = project([kb[m.trainIdx].pt for m in selected], np.linalg.inv(sb))
-    return src, dst, {'method': 'SIFT, Lowe ratio 0.75, mutual nearest', 'source_keypoints': len(ka),
+    return src, dst, {'method': 'SIFT, Lowe ratio 0.75, mutual nearest', 'descriptor_matcher': matcher_kind, 'source_keypoints': len(ka),
         'reference_keypoints': len(kb), 'tentative_matches': len(selected), 'source_working_size': list(a.shape[::-1]),
-        'reference_working_size': list(b.shape[::-1]), 'source_native_to_working': sa.tolist(),
+        'reference_working_size': list(reference_working_size), 'source_native_to_working': sa.tolist(),
         'reference_native_to_working': sb.tolist()}
 
 
@@ -201,6 +210,47 @@ def arguments():
     return parser.parse_args()
 
 
+
+def register_photo(photo, reference, source_meta, reference_meta, args, reference_cache=None, source_mask=None):
+    """Shared Phase A/B fitting and QA; no artifact writes or approval."""
+    if args.alignment_anchors:
+        src, dst = read_anchors(args.alignment_anchors, photo.size, reference.size, 4)
+        if source_mask is not None and np.any(source_mask[np.rint(src[:,1]).astype(int),np.rint(src[:,0]).astype(int)]==0):
+            raise ValueError('A manual alignment anchor is inside an excluded source region.')
+        matrix, mask = cv2.findHomography(src, dst, cv2.RANSAC, args.max_error_px)
+        if matrix is None: raise ValueError('Manual anchors are degenerate; spread 4–8 points across the photo.')
+        footprint(matrix, photo.size)
+        inliers, held_out = mask.ravel().astype(bool), np.zeros(len(src), bool)
+        errors = np.linalg.norm(project(src, matrix)-dst, axis=1)
+        metrics = {'fit_inlier_error': summary(errors[inliers]), 'validation_note': 'Manual fit anchors are not independent check anchors.'}
+        reasons = [] if inliers.sum() >= 4 and hull_fraction(src[inliers], photo.size) >= .05 else ['insufficient-or-clustered-manual-anchors']
+        if len(errors[inliers]) and np.percentile(errors[inliers], 95) > args.max_error_px: reasons.append('manual-fit-p95-exceeds-threshold')
+        matching = {'method': 'manual alignment anchors', 'input_sha256': digest(args.alignment_anchors)}
+    else:
+        src, dst, matching = matches(photo, reference, args.max_side, args.features, args.seed, reference_cache, getattr(args,'matcher','bf'), source_mask)
+        matrix, inliers, held_out, errors, metrics, reasons = fit_registration(src, dst, photo.size, args.max_error_px, args.seed)
+    corners = footprint(matrix, photo.size)
+    shape_metrics, shape_failures = check_shape(matrix, photo.size)
+    metrics['shape'] = shape_metrics; reasons.extend(shape_failures)
+    metrics['independent_manual_anchor_error'] = None
+    if args.validation_anchors:
+        a, b = read_anchors(args.validation_anchors, photo.size, reference.size, 4)
+        if source_mask is not None and np.any(source_mask[np.rint(a[:,1]).astype(int),np.rint(a[:,0]).astype(int)]==0):
+            raise ValueError('A validation anchor is inside an excluded source region.')
+        if args.alignment_anchors and any(np.any(np.all(np.isclose(src, p), axis=1) & np.all(np.isclose(dst, q), axis=1)) for p, q in zip(a,b)):
+            raise ValueError('Validation anchors must not reuse manual fit anchor pairs.')
+        validation = np.linalg.norm(project(a, matrix)-b, axis=1)
+        metrics['independent_manual_anchor_error'] = summary(validation)
+        if np.percentile(validation, 95) > args.max_error_px: reasons.append('independent-anchor-p95-exceeds-threshold')
+    registration = {'status': 'needs-manual-alignment' if reasons else 'registered-for-inspection',
+        'source': source_meta, 'reference': reference_meta, 'matching': matching,
+        'coordinate_convention': 'EXIF-prepared source pixel centers -> EXIF-prepared full reference pixel centers; normalized hold coordinates use (u*width,v*height)',
+        'source_to_reference': matrix.tolist(), 'reference_to_source': np.linalg.inv(matrix).tolist(),
+        'raw_source_to_reference': (matrix @ np.asarray(source_meta['raw_to_prepared'])).tolist(),
+        'source_footprint_reference_pixels': corners.tolist(), 'metrics': metrics, 'qa_failures': reasons,
+        'correspondences': [{'source': a.tolist(), 'reference': b.tolist(), 'fit_inlier': bool(i), 'held_out': bool(v), 'error_full_reference_px': float(e)} for a,b,i,v,e in zip(src,dst,inliers,held_out,errors)]}
+    return registration, matrix, src, dst, inliers, held_out, errors
+
 def run(args):
     output = args.output.resolve()
     # Experiments must not write to source/production paths, even via symlinks.
@@ -226,38 +276,8 @@ def run(args):
         holds = holds if isinstance(holds, list) else holds['holds']
         if not isinstance(holds, list) or not all(isinstance(h, dict) for h in holds): raise ValueError('Reference holds must be a list of hold objects.')
         if len({h['id'] for h in holds}) != len(holds): raise ValueError('Reference holds contain duplicate IDs.')
-        if args.alignment_anchors:
-            src, dst = read_anchors(args.alignment_anchors, photo.size, reference.size, 4)
-            matrix, mask = cv2.findHomography(src, dst, cv2.RANSAC, args.max_error_px)
-            if matrix is None: raise ValueError('Manual anchors are degenerate; spread 4–8 points across the photo.')
-            footprint(matrix, photo.size)
-            inliers, held_out = mask.ravel().astype(bool), np.zeros(len(src), bool)
-            errors = np.linalg.norm(project(src, matrix)-dst, axis=1)
-            metrics = {'fit_inlier_error': summary(errors[inliers]), 'validation_note': 'Manual fit anchors are not independent check anchors.'}
-            reasons = [] if inliers.sum() >= 4 and hull_fraction(src[inliers], photo.size) >= .05 else ['insufficient-or-clustered-manual-anchors']
-            if len(errors[inliers]) and np.percentile(errors[inliers], 95) > args.max_error_px: reasons.append('manual-fit-p95-exceeds-threshold')
-            matching = {'method': 'manual alignment anchors', 'input_sha256': digest(args.alignment_anchors)}
-        else:
-            src, dst, matching = matches(photo, reference, args.max_side, args.features, args.seed)
-            matrix, inliers, held_out, errors, metrics, reasons = fit_registration(src, dst, photo.size, args.max_error_px, args.seed)
-        corners = footprint(matrix, photo.size)
-        shape_metrics, shape_failures = check_shape(matrix, photo.size)
-        metrics['shape'] = shape_metrics; reasons.extend(shape_failures)
-        metrics['independent_manual_anchor_error'] = None
-        if args.validation_anchors:
-            a, b = read_anchors(args.validation_anchors, photo.size, reference.size, 4)
-            if args.alignment_anchors and any(np.any(np.all(np.isclose(src, p), axis=1) & np.all(np.isclose(dst, q), axis=1)) for p, q in zip(a,b)):
-                raise ValueError('Validation anchors must not reuse manual fit anchor pairs.')
-            validation = np.linalg.norm(project(a, matrix)-b, axis=1)
-            metrics['independent_manual_anchor_error'] = summary(validation)
-            if np.percentile(validation, 95) > args.max_error_px: reasons.append('independent-anchor-p95-exceeds-threshold')
-        registration = {'status': 'needs-manual-alignment' if reasons else 'registered-for-inspection',
-            'source': source_meta, 'reference': reference_meta, 'matching': matching,
-            'coordinate_convention': 'EXIF-prepared source pixel centers -> EXIF-prepared full reference pixel centers; normalized hold coordinates use (u*width,v*height)',
-            'source_to_reference': matrix.tolist(), 'reference_to_source': np.linalg.inv(matrix).tolist(),
-            'raw_source_to_reference': (matrix @ np.asarray(source_meta['raw_to_prepared'])).tolist(),
-            'source_footprint_reference_pixels': corners.tolist(), 'metrics': metrics, 'qa_failures': reasons,
-            'correspondences': [{'source': a.tolist(), 'reference': b.tolist(), 'fit_inlier': bool(i), 'held_out': bool(v), 'error_full_reference_px': float(e)} for a,b,i,v,e in zip(src,dst,inliers,held_out,errors)]}
+        registration, matrix, src, dst, inliers, held_out, errors = register_photo(photo, reference, source_meta, reference_meta, args)
+        metrics, reasons = registration['metrics'], registration['qa_failures']
         write_json(output/'registration.json', registration)
         if reasons:
             raise ValueError('Registration needs manual alignment: ' + ', '.join(reasons) + '. See registration.json or supply --alignment-anchors.')
