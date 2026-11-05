@@ -5,6 +5,8 @@ retains the original SAM2 server workflow. **Wall update review** (direct link:
 `/?review=1`) loads an offline registered scan into that same canvas and editing
 controls. The new workflow never writes production geometry or routes.
 
+![Mobile vertex correction in the shared editor](images/wall-review-mobile.png)
+
 This is the first interactive slice of Phase C: manual review, correction and
 checkpointing. Automatic change classification/proposal generation, team review,
 accepted-geometry export, publication and version migration remain unimplemented.
