@@ -75,3 +75,27 @@ class RefreshTests(unittest.TestCase):
             self.assertEqual(hashlib.sha256((path.parent/data[key]).read_bytes()).hexdigest(),data[key+'Sha256'])
         catalog=json.loads((ROOT/'backend/walls.json').read_text())
         self.assertEqual([v['wallVersionId'] for v in catalog if v['active']],['2026-10-v4'])
+
+class RecordedRefreshTests(unittest.TestCase):
+    def test_recorded_result_is_bound_and_entirely_unreviewed(self):
+        payload=json.loads((ROOT/'src/data/experiments/wall-v5-sam2-refresh.json').read_text())
+        old=json.loads((ROOT/'src/data/polygons/holds.json').read_text())
+        manifest_path=ROOT/'public/wall/versions/2026-11-v5/manifest.json'
+        manifest=json.loads(manifest_path.read_text())
+        self.assertFalse(payload['publishable']);self.assertEqual(payload['metadata']['acceptedHoldCount'],0)
+        self.assertEqual(payload['metadata']['oldHoldCount'],len(old))
+        self.assertEqual([e['oldGeometry'] for e in payload['entries']],old)
+        self.assertTrue(all(e['status']=='inherited-unreviewed' for e in payload['entries']))
+        self.assertEqual(payload['metadata']['versionManifestSha256'],hashlib.sha256(manifest_path.read_bytes()).hexdigest())
+        self.assertEqual(payload['metadata']['hashes']['image'],manifest['imageSha256'])
+        self.assertEqual(payload['metadata']['hashes']['oldHolds'],manifest['referenceHoldsSha256'])
+        proposals=payload['proposals'];ids={p['id'] for p in proposals};old_ids={h['id'] for h in old}
+        self.assertEqual(len(ids),len(proposals));self.assertFalse(ids & old_ids)
+        self.assertEqual(len(proposals),payload['metadata']['proposalCount'])
+        self.assertTrue(all(p['status']=='needs-review' and set(p['oldHoldIds'])<=old_ids for p in proposals))
+        self.assertTrue(all(e['proposalId'] is None or e['proposalId'] in ids for e in payload['entries']))
+        self.assertTrue(all(e['proposalId'] is None for e in payload['entries'] if e['observationFraction']<.99))
+        for proposal in proposals:
+            self.assertTrue(3<=len(proposal['polygon'])<=16)
+            self.assertTrue(all(0<=n<=1 for point in proposal['polygon'] for n in point))
+        with self.assertRaises(ValueError):clean_dataset(payload)

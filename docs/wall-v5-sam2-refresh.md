@@ -109,3 +109,21 @@ coverage, interior points, mask filtering/normalized geometry, retained overlapp
 replacement suggestions, dedup associations, provisional recommendations and
 hash-bound v5 assets while v4 remains active. Actual model execution is recorded
 separately in the run report and is not claimed by those helper tests.
+
+## Recorded first pass
+
+Actual inference succeeded on CPU in **352.82 seconds**. Of 677 inherited entries,
+651 had sufficient observation coverage for prompting. SAM2 produced 641 eligible
+masks, deduplicated into **639 unique proposals**; ten prompted positions lacked an
+eligible result. The remaining 26 old entries were unobserved/partially observed
+and skipped. All original entries stay inherited-unreviewed.
+
+Recommendations per old entry: 311 possible-unchanged, 154 suggested-refinement,
+170 alignment-needs-review, 2 possible-change-or-prompt-error and 4 associated with
+shared proposals, plus 10 no-mask / 22 unobserved / 4 partially observed. Counts
+are heuristic review routing, not verified accuracy or proof of physical changes.
+The 4 shared-proposal entries correspond to 2 pairs merged by proposal dedup.
+
+See [inspection evidence](../artifacts/wall-rescans/wall-v5-sam2-refresh/README.md)
+and [orange proposal contours](../artifacts/wall-rescans/wall-v5-sam2-refresh/sam2-proposals-overlay.jpg).
+Actual model execution is separate from CI tests, which run without torch/weights.

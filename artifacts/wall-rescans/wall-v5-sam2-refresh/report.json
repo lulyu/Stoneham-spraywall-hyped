@@ -1,0 +1,53 @@
+{
+  "wallVersionId": "2026-11-v5",
+  "referenceVersion": "2026-10-v4",
+  "sourceSessionId": "328fa9ba27f9dc9e79a39f51cb64c281914dce7589f744018a25c67c024ecdab",
+  "imageSize": [
+    7292,
+    5514
+  ],
+  "hashes": {
+    "image": "f61c00c838109ab29383d7a1eebe9a2b6ff8c69ac6b970eb9d81d90593722000",
+    "coverage": "682add29dd8d189dd8e2d41bf9eada2bb471eb187dd22e2b94c4886d074b8932",
+    "uncertainty": "57a956b880c3d344ac32c736e079b02feed0e8463ce48a7edeaa57d850711b53",
+    "oldHolds": "8296a7b5683441bedcea9e1e32dc2d6099bcc9e788200c577869dd87a9ba09fc"
+  },
+  "versionManifestSha256": "f15710f3c762eff36f59d3e625fdfc1ba7b200f981826da4481dd27d2b9eb8e1",
+  "checkpointSha256": "6d1aa6f30de5c92224f8172114de081d104bbd23dd9dc5c58996f0cad5dc4d38",
+  "model": "SAM2.1 Small",
+  "device": "cpu",
+  "cudaAvailable": false,
+  "python": "3.12.14",
+  "torch": "2.5.1+cpu",
+  "opencv": "4.11.0",
+  "numpy": "2.5.4",
+  "seed": 0,
+  "threads": 4,
+  "minScore": 0.75,
+  "oldHoldCount": 677,
+  "promptCount": 651,
+  "masksBeforeDedup": 641,
+  "proposalCount": 639,
+  "recommendations": {
+    "alignment-needs-review": 170,
+    "no-usable-mask": 10,
+    "not-observed": 22,
+    "partial-observation": 4,
+    "possible-change-or-prompt-error": 2,
+    "possible-merge-or-duplicate-prompt": 4,
+    "possible-unchanged": 311,
+    "suggested-refinement": 154
+  },
+  "elapsedSeconds": 352.82,
+  "codeCommit": "b0198916129e7a8f8c582aafe6f1c768ca31ae8b",
+  "scriptSha256": "8cd4b0e35c41eeeed4d275515cdfa4c17e40a61f3f917b408e0fa95180f6b896",
+  "reviewRequired": true,
+  "acceptedHoldCount": 0,
+  "limitations": [
+    "Point and box prompts assume rough old placement, not continued hold identity.",
+    "Reference-filled/partially observed old locations are skipped.",
+    "No automatic removed classification or approval; SAM2 score is not identity evidence.",
+    "No search for entirely new holds away from old prompts in this first pass.",
+    "No automatic publication or old-route migration."
+  ]
+}
