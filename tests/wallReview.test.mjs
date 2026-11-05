@@ -88,3 +88,11 @@ test('resuming must extend existing history, rather than silently overwrite a fo
  assert.throws(()=>resumeReview(base,confirmed,base),/older/)
  assert.deepEqual(resumeReview(confirmed,base,base),confirmed)
 })
+
+test('a replacement cannot be reused as an inherited identity, including on checkpoint replay',()=>{
+ const base=baseline(),replaced=decide(base,{type:'add',hold:{...hold,id:'new-hold'},replaces:hold.id})
+ assert.throws(()=>decide(replaced,{type:'add',hold:{...hold,id:'newer-hold'},replaces:'new-hold'}),/inherited/)
+ const dismissed=decide(replaced,{type:'reset',id:'new-hold'})
+ assert.throws(()=>decide(dismissed,{type:'add',hold:{...hold,id:'newer-hold'},replaces:'new-hold'}),/inherited/)
+ assert.deepEqual(validateProgress(replaced,base),replaced)
+})

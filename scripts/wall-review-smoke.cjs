@@ -3,12 +3,13 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const base=process.env.APP_URL||'http://127.0.0.1:8790'
+const staticMode=process.env.STATIC_REVIEW==='1'
 const folder=process.env.RESCAN_FIXTURE||'artifacts/wall-rescans/mosaic-fixture-v1'
 const manifest=JSON.parse(fs.readFileSync(path.join(folder,'manifest.json')))
 const key='stoneham-wall-review-v1:'+manifest.session.sessionId
 const files=['manifest.json','holds_prelabels.json','review_queue.json','report.json','wall_registered.png','coverage.png','uncertainty.png','source-index-preview.png','qa-overlay.jpg'].map(name=>path.resolve(folder,name))
 async function main(){
- const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,headless:true,args:['--no-sandbox']})
+ const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,headless:true,args:['--no-sandbox'],proxy:base.startsWith('https:')&&process.env.HTTPS_PROXY?{server:process.env.HTTPS_PROXY}:undefined})
  try{
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,acceptDownloads:true})
   const page=await context.newPage(),errors=[],writes=[]
@@ -17,7 +18,7 @@ async function main(){
   page.setDefaultTimeout(30000)
   const state=()=>page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key)
   const revision=async n=>page.waitForFunction(({key,n})=>JSON.parse(localStorage.getItem(key))?.reviewRevision===n,{key,n})
-  const open=async target=>{await target.goto(base+'/?review=1');await target.getByRole('button',{name:'Open local server scan',exact:true}).click();await target.getByRole('heading',{name:'Review & annotate',exact:true}).waitFor({timeout:90000})}
+  const open=async target=>{await target.goto(base+'/?review=1');if(staticMode)await target.getByLabel('Select scan files',{exact:true}).setInputFiles(files);else await target.getByRole('button',{name:'Open local server scan',exact:true}).click();await target.getByRole('heading',{name:'Review & annotate',exact:true}).waitFor({timeout:90000})}
   await open(page)
   assert.equal((await state()).entries.length,677)
   assert.equal(await page.getByRole('button',{name:/Accept all/}).count(),0)

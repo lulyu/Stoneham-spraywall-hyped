@@ -97,7 +97,7 @@ export function applyReview(current: WallReview, action: ReviewAction, reviewer:
     let old: ReviewEntry|undefined
     if (action.replaces) {
       old=next.entries.find(e=>e.hold.id===action.replaces)
-      check(old?.oldHoldId && old.status!=='removed', 'Choose an active inherited hold to replace.')
+      check(old && old.oldHoldId===old.hold.id && ['inherited-unreviewed','verified-unchanged','verified-refined'].includes(old.status), 'Choose an active inherited hold to replace.')
       check(old.observed && old.coverageFraction>=.99, 'Unobserved regions cannot be confirmed as removed.')
       record(old,{...old,status:'removed',reviewer:reviewer.trim(),decisionTime:time},'replace-old')
     }
