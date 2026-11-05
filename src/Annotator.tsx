@@ -3,6 +3,8 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { Point, PolygonHoldCandidate } from './types'
 import './annotator.css'
 import { annotationWallColors } from './annotationWallColors'
+import { confirmed, stable } from './wallReview'
+import type { ReviewController } from './AnnotationWorkspace'
 
 const WIDTH = 7292
 const HEIGHT = 5514
@@ -13,9 +15,9 @@ const API = `${BASE}api/sam2`
 type Prompt = { point: Point; label: 0 | 1 }
 type Box = [number, number, number, number]
 type Candidate = Omit<PolygonHoldCandidate, 'id'> & { score?: number }
-type Status = { state: 'loading' | 'ready' | 'error'; device: string; error?: string }
+type Status = { state: 'loading' | 'ready' | 'error'; device: string; error?: string; sessionId?: string; image_sha256?: string }
 type Saved = { holds: PolygonHoldCandidate[]; dismissed_suggestions?: string[] }
-type Tool = 'positive' | 'negative' | 'box' | 'pan' | 'select'
+type Tool = 'positive' | 'negative' | 'box' | 'pan' | 'select' | 'polygon' | 'vertex'
 
 async function request<T>(path: string, body?: unknown): Promise<T> {
   const response = await fetch(`${API}/${path}`, body === undefined ? undefined : {
@@ -42,7 +44,7 @@ function inside([x, y]: Point, polygon: Point[]) {
   return result
 }
 
-export default function Annotator() {
+export default function Annotator({ review }: { review?: ReviewController }) {
   const [status, setStatus] = useState<Status>({ state: 'loading', device: 'checking' })
   const [error, setError] = useState('')
   const [prompts, setPrompts] = useState<Prompt[]>([])
@@ -50,7 +52,7 @@ export default function Annotator() {
   const [boxStart, setBoxStart] = useState<Point | null>(null)
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [candidateIndex, setCandidateIndex] = useState(0)
-  const [saved, setSaved] = useState<Saved>({ holds: [] })
+  const [legacySaved, setSaved] = useState<Saved>({ holds: [] })
   const [savedLoaded, setSavedLoaded] = useState(false)
   const [coverConfirmed, setCoverConfirmed] = useState(false)
   const [coverLoading, setCoverLoading] = useState(false)
@@ -69,6 +71,18 @@ export default function Annotator() {
   const [view, setView] = useState({ scale: .15, x: 0, y: 0 })
   const activePointers = useRef(new Map<number, Point>())
   const gesture = useRef<{ id: number; client: Point; point: Point; moved: boolean; multiple: boolean } | null>(null)
+  const [comparison, setComparison] = useState<'new' | 'old' | 'overlay'>('new')
+  const [opacity, setOpacity] = useState(.5)
+  const [showQA, setShowQA] = useState(false)
+  const [showRemoved, setShowRemoved] = useState(true)
+  const [manualPoints, setManualPoints] = useState<Point[]>([])
+  const movingVertex = useRef<number | null>(null)
+  const saved: Saved = review ? { holds: review.data.entries.map(entry => entry.hold) } : legacySaved
+  const selectedEntry = review?.data.entries.find(entry => entry.hold.id === selectedId)
+  const imageUrl = review?.assets.image ?? `${API}/image.jpg`
+  const imageReady = !!review || status.state === 'ready'
+  const visibleEntries = review?.data.entries.filter(entry => showRemoved || !['removed', 'dismissed'].includes(entry.status))
+  const coverHolds = review ? review.data.entries.filter(confirmed).map(entry => entry.hold) : saved.holds
   const preview = candidates[candidateIndex]
   const pendingSuggestions = suggestions.filter((hold) => !saved.dismissed_suggestions?.includes(hold.id) &&
     !saved.holds.some((accepted) => accepted.id === hold.id || (inside(hold.center, accepted.polygon) && inside(accepted.center, hold.polygon))))
@@ -88,6 +102,7 @@ export default function Annotator() {
       }
     }
     void poll()
+    if (review) return () => { alive = false; clearTimeout(timer) }
     void request<{ holds: (PolygonHoldCandidate & { score?: number })[] }>('suggestions').then((data) => {
       if (alive) setSuggestions(data.holds)
     }).catch((problem) => { if (alive) setError(`Could not load suggestions: ${String(problem)}`) })
@@ -95,15 +110,15 @@ export default function Annotator() {
       if (alive) { setSaved(data); setSavedLoaded(true) }
     }).catch((problem) => { if (alive) setError(`Could not load saved holds: ${String(problem)}`) })
     return () => { alive = false; clearTimeout(timer) }
-  }, [])
+  }, [review?.assets])
 
   useEffect(() => {
-    if (!coverConfirmed || status.state !== 'ready') return
+    if (!coverConfirmed || !imageReady) return
     let cancelled = false
     setCoverLoading(true)
     if (!wallPixels.current) wallPixels.current = (async () => {
       const image = new Image()
-      image.src = `${API}/image.jpg`
+      image.src = imageUrl
       await image.decode()
       const canvas = document.createElement('canvas')
       canvas.width = 1024; canvas.height = Math.round(1024 * HEIGHT / WIDTH)
@@ -113,13 +128,13 @@ export default function Annotator() {
       return context.getImageData(0, 0, canvas.width, canvas.height)
     })()
     void wallPixels.current.then((pixels) => {
-      if (!cancelled) setWallColors(annotationWallColors(saved.holds, pixels))
+      if (!cancelled) setWallColors(annotationWallColors(coverHolds, pixels))
     }).catch((problem) => {
       wallPixels.current = null
       if (!cancelled) setError(`Could not estimate wall colors: ${String(problem)}`)
     }).finally(() => { if (!cancelled) setCoverLoading(false) })
     return () => { cancelled = true }
-  }, [coverConfirmed, saved.holds, status.state])
+  }, [coverConfirmed, review?.data, legacySaved.holds, imageReady, imageUrl])
 
   const fit = () => {
     const element = viewport.current
@@ -159,14 +174,20 @@ export default function Annotator() {
     const started = gesture.current
     if (!started || started.id !== event.pointerId) return
     gesture.current = null
-    if (cancelled || started.multiple || busy) return
+    if (cancelled || started.multiple || busy || !canEdit) return
     const end = wallPoint(event)
+    movingVertex.current = null
+    if (tool === 'vertex') return
+    if (tool === 'polygon' && !started.moved) {
+      if (manualPoints.length >= 16) { setError('Use at most 16 vertices. Undo a vertex first.'); return }
+      setManualPoints(previous => [...previous, end]); return
+    }
     if (tool === 'box') {
       if (started.moved && addBox(started.point, end)) setBoxStart(null)
       else if (boxStart) { addBox(boxStart, end); setBoxStart(null) }
       else setBoxStart(end)
     } else if (!started.moved && tool === 'select') {
-      const accepted = saved.holds.filter((hold) => inside(end, hold.polygon))
+      const accepted = (review ? visibleEntries!.map(entry => entry.hold) : saved.holds).filter((hold) => inside(end, hold.polygon))
       const automatic = showSuggestions ? pendingSuggestions.filter((hold) => inside(end, hold.polygon)) : []
       const nearest = <T extends { center: Point }>(list: T[]) => list.sort((a, b) => Math.hypot(a.center[0] - end[0], a.center[1] - end[1]) - Math.hypot(b.center[0] - end[0], b.center[1] - end[1]))[0]
       if (accepted.length) editHold(nearest(accepted))
@@ -177,11 +198,11 @@ export default function Annotator() {
       invalidate()
     }
   }
-  const clear = () => { setPrompts([]); setBox(null); setBoxStart(null); invalidate(); setError(''); setEditingOriginal(null); setSuggestionId('') }
+  const clear = () => { setPrompts([]); setBox(null); setBoxStart(null); invalidate(); setError(''); setEditingOriginal(null); setSelectedId(''); setSuggestionId(''); setManualPoints([]) }
   const predict = async () => {
     setBusy(true); setError('')
     try {
-      const result = await request<{ candidates: Candidate[]; elapsed_seconds: number }>('predict', { points: prompts, box })
+      const result = await request<{ candidates: Candidate[]; elapsed_seconds: number }>('predict', { points: prompts, box, ...(review ? { sessionId: review.data.session.sessionId, image_sha256: review.data.session.registeredImageSha256 } : {}) })
       setCandidates(result.candidates); setCandidateIndex(0); setTiming(result.elapsed_seconds)
       if (!result.candidates.length) setError('No usable outline. Add a positive point or tighten the box and try again.')
     } catch (problem) { setError(String(problem)) }
@@ -191,6 +212,11 @@ export default function Annotator() {
     if (!preview) return
     setBusy(true); setError('')
     try {
+      if (review) {
+        const hold = { ...preview, id: editingOriginal?.id ?? `scan-${crypto.randomUUID()}` }
+        await review.commit(editingOriginal ? { type: 'refine', id: editingOriginal.id, hold } : { type: 'add', hold })
+        clear(); return
+      }
       const data = await request<Saved>('accept', { hold: preview, id: editingOriginal?.id, original: editingOriginal })
       setSaved(data); clear()
     } catch (problem) { setError(`Not saved: ${String(problem)}`) }
@@ -200,6 +226,7 @@ export default function Annotator() {
     if (!selectedId) return
     setBusy(true); setError('')
     try {
+      if (review) { await review.commit({ type: 'remove', id: selectedId }); setSelectedId(''); clear(); return }
       setSaved(await request<Saved>('delete', { id: selectedId })); setSelectedId(''); clear()
     } catch (problem) { setError(String(problem)) }
     finally { setBusy(false) }
@@ -212,6 +239,7 @@ export default function Annotator() {
     const right = Math.min(WIDTH, Math.max(...xs) + 100), bottom = Math.min(HEIGHT, Math.max(...ys) + 100)
     const scale = Math.min(2, element.clientWidth / (right - left), element.clientHeight / (bottom - top))
     setView({ scale, x: (element.clientWidth - (right + left) * scale) / 2, y: (element.clientHeight - (bottom + top) * scale) / 2 })
+    if (review) element.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
   const prepareOutline = (hold: PolygonHoldCandidate) => {
     setPrompts([]); setBoxStart(null); setError(''); setTiming(null)
@@ -220,7 +248,7 @@ export default function Annotator() {
     setCandidates([hold]); setCandidateIndex(0); focusHold(hold); setTool('positive')
   }
   const editHold = (hold: PolygonHoldCandidate) => {
-    setEditingOriginal(hold); setSuggestionId(''); setSelectedId(hold.id); prepareOutline(hold)
+    setManualPoints([]); setEditingOriginal(hold); setSuggestionId(''); setSelectedId(hold.id); prepareOutline(hold); if (review) setTool('vertex')
   }
   const reviewSuggestion = (hold: PolygonHoldCandidate) => {
     setEditingOriginal(null); setSuggestionId(hold.id); setSelectedId(''); prepareOutline(hold)
@@ -243,29 +271,88 @@ export default function Annotator() {
     try { await importData(JSON.parse(await file.text())) }
     catch (problem) { setError(`Invalid JSON file: ${String(problem)}`) }
   }
-  const canPredict = status.state === 'ready' && !busy && (box !== null || prompts.some((prompt) => prompt.label === 1))
+  const serviceMatches = !review || (status.sessionId === review.data.session.sessionId && status.image_sha256 === review.data.session.registeredImageSha256)
+  const canEdit = !review || comparison === 'new'
+  const canPredict = canEdit && serviceMatches && status.state === 'ready' && !busy && (box !== null || prompts.some((prompt) => prompt.label === 1))
 
+  const reviewDecision = async (type: 'confirm' | 'reset') => {
+    if (!review || !selectedId) return
+    setBusy(true); setError('')
+    try { await review.commit({ type, id: selectedId }); clear() } catch (problem) { setError(String(problem)) } finally { setBusy(false) }
+  }
+  const replacement = async () => {
+    if (!review || !preview || !editingOriginal) return
+    setBusy(true); setError('')
+    try { await review.commit({ type: 'add', replaces: editingOriginal.id, hold: { ...preview, id: `scan-${crypto.randomUUID()}` } }); clear() }
+    catch (problem) { setError(String(problem)) } finally { setBusy(false) }
+  }
+  const finishPolygon = () => {
+    if (manualPoints.length < 3) return
+    const center: Point = [manualPoints.reduce((sum,p)=>sum+p[0],0)/manualPoints.length, manualPoints.reduce((sum,p)=>sum+p[1],0)/manualPoints.length]
+    setCandidates([{ kind: 'hold', center, polygon: manualPoints }]); setCandidateIndex(0); setManualPoints([]); setTool('vertex')
+  }
+  const pending = review?.data.entries.filter(entry => entry.status === 'inherited-unreviewed') ?? []
+  const nextPending = () => {
+    const covered = pending.filter(entry => entry.observed && entry.coverageFraction >= .99)
+    const queue = covered.length ? covered : pending
+    if (!queue.length) return
+    const index = queue.findIndex(entry => entry.hold.id === selectedId)
+    setComparison('new'); editHold(queue[(index + 1) % queue.length].hold)
+  }
   return (
     <main className="annotation-shell">
       <header className="annotation-header">
-        <div><div className="eyebrow">STONEHAM · FULL WALL</div><h1>Hold annotator</h1></div>
+        <div><div className="eyebrow">STONEHAM · FULL WALL</div><h1>{review ? 'Review & annotate' : 'Hold annotator'}</h1></div>
         <a href={BASE}>Back to wall</a>
       </header>
-      <p className="annotation-status" role="status">{status.state === 'ready' ? `SAM2.1 Small ready · ${status.device.toUpperCase()}` : status.state === 'loading' ? 'Loading SAM2 and preparing wall tiles…' : status.error}</p>
+      <p className="annotation-status" role="status">{review && (!serviceMatches || status.state === 'error') ? 'Manual editing ready · SAM2 needs a matching local rescan server.' : status.state === 'ready' ? `SAM2.1 Small ready · ${status.device.toUpperCase()}` : status.state === 'loading' ? 'Loading SAM2 and preparing wall tiles…' : status.error}</p>
+      {review && <section className="review-panel" aria-label="Scan review">
+        <p className="review-badge">DRAFT · {review.data.session.candidateVersion} · revision {review.data.reviewRevision}</p>
+        <details><summary>Session, reviewer & backups</summary>
+        <p className="annotation-hint">{review.assets.inputKind} · QA: {review.assets.qaStatus}. Decisions are local working notes, not publication approval.</p>
+        <label>Reviewer name<input aria-label="Reviewer name" value={review.reviewer} maxLength={100} placeholder="Name for review history" onChange={event => review.setReviewer(event.target.value)} /></label>
+
+        <div className="annotation-actions">
+
+          <button onClick={review.exportProgress}>Export progress</button>
+          <label className="review-file">Resume progress<input type="file" aria-label="Resume progress" accept=".json" disabled={busy} onChange={event => { void review.resume(event.target.files?.[0]).catch(problem => setError(String(problem))); event.target.value = '' }} /></label>
+        </div>
+        <p className="annotation-hint">Saved on this browser after every decision. Reopen the same scan to resume. Export a backup before clearing browser data.</p>
+        </details>
+        <div className="review-counts"><span>{pending.length} pending</span><span>{review.data.entries.filter(confirmed).length} confirmed</span><span>{review.data.entries.filter(e => e.status === 'removed').length} removed</span></div>
+        <button disabled={busy || !pending.length} onClick={nextPending}>Next unreviewed hold</button>
+        <fieldset className="annotation-tools"><legend>Compare wall</legend>
+          {(['new', 'old', 'overlay'] as const).map(value => <button key={value} aria-pressed={comparison === value} onClick={() => setComparison(value)}>{ { new: 'New scan', old: 'Old wall', overlay: 'Overlay' }[value]}</button>)}
+        </fieldset>
+        {comparison === 'overlay' && <label>New scan opacity<input aria-label="New scan opacity" type="range" min="0" max="1" step=".05" value={opacity} onChange={event => setOpacity(Number(event.target.value))} /></label>}
+        {comparison !== 'new' && <p className="annotation-hint">Comparison view · switch to New scan to edit or confirm.</p>}
+        <details><summary>QA overlays & legend</summary>
+        <label className="annotation-inline"><input type="checkbox" checked={showQA} onChange={event => setShowQA(event.target.checked)} />Show alignment / seam QA</label>
+        <label className="annotation-inline"><input type="checkbox" checked={showRemoved} onChange={event => setShowRemoved(event.target.checked)} />Show removed / dismissed outlines</label>
+        <p className="annotation-hint">Orange = pending · cyan = confirmed · red dashed = removed · green = new. QA seams are not hold-change detections.</p>
+        <div className="review-links">{review.assets.sources && <a href={review.assets.sources} target="_blank" rel="noreferrer">Photo source map ↗</a>}{review.assets.qa && <a href={review.assets.qa} target="_blank" rel="noreferrer">Full QA preview ↗</a>}</div></details>
+      </section>}
       <fieldset disabled={busy} className="annotation-tools">
         <legend>Prompt tool</legend>
-        {(['positive', 'negative', 'box', 'pan', 'select'] as Tool[]).map((value) => <button key={value} type="button" aria-pressed={tool === value}
-          onClick={() => { setTool(value); setBoxStart(null) }}>{({ positive: '＋ Hold', negative: '− Exclude', box: 'Box', pan: 'Pan', select: 'Select' })[value]}</button>)}
+        {(['positive', 'negative', 'box', 'pan', 'select', ...(review ? ['polygon', 'vertex'] : [])] as Tool[]).map((value) => <button key={value} type="button" disabled={!canEdit && value !== 'pan'} aria-pressed={tool === value}
+          onClick={() => { setTool(value); setBoxStart(null); if (value !== 'polygon') setManualPoints([]); else invalidate() }}>{({ positive: '＋ Hold', negative: '− Exclude', box: 'Box', pan: 'Pan', select: 'Select', polygon: 'Draw polygon', vertex: 'Move vertex' })[value]}</button>)}
       </fieldset>
       <div className="annotation-zoom"><button onClick={() => zoom(1.5)}>Zoom in</button><button onClick={() => zoom(1 / 1.5)}>Zoom out</button><button onClick={fit}>Fit wall</button></div>
       <button className="annotation-coverage-toggle" type="button" aria-pressed={coverConfirmed}
-        disabled={!savedLoaded || status.state !== 'ready'} onClick={() => setCoverConfirmed((value) => !value)}>
+        disabled={!imageReady || (!review && !savedLoaded)} onClick={() => setCoverConfirmed((value) => !value)}>
         {coverConfirmed ? 'Show original holds' : 'Cover confirmed holds'}
       </button>
-      {coverConfirmed && <p className="annotation-hint">{coverLoading ? 'Estimating nearby wall colors…' : `${saved.holds.length} confirmed holds covered. Uncovered holds retain their original colors. Thin rims or shadows may be outline errors.`}</p>}
+      {coverConfirmed && <p className="annotation-hint">{coverLoading ? 'Estimating nearby wall colors…' : `${coverHolds.length} confirmed holds covered. Uncovered holds retain their original colors. Thin rims or shadows may be outline errors.`}</p>}
       <div className="annotation-viewport" ref={viewport} aria-label="Annotation wall"
         onPointerDown={(event) => {
           if (event.button !== 0 || busy) return
+          if (!canEdit && tool !== 'pan') return
+          if (tool === 'vertex' && preview) {
+            const point = wallPoint(event)
+            const distances = preview.polygon.map(p => Math.hypot((p[0]-point[0])*WIDTH, (p[1]-point[1])*HEIGHT)*view.scale)
+            const nearest = distances.indexOf(Math.min(...distances))
+            movingVertex.current = distances[nearest] < 24 ? nearest : null
+          }
           activePointers.current.set(event.pointerId, [event.clientX, event.clientY])
           if (activePointers.current.size === 1) gesture.current = { id: event.pointerId, client: [event.clientX, event.clientY], point: wallPoint(event), moved: false, multiple: false }
           else if (gesture.current) { gesture.current.multiple = true; setBoxStart(null) }
@@ -280,6 +367,7 @@ export default function Annotator() {
           const started = gesture.current
           if (started && Math.hypot(event.clientX - started.client[0], event.clientY - started.client[1]) > 6) started.moved = true
           if (before.length >= 2) {
+            movingVertex.current = null
             const oldMid: Point = [(before[0][0] + before[1][0]) / 2, (before[0][1] + before[1][1]) / 2]
             const newMid: Point = [(after[0][0] + after[1][0]) / 2, (after[0][1] + after[1][1]) / 2]
             const distance = (list: Point[]) => Math.hypot(list[0][0] - list[1][0], list[0][1] - list[1][1])
@@ -287,6 +375,9 @@ export default function Annotator() {
             setView((v) => { const scale = Math.max(.02, Math.min(2, v.scale * distance(after) / Math.max(1, distance(before))))
               return { scale, x: newMid[0] - rect.left - (oldMid[0] - rect.left - v.x) * scale / v.scale,
                 y: newMid[1] - rect.top - (oldMid[1] - rect.top - v.y) * scale / v.scale } })
+          } else if (tool === 'vertex' && movingVertex.current !== null && preview) {
+            const point = wallPoint(event), index = movingVertex.current
+            setCandidates(previous => previous.map((candidate,i) => i === candidateIndex ? { ...candidate, polygon: candidate.polygon.map((p,j) => j === index ? point : p) } : candidate))
           } else if (tool === 'pan') setView((v) => ({ ...v, x: v.x + event.clientX - previous[0], y: v.y + event.clientY - previous[1] }))
           else if (tool === 'box' && started && !started.multiple && started.moved) addBox(started.point, wallPoint(event))
         }}
@@ -294,10 +385,15 @@ export default function Annotator() {
         onLostPointerCapture={(event) => { activePointers.current.delete(event.pointerId); if (gesture.current?.id === event.pointerId) gesture.current = null }}>
         <svg className="annotation-stage" width={CROP_WIDTH} height={CROP_HEIGHT} viewBox={`0 0 ${CROP_WIDTH} ${CROP_HEIGHT}`}
           style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}>
-          {status.state === 'ready' && <image href={`${API}/image.jpg`} width={CROP_WIDTH} height={CROP_HEIGHT} />}
-          {saved.holds.map((hold) => <polygon key={hold.id} className={`annotation-saved ${coverConfirmed ? 'annotation-covered' : ''} ${selectedId === hold.id ? 'annotation-selected' : ''}`} points={points(hold.polygon)} style={coverConfirmed ? { fill: wallColors[hold.id] ?? 'rgb(170, 168, 162)', stroke: 'none' } : undefined} />)}
+          {imageReady && <image href={review && comparison === 'old' ? review.assets.reference : imageUrl} width={CROP_WIDTH} height={CROP_HEIGHT} />}
+          {review && comparison === 'overlay' && <><image href={review.assets.reference} width={WIDTH} height={HEIGHT} /><image href={imageUrl} width={WIDTH} height={HEIGHT} opacity={opacity} /></>}
+          {review && showQA && <image href={review.assets.uncertainty} width={WIDTH} height={HEIGHT} /> }
+          {!review && saved.holds.map((hold) => <polygon key={hold.id} className={`annotation-saved ${coverConfirmed ? 'annotation-covered' : ''} ${selectedId === hold.id ? 'annotation-selected' : ''}`} points={points(hold.polygon)} style={coverConfirmed ? { fill: wallColors[hold.id] ?? 'rgb(170, 168, 162)', stroke: 'none' } : undefined} />)}
+          {review && visibleEntries!.map(entry => <polygon key={entry.hold.id} className={`annotation-saved review-${entry.status} ${selectedId === entry.hold.id ? 'annotation-selected' : ''} ${coverConfirmed && confirmed(entry) ? 'annotation-covered' : ''}`} points={points(entry.hold.polygon)} style={{ strokeWidth: (selectedId === entry.hold.id ? 3 : 1.5) / view.scale, ...(['removed','dismissed'].includes(entry.status) ? { strokeDasharray: `${6/view.scale} ${4/view.scale}` } : {}), ...(coverConfirmed && confirmed(entry) ? { fill: wallColors[entry.hold.id] ?? 'rgb(170,168,162)', stroke: 'none' } : {}) }} />)}
+          {manualPoints.length > 0 && <polyline className="annotation-preview" points={points(manualPoints)} />}
           {showSuggestions && !coverConfirmed && pendingSuggestions.map((hold) => <polygon key={hold.id} className="annotation-suggestion" points={points(hold.polygon)} />)}
-          {preview && <polygon className="annotation-preview" points={points(preview.polygon)} />}
+          {preview && <polygon className="annotation-preview" points={points(preview.polygon)} style={review ? { strokeWidth: 3/view.scale } : undefined} />}
+          {review && tool === 'vertex' && preview && preview.polygon.map((point,index) => <circle key={index} className="annotation-vertex" cx={point[0]*WIDTH} cy={point[1]*HEIGHT} r={8/view.scale} />)}
           {box && <rect className="annotation-box" x={box[0] * WIDTH} y={box[1] * HEIGHT} width={(box[2] - box[0]) * WIDTH} height={(box[3] - box[1]) * HEIGHT} />}
           {prompts.map((prompt, index) => <g key={index} className={prompt.label ? 'annotation-positive' : 'annotation-negative'}>
             <circle cx={prompt.point[0] * WIDTH} cy={prompt.point[1] * HEIGHT} r={7 / view.scale} />
@@ -306,7 +402,8 @@ export default function Annotator() {
           {boxStart && <circle className="annotation-box-start" cx={boxStart[0] * WIDTH} cy={boxStart[1] * HEIGHT} r={7 / view.scale} />}
         </svg>
       </div>
-      <p className="annotation-hint">{tool === 'box' ? 'Drag a box, or tap its two opposite corners.' : tool === 'pan' ? 'Drag to move the wall.' : tool === 'select' ? 'Tap a blue hold to edit it, or an orange suggestion to review.' : tool === 'positive' ? 'Tap inside the hold. Add more points to refine it.' : 'Tap unwanted areas to exclude them.'} Pinch to zoom.</p>
+      <p className="annotation-hint">{tool === 'polygon' ? 'Tap around the outline, then Finish polygon. Up to 16 vertices.' : tool === 'vertex' ? 'Drag the round handles, then explicitly confirm the correction.' : tool === 'box' ? 'Drag a box, or tap its two opposite corners.' : tool === 'pan' ? 'Drag to move the wall.' : tool === 'select' ? 'Tap a blue hold to edit it, or an orange suggestion to review.' : tool === 'positive' ? 'Tap inside the hold. Add more points to refine it.' : 'Tap unwanted areas to exclude them.'} Pinch to zoom.</p>
+      {review && <div className="annotation-actions"><button disabled={busy || !pending.length} onClick={nextPending}>Next pending hold</button><button disabled={busy || !manualPoints.length} onClick={() => setManualPoints(p => p.slice(0,-1))}>Undo vertex</button><button disabled={busy || manualPoints.length < 3 || !canEdit} onClick={finishPolygon}>Finish polygon</button></div>}
       <div className="annotation-actions">
         <button disabled={busy || (!prompts.length && !box && !boxStart)} onClick={() => { if (boxStart) setBoxStart(null); else if (prompts.length) setPrompts((p) => p.slice(0, -1)); else setBox(null); invalidate() }}>Undo prompt</button>
         <button disabled={busy} onClick={clear}>New hold / Clear</button>
@@ -315,11 +412,21 @@ export default function Annotator() {
       <p className="annotation-hint">{prompts.filter((p) => p.label === 1).length} positive · {prompts.filter((p) => p.label === 0).length} negative · {box ? 'box set' : 'no box'}{timing !== null && ` · ${timing.toFixed(2)}s`}</p>
       {candidates.length > 0 && <div className="annotation-actions"><label>Outline candidate<select value={candidateIndex} disabled={busy} onChange={(event) => setCandidateIndex(Number(event.target.value))}>
         {candidates.map((candidate, index) => <option key={index} value={index}>Option {index + 1} · {candidate.score === undefined ? 'saved outline' : `score ${candidate.score.toFixed(2)}`}</option>)}
-      </select></label><button className="primary" disabled={busy || !savedLoaded} onClick={() => void accept()}>{editingOriginal ? 'Save changes' : 'Accept hold'}</button></div>}
+      </select></label><button className="primary" disabled={busy || !canEdit || (!review && !savedLoaded) || !!(selectedEntry && ['removed', 'dismissed'].includes(selectedEntry.status))} onClick={() => void accept()}>{review ? editingOriginal ? 'Confirm corrected outline' : 'Confirm new hold' : editingOriginal ? 'Save changes' : 'Accept hold'}</button></div>}
+      {review && selectedEntry && <section className="review-decision">
+        <p>{selectedEntry.hold.id} · {selectedEntry.status} · observed {(selectedEntry.coverageFraction*100).toFixed(1)}%</p>
+        <p className="annotation-hint">{selectedEntry.reasonCodes.join(' · ')}</p>
+        <div className="annotation-actions">
+          <button className="primary" disabled={busy || !canEdit || selectedEntry.status !== 'inherited-unreviewed' || (!!preview && stable(preview.polygon) !== stable(selectedEntry.hold.polygon))} onClick={() => void reviewDecision('confirm')}>Confirm unchanged</button>
+          <button disabled={busy || !canEdit || ['removed','dismissed'].includes(selectedEntry.status)} onClick={() => void remove()}>Mark removed</button>
+          <button disabled={busy || !canEdit} onClick={() => void reviewDecision('reset')}>Reset decision</button>
+        </div>
+        {preview && selectedEntry.oldHoldId === selectedEntry.hold.id && <details><summary>Different / moved hold?</summary><p>Replacing removes the old hold and assigns a new ID to this outline. Existing routes stay on their old wall version.</p><button disabled={busy || !canEdit || selectedEntry.status === 'removed'} onClick={() => void replacement()}>Confirm replacement with new ID</button></details>}
+      </section>}
       {editingOriginal && <p className="annotation-hint">Editing {editingOriginal.id}. Save changes keeps its ID; Clear cancels this edit.</p>}
       {suggestionId && <button disabled={busy} onClick={() => void skipSuggestion()}>Skip this suggestion</button>}
       {error && <p className="annotation-error" role="alert">{error}</p>}
-      <section className="annotation-library">
+      {!review && <section className="annotation-library">
         <h2>Auto suggestions ({pendingSuggestions.length})</h2>
         <p>Orange = unreviewed. Blue = accepted. Model scores do not guarantee accuracy.</p>
         <label className="annotation-inline"><input type="checkbox" checked={showSuggestions} onChange={(event) => setShowSuggestions(event.target.checked)} />Show auto suggestions</label>
@@ -327,18 +434,18 @@ export default function Annotator() {
           <button disabled={busy || !pendingSuggestions.length} onClick={() => reviewSuggestion(pendingSuggestions[0])}>Review next suggestion</button>
           <button disabled={busy || !highScoreSuggestions.length || !savedLoaded} onClick={() => void importData({ wallId: 'stoneham-spraywall-v1', image_size: [WIDTH, HEIGHT], holds: highScoreSuggestions })}>Accept all ≥0.95 ({highScoreSuggestions.length})</button>
         </div>
-      </section>
+      </section>}
       <section className="annotation-library">
-        <h2>Accepted holds ({saved.holds.length})</h2>
-        <p>Saved on this running server. Export a copy to your phone.</p>
+        <h2>{review ? 'Review entries' : 'Accepted holds'} ({saved.holds.length})</h2>
+        <p>{review ? 'Choose any entry to inspect, correct, remove or reset its decision.' : 'Saved on this running server. Export a copy to your phone.'}</p>
         <div className="annotation-actions"><label>Saved hold<select aria-label="Saved hold" value={selectedId} onChange={(event) => setSelectedId(event.target.value)}><option value="">Choose a hold</option>
           {saved.holds.map((hold, index) => <option key={hold.id} value={hold.id}>{index + 1}. {hold.id}</option>)}</select></label>
           <button disabled={busy || !selectedId} onClick={() => { const hold = saved.holds.find((h) => h.id === selectedId); if (hold) editHold(hold) }}>Edit selected</button>
-          <button disabled={busy || !selectedId} onClick={() => void remove()}>Delete selected</button>
-          {savedLoaded && <a className="annotation-download" href={`${API}/annotations`} download="stoneham-manual-holds.json">Export JSON</a>}
+          {!review && <button disabled={busy || !selectedId} onClick={() => void remove()}>Delete selected</button>}
+          {!review && savedLoaded && <a className="annotation-download" href={`${API}/annotations`} download="stoneham-manual-holds.json">Export JSON</a>}
         </div>
-        <label className="annotation-inline"><input type="checkbox" checked={replaceExisting} onChange={(event) => setReplaceExisting(event.target.checked)} />Replace matching IDs on import</label>
-        <label>Import existing annotations<input type="file" accept="application/json,.json" disabled={busy} onChange={(event) => { void upload(event.target.files?.[0]); event.target.value = '' }} /></label>
+        {!review && <><label className="annotation-inline"><input type="checkbox" checked={replaceExisting} onChange={(event) => setReplaceExisting(event.target.checked)} />Replace matching IDs on import</label>
+        <label>Import existing annotations<input type="file" accept="application/json,.json" disabled={busy} onChange={(event) => { void upload(event.target.files?.[0]); event.target.value = '' }} /></label></>}
       </section>
     </main>
   )

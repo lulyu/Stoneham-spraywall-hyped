@@ -35,3 +35,27 @@
 .annotation-coverage-toggle { margin-bottom: 10px; }
 .annotation-coverage-toggle[aria-pressed="true"] { border-color: #c9ff53; }
 .annotation-covered { stroke: none; }
+
+.annotation-mode { display:flex; gap:8px; flex-wrap:wrap; max-width:1000px; margin:0 auto; padding:12px; }
+.annotation-mode button { min-height:44px; padding:10px 14px; border:1px solid #46503c; border-radius:24px; color:#eee; background:#252821; }
+.annotation-mode button[aria-pressed=true] { background:#c9ff53; color:#12150d; }
+.review-import { color:#b5bba9; }
+.review-import h1 { color:#f4f4ef; font-size:24px; }
+.review-panel, .review-decision { border:1px solid #46503c; border-radius:14px; padding:14px; margin:12px 0; overflow-wrap:anywhere; }
+.review-panel p:first-child { margin-top:0; }
+.review-badge { color:#c9ff53; font-size:13px; font-weight:700; }
+.review-counts, .review-links { display:flex; flex-wrap:wrap; gap:12px; margin:14px 0; }
+.review-counts span { background:#252821; padding:8px 12px; border-radius:20px; font-size:13px; }
+.review-links a { color:#c9ff53; min-height:44px; display:flex; align-items:center; }
+.review-file { display:flex; flex-direction:column; gap:6px; font-size:13px; color:#c6ceba; }
+.review-file input { max-width:100%; min-width:0; font-size:13px; }
+.review-panel input:not([type=checkbox]) { max-width:100%; }
+.review-panel input[type=range] { display:block; width:100%; min-height:44px; accent-color:#c9ff53; }
+.review-inherited-unreviewed { stroke:#ffac28; fill:#ffac2812; }
+.review-verified-unchanged, .review-verified-refined { stroke:#33d6ff; fill:transparent; }
+.review-new { stroke:#c9ff53; fill:transparent; }
+.review-removed, .review-dismissed { stroke:#ff6e91; stroke-dasharray:6 4; fill:transparent; }
+.annotation-vertex { fill:#c9ff53; stroke:#111; stroke-width:2; vector-effect:non-scaling-stroke; }
+.annotation-shell select { max-width:100%; }
+.annotation-shell summary { cursor:pointer; padding:10px 0; min-height:44px; }
+@media(max-width:600px) { .annotation-header h1 { font-size:22px; } .review-panel { padding:10px; } .annotation-actions label { min-width:0; } }

@@ -1,6 +1,6 @@
 # Repeatable wall re-scan, registration, and annotation transfer
 
-Status: **Phases A/B offline registration and candidate mosaic implemented; review/publication remain design proposals**. See [the offline runner](../tools/wall_rescan/README.md) for reproducible commands and limitations. The tools register one or multiple photographs and export unreviewed prelabels only. See the [multi-photo runner](../tools/wall_rescan/MOSAIC.md) for source selection and coverage/alignment QA. Change classification, rescan-aware review/approval, and publication are not implemented. No production wall, routes, DynamoDB records, or deployment change as part of this experiment.
+Status: **Phases A/B implemented; initial unified manual review implemented; automatic change proposals and publication remain design proposals**. See [the offline runner](../tools/wall_rescan/README.md) for reproducible commands and limitations. The tools register one or multiple photographs and export unreviewed prelabels only. See the [multi-photo runner](../tools/wall_rescan/MOSAIC.md) for source selection and coverage/alignment QA. Change classification and publication are not implemented. The first browser-local rescan review workflow is documented in [the unified editor guide](unified-wall-review.md); it exports non-publishable checkpoints only. No production wall, routes, DynamoDB records, or deployment change as part of this experiment.
 
 ## Problem and goals
 
@@ -335,3 +335,18 @@ check geometry; the real photo has no independent truth score. All old polygons
 remain inherited-unreviewed. The existing review/export gates in sections 7–8
 still belong to Phase C, not to this source-selection stage. Phase D publication
 is not invoked.
+
+## Unified review implementation (2026-11-05)
+
+The existing annotation canvas now supports a separate wall-update mode with
+hash-bound Phase B input, old/new comparison, manual polygon/vertex correction,
+human status decisions, ID-preserving refinement and atomic replacement lineage.
+Browser checkpoints preserve decisions with revision/conflict checks and history
+replay. The same-origin SAM2 server can explicitly load a candidate session and
+reject legacy writes. See [usage and limitations](unified-wall-review.md).
+
+This is an initial Phase C subset. No automatic change classifier/new-hold seed
+pass, authenticated team-review service, accepted export or publication gate is
+implemented. All checkpoints stay non-publishable; production assets/catalogs and
+routes remain unchanged. The server-side publication/export safeguards in §8.1
+are still required before implementing any accepted-geometry export.

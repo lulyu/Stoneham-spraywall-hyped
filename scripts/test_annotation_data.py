@@ -53,6 +53,7 @@ class AnnotationDataTests(unittest.TestCase):
         original = groundtruth.read_bytes()
         with tempfile.TemporaryDirectory() as directory:
             annotator = module.Annotator.__new__(module.Annotator)
+            annotator.rescan = None
             annotator.storage = Path(directory) / 'work.json'
             annotator.write(copy.deepcopy(self.data))
             work = annotator.read(); work['holds'][0]['center'][0] += .001

@@ -138,3 +138,10 @@ The automatic pre-labeling source is committed: `tools/sam2_seed_full_wall.py`
 in commit `04e5815`. The earlier crop pipeline is
 `tools/sam2_experiment_top_left.py`, with setup pinned in
 `tools/sam2-cpu-requirements.txt`.
+
+## Wall-update review mode
+
+The same editor now also opens registered scan candidates in a separate review
+mode. Use `/?review=1`; see [the unified review guide](unified-wall-review.md) for
+static/browser-only operation, checkpoints and optional session-bound SAM2. This
+mode does not import inherited contours as accepted legacy annotations.
