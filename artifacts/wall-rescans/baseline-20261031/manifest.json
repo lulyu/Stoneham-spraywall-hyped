@@ -1,0 +1,53 @@
+{
+  "session": {
+    "scanId": "baseline-20261031",
+    "gymId": "stoneham-crg",
+    "wallId": "spray-wall-1",
+    "referenceVersion": "2026-10-v4",
+    "candidateVersion": "baseline-20261031",
+    "referenceImageSha256": "0dddcf36d5e9df223bea360cb9a6a03c7871d40be20f7d73a976c14d1a2a7693",
+    "referenceHoldsSha256": "8296a7b5683441bedcea9e1e32dc2d6099bcc9e788200c577869dd87a9ba09fc",
+    "sourceImageSha256": "4bff5890eaa326895b1e5d2af9c5922927ff22394cdd0aa029d123a6b43cd43c",
+    "registeredImageSha256": "a381c3d92827519ab5902c232a630fff0588e0dece0691d2c3ebd54f4bb349c6",
+    "coordinateFrame": {
+      "size": [
+        7292,
+        5514
+      ],
+      "orientation": "EXIF-prepared canonical reference"
+    },
+    "sessionId": "f7215605406c2450d1f4b9c53a229fde253fe1af3ee1e4deb4aa75487dc7fc5e"
+  },
+  "versions": {
+    "python": "3.12.14",
+    "opencv": "4.12.0",
+    "numpy": "2.2.6",
+    "pillow": "11.3.0"
+  },
+  "code_commit": "68cf722de8cbeca5b81b8b93fe1a465325d9b0af",
+  "code_dirty": false,
+  "code_sha256": {
+    "run.py": "f718f083b7053763fd1d420d1feaa1582156844203fe1a8fa8e805442f16d98c",
+    "geometry.py": "f06cfa226f25130b10356d25090d8b79c539c475036d8bb2740780f0130b5c21",
+    "__init__.py": "bdefdf956ff630a6bf0a66a83ffbf9fdf80291253df674bcdfbd006f5d614249"
+  },
+  "parameters": {
+    "max_side": 2400,
+    "features": 18000,
+    "max_error_px": 8.0,
+    "seed": 0,
+    "opencv_threads": 1
+  },
+  "inputs": {
+    "photo": "/workspace/stoneham/private-inputs/baseline-20261031/raw/IMG20261031152837.jpg",
+    "reference_image": "/workspace/stoneham/public/wall/stoneham-spraywall-canonical.jpg",
+    "reference_holds": "/workspace/stoneham/src/data/polygons/holds.json",
+    "alignment_anchors": null,
+    "validation_anchors": null
+  },
+  "source_index_legend": {
+    "0": "no new observation",
+    "1": "/workspace/stoneham/private-inputs/baseline-20261031/raw/IMG20261031152837.jpg"
+  },
+  "sam2": "not used: registration and unreviewed prelabel transfer only"
+}

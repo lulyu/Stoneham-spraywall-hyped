@@ -1,6 +1,6 @@
 # Repeatable wall re-scan, registration, and annotation transfer
 
-Status: **design proposal only**. This branch currently contains this document only; the proposed `tools/wall_rescan/` pipeline and rescan review mode have not been implemented. Existing SAM2 tools are integration points, not an implementation of this proposal. No production wall, routes, DynamoDB records, or deployment should change as part of this document.
+Status: **Phase A single-photo baseline implemented; later phases remain design proposals**. See [the offline runner](../tools/wall_rescan/README.md) for reproducible commands and limitations. The baseline registers one photograph and exports unreviewed prelabels only. Multi-source compositing, change classification, rescan-aware review/approval, and publication are not implemented. No production wall, routes, DynamoDB records, or deployment change as part of this experiment.
 
 ## Problem and goals
 
@@ -288,7 +288,7 @@ Regression/tests for the pipeline:
 
 1. Is the wall effectively one plane in the field of view, or are there multiple angled sections requiring separate registration models?
 2. Which static landmarks remain visible across scans? Would a future small set of fixed fiducials/AprilTags (with gym permission) improve re-scans?
-3. Do we have a few new photos covering the upper-left area, plus one overview? They are the only missing data for a real visual benchmark.
+3. One user-supplied partial photo from the original wall-photo session now provides a same-source baseline. Fresh overlapping photos, an overview, and independent manual landmarks are still needed to evaluate changed holds and new capture conditions.
 4. How should we present removed holds in historical routes versus proposed clones? Recommended default: historical routes stay immutable and clearly tied to their wall version.
 
 ## Implementation guardrails
@@ -298,3 +298,21 @@ Regression/tests for the pipeline:
 - Capture errors and manual overrides in files, not undocumented hand edits.
 - Do not change deployed canonical assets, backend version metadata, Cognito, comments/sends, or existing route records while building Phases A–C.
 - Make quality inspectable; a confident-looking but misregistered mosaic is worse than an honest failed run.
+
+## Initial implementation / baseline (2026-11-05)
+
+`tools/wall_rescan/run.py` implements the first single-photo slice of Phase A:
+EXIF handling, SIFT mutual/ratio matching, robust fitting with a held-out match
+subset, geometry QA, a full-reference-sized warp and coverage/provenance masks,
+inspection overlays and exact old-polygon transfer as unreviewed suggestions.
+The supplied IMG20261031152837.jpg is a partial photo from the original session;
+this is an optimistic baseline, not a wall-change benchmark. Full-frame dimensions
+remain 7292 x 5514. Small QA artifacts are under
+`artifacts/wall-rescans/baseline-20261031/`; raw inputs stay outside git.
+
+No SAM2 model runs in this registration baseline. No accepted export, change
+classification, legacy-annotator import, interactive rescan review, publication,
+wall catalog change, or production deployment is performed. Reported match
+consistency is distinct from independent manual-anchor accuracy. The safeguards
+in sections 7.1 and 8.1 remain required for the later review/export implementation;
+recording an immutable session manifest here does not implement that editor.

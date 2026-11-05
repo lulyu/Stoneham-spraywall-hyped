@@ -1,0 +1,63 @@
+{
+  "status": "registered-for-inspection",
+  "publishable": false,
+  "phase": "A, one photograph",
+  "sessionId": "f7215605406c2450d1f4b9c53a229fde253fe1af3ee1e4deb4aa75487dc7fc5e",
+  "reference_size": [
+    7292,
+    5514
+  ],
+  "crop_box": [
+    0,
+    137,
+    2856,
+    3785
+  ],
+  "observed_pixel_count": 10004398,
+  "observed_reference_fraction": 0.24881556168500227,
+  "reference_hold_count": 677,
+  "intersecting_prelabel_count": 178,
+  "fully_observed_hold_count": 157,
+  "partial_hold_count": 21,
+  "accepted_hold_count": 0,
+  "removed_hold_count": null,
+  "new_hold_count": null,
+  "change_classification": "not run",
+  "metrics": {
+    "fit_inliers": 990,
+    "fit_inlier_ratio": 0.8418367346938775,
+    "source_inlier_hull_fraction": 0.8100747274170218,
+    "fit_inlier_error": {
+      "count": 990,
+      "median_px": 1.3349715638465685,
+      "p95_px": 6.2055015181653035,
+      "max_px": 7.997499130331097
+    },
+    "held_out_all_match_error": {
+      "count": 293,
+      "median_px": 1.7900473644456179,
+      "p95_px": 56.94836498294171,
+      "max_px": 5770.129219498799
+    },
+    "held_out_consistent_match_error": {
+      "count": 233,
+      "median_px": 1.3644532465008468,
+      "p95_px": 5.685323426658579,
+      "max_px": 7.822380985633059
+    },
+    "held_out_consistent_fraction": 0.7952218430034129,
+    "validation_note": "Held-out descriptor correspondences test consistency, not independent manual-anchor accuracy. Outliers are retained in held_out_all_match_error.",
+    "shape": {
+      "local_scale_min": 2.6100858720773323,
+      "local_scale_max": 3.1305230012792524,
+      "max_anisotropy": 1.0686625285184246,
+      "footprint_area_reference_pixels_squared": 10024630.596411284
+    },
+    "independent_manual_anchor_error": null
+  },
+  "limitations": [
+    "Single global homography, no lens calibration or non-planar correction.",
+    "No change classifier, SAM2 correction, interactive rescan review, multi-source compositing, or publication.",
+    "Held-out feature consistency is not independent manual-anchor validation; same-source baseline is an optimistic test."
+  ]
+}

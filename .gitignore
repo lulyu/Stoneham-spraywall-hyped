@@ -27,3 +27,19 @@ models/
 backend/src/generated/wallCatalog.ts
 !artifacts/hold-roles-rainbow-mobile.png
 !artifacts/route-focus-pulse-mobile.png
+
+# Raw wall captures stay local; only small reviewed baseline evidence is tracked.
+private-inputs/
+!artifacts/wall-rescans/
+artifacts/wall-rescans/*
+!artifacts/wall-rescans/baseline-20261031/
+artifacts/wall-rescans/baseline-20261031/*
+!artifacts/wall-rescans/baseline-20261031/report.json
+!artifacts/wall-rescans/baseline-20261031/manifest.json
+!artifacts/wall-rescans/baseline-20261031/registration.json
+!artifacts/wall-rescans/baseline-20261031/placement-preview.jpg
+!artifacts/wall-rescans/baseline-20261031/prelabels-overlay.jpg
+!artifacts/wall-rescans/baseline-20261031/reference-vs-registered.jpg
+
+.venv-rescan/
+!artifacts/wall-rescans/baseline-20261031/README.md
