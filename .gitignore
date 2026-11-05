@@ -42,3 +42,4 @@ artifacts/wall-rescans/baseline-20261031/*
 !artifacts/wall-rescans/baseline-20261031/reference-vs-registered.jpg
 
 .venv-rescan/
+!artifacts/wall-rescans/baseline-20261031/README.md
