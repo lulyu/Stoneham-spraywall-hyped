@@ -1,6 +1,6 @@
 # Repeatable wall re-scan, registration, and annotation transfer
 
-Status: **Phase A single-photo baseline implemented; later phases remain design proposals**. See [the offline runner](../tools/wall_rescan/README.md) for reproducible commands and limitations. The baseline registers one photograph and exports unreviewed prelabels only. Multi-source compositing, change classification, rescan-aware review/approval, and publication are not implemented. No production wall, routes, DynamoDB records, or deployment change as part of this experiment.
+Status: **Phases A/B offline registration and candidate mosaic implemented; review/publication remain design proposals**. See [the offline runner](../tools/wall_rescan/README.md) for reproducible commands and limitations. The tools register one or multiple photographs and export unreviewed prelabels only. See the [multi-photo runner](../tools/wall_rescan/MOSAIC.md) for source selection and coverage/alignment QA. Change classification, rescan-aware review/approval, and publication are not implemented. No production wall, routes, DynamoDB records, or deployment change as part of this experiment.
 
 ## Problem and goals
 
@@ -316,3 +316,22 @@ wall catalog change, or production deployment is performed. Reported match
 consistency is distinct from independent manual-anchor accuracy. The safeguards
 in sections 7.1 and 8.1 remain required for the later review/export implementation;
 recording an immutable session manifest here does not implement that editor.
+
+## Phase B implementation (2026-11-05)
+
+`tools/wall_rescan/mosaic.py` extends the shared Phase A registration/QA with a
+manifest-driven multi-photo candidate mosaic. It records source decisions per
+pixel, smooths source selection without RGB blending, guards old contours from
+seams where feasible, preserves no-data regions, excludes bad sources, and flags
+unverified/misaligned overlaps and unresolved hold seams. Explicit source ROIs,
+validity masks and manual anchors support per-facet fallback. No automatic 3D
+reconstruction is claimed.
+
+A deterministic development fixture combines six reference-derived overlapping
+crops, a blurred/brighter duplicate, a blank rejection sample and the available
+user partial photo. Its full-wall coverage validates the pipeline using derived
+data, not a newly photographed wall. Known crop transforms provide synthetic
+check geometry; the real photo has no independent truth score. All old polygons
+remain inherited-unreviewed. The existing review/export gates in sections 7–8
+still belong to Phase C, not to this source-selection stage. Phase D publication
+is not invoked.

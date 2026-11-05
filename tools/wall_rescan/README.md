@@ -118,3 +118,10 @@ on synthetic texture, existing-output protection, input immutability and a blank
 image failure. The supplied real photo is a separate inspected baseline; small
 QA previews and its report/manifest/matches are committed, raw/intermediate files
 are not.
+
+## Multi-photo candidate mosaics (Phase B)
+
+Use `python -m tools.wall_rescan.mosaic --manifest scan.json --output NEW_DIR`.
+See [MOSAIC.md](MOSAIC.md) for source selection, masks/facets, seam protection,
+coverage/alignment QA, fixture generation and explicit failure states. Phase C
+change detection and interactive review/approval remain unimplemented.

@@ -1,0 +1,84 @@
+{
+  "validation_kind": "known reference-derived crop transforms, independent of fitted SIFT pairs; NOT real-world landmark validation",
+  "truth_sha256": "c87e1deb14a27e4237cf6f0998079b59dcc116afbe6390a5eee6f9767a86d417",
+  "sessionId": "da7ba6b5dbcc09c6c521454c803c69b70bb59f5af43ff4a8f772005279de08fc",
+  "aggregate_error_full_reference_px": {
+    "count": 175,
+    "median_px": 0.4612511416792598,
+    "p95_px": 0.5085369104417209,
+    "max_px": 0.5391313884918956
+  },
+  "sources": [
+    {
+      "id": "crop-1-1",
+      "status": "evaluated",
+      "error_full_reference_px": {
+        "count": 25,
+        "median_px": 0.478499897219444,
+        "p95_px": 0.5096693576107076,
+        "max_px": 0.5213578731810511
+      }
+    },
+    {
+      "id": "crop-1-2",
+      "status": "evaluated",
+      "error_full_reference_px": {
+        "count": 25,
+        "median_px": 0.45638765173777945,
+        "p95_px": 0.5148034200052816,
+        "max_px": 0.5391313884918956
+      }
+    },
+    {
+      "id": "crop-1-3",
+      "status": "evaluated",
+      "error_full_reference_px": {
+        "count": 25,
+        "median_px": 0.45134468178482007,
+        "p95_px": 0.461840007677019,
+        "max_px": 0.46620047059364106
+      }
+    },
+    {
+      "id": "crop-2-1",
+      "status": "evaluated",
+      "error_full_reference_px": {
+        "count": 25,
+        "median_px": 0.4605242266230884,
+        "p95_px": 0.5030314006513188,
+        "max_px": 0.5122173827571516
+      }
+    },
+    {
+      "id": "crop-2-2",
+      "status": "evaluated",
+      "error_full_reference_px": {
+        "count": 25,
+        "median_px": 0.47388343607787115,
+        "p95_px": 0.5079327147864378,
+        "max_px": 0.5263629920237176
+      }
+    },
+    {
+      "id": "crop-2-3",
+      "status": "evaluated",
+      "error_full_reference_px": {
+        "count": 25,
+        "median_px": 0.4562134902647234,
+        "p95_px": 0.4862903672399593,
+        "max_px": 0.4942705476116304
+      }
+    },
+    {
+      "id": "blurred-bright",
+      "status": "evaluated",
+      "error_full_reference_px": {
+        "count": 25,
+        "median_px": 0.4647900783640174,
+        "p95_px": 0.5138964211830226,
+        "max_px": 0.5227077912563706
+      }
+    }
+  ],
+  "notes": "The user-supplied partial photo has no independent transform ground truth and is excluded."
+}

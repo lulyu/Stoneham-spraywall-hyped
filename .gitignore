@@ -43,3 +43,14 @@ artifacts/wall-rescans/baseline-20261031/*
 
 .venv-rescan/
 !artifacts/wall-rescans/baseline-20261031/README.md
+
+!artifacts/wall-rescans/mosaic-fixture-v1/
+artifacts/wall-rescans/mosaic-fixture-v1/*
+!artifacts/wall-rescans/mosaic-fixture-v1/README.md
+!artifacts/wall-rescans/mosaic-fixture-v1/report.json
+!artifacts/wall-rescans/mosaic-fixture-v1/manifest-summary.json
+!artifacts/wall-rescans/mosaic-fixture-v1/fixture-validation.json
+!artifacts/wall-rescans/mosaic-fixture-v1/mosaic-preview.jpg
+!artifacts/wall-rescans/mosaic-fixture-v1/source-index-preview.png
+!artifacts/wall-rescans/mosaic-fixture-v1/qa-overlay.jpg
+!artifacts/wall-rescans/mosaic-fixture-v1/prelabels-overlay.jpg

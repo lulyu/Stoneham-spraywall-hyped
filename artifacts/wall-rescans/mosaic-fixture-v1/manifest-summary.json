@@ -1,0 +1,2153 @@
+{
+  "session": {
+    "scanId": "mosaic-fixture-v1",
+    "gymId": "stoneham-crg",
+    "wallId": "spray-wall-1",
+    "referenceVersion": "2026-10-v4",
+    "candidateVersion": "mosaic-fixture-v1",
+    "referenceImageSha256": "0dddcf36d5e9df223bea360cb9a6a03c7871d40be20f7d73a976c14d1a2a7693",
+    "referenceHoldsSha256": "8296a7b5683441bedcea9e1e32dc2d6099bcc9e788200c577869dd87a9ba09fc",
+    "inputManifestSha256": "022b72d77691a7d6540477a885f2d0583186875efa6fbdabceddb90c14c3f3c6",
+    "sourceContents": [
+      {
+        "id": "crop-1-1",
+        "hashes": {
+          "image": "53dc2206e28395cfc45197987d5e8d9b24a27bac4e2b3e3d18a5104826e2b141"
+        }
+      },
+      {
+        "id": "crop-1-2",
+        "hashes": {
+          "image": "530b239eeb636f4c2b265783f9bb451792b91893b2df1cb9ffc7ddf9f99d9c07"
+        }
+      },
+      {
+        "id": "crop-1-3",
+        "hashes": {
+          "image": "2e7d7b95f7139d8a44ef27be18976e2e0b52577e54298e23b1dc9bc6c0a1d011"
+        }
+      },
+      {
+        "id": "crop-2-1",
+        "hashes": {
+          "image": "0c7be140c5261fe659051f4a03c7621ad63a173b918ae38ca29125f50f732ff0"
+        }
+      },
+      {
+        "id": "crop-2-2",
+        "hashes": {
+          "image": "854ee6dc62e23485e2f76b4500f47dc28a76a867d37b6baa15aada4e31d8e7cf"
+        }
+      },
+      {
+        "id": "crop-2-3",
+        "hashes": {
+          "image": "d09b84760f3f2020e95f5a66f3ef0a7b94d4901d74111c675c4ae2a1ac4a8492"
+        }
+      },
+      {
+        "id": "blurred-bright",
+        "hashes": {
+          "image": "01fbc8c7eb72e5f2a120635aeaa314086cafbedaf3b05c8e6493c51a05631b83"
+        }
+      },
+      {
+        "id": "blank-rejection-check",
+        "hashes": {
+          "image": "4fb11968d239a712353f87d117791b0bf1280841572a59304543ebc5958d7a00"
+        }
+      },
+      {
+        "id": "user-partial-baseline",
+        "hashes": {
+          "image": "4bff5890eaa326895b1e5d2af9c5922927ff22394cdd0aa029d123a6b43cd43c"
+        }
+      }
+    ],
+    "registeredImageSha256": "c060864b709f90db85ded34b29cf5d6422f17c3ddb0384d515738f0354fe9336",
+    "coordinateFrame": {
+      "size": [
+        7292,
+        5514
+      ],
+      "orientation": "EXIF-prepared canonical reference"
+    },
+    "sessionId": "da7ba6b5dbcc09c6c521454c803c69b70bb59f5af43ff4a8f772005279de08fc"
+  },
+  "publishable": false,
+  "inputKind": "mixed-fixture-baseline",
+  "settings": {
+    "max_side": 2400,
+    "features": 18000,
+    "max_error_px": 8.0,
+    "seed": 0,
+    "cell": 32,
+    "guard_pixels": 8,
+    "normalize_exposure": true,
+    "min_coverage": 0.995,
+    "max_overlap_error_px": 10.0,
+    "matcher": "flann"
+  },
+  "required_roi": [
+    0,
+    0,
+    7292,
+    5514
+  ],
+  "input_manifest": "/workspace/stoneham/private-inputs/mosaic-fixture-v1/scan.json",
+  "input_hashes": {
+    "/workspace/stoneham/private-inputs/mosaic-fixture-v1/scan.json": "022b72d77691a7d6540477a885f2d0583186875efa6fbdabceddb90c14c3f3c6",
+    "/workspace/stoneham/public/wall/stoneham-spraywall-canonical.jpg": "0dddcf36d5e9df223bea360cb9a6a03c7871d40be20f7d73a976c14d1a2a7693",
+    "/workspace/stoneham/src/data/polygons/holds.json": "8296a7b5683441bedcea9e1e32dc2d6099bcc9e788200c577869dd87a9ba09fc",
+    "/workspace/stoneham/private-inputs/mosaic-fixture-v1/crop-1-1.jpg": "53dc2206e28395cfc45197987d5e8d9b24a27bac4e2b3e3d18a5104826e2b141",
+    "/workspace/stoneham/private-inputs/mosaic-fixture-v1/crop-1-2.jpg": "530b239eeb636f4c2b265783f9bb451792b91893b2df1cb9ffc7ddf9f99d9c07",
+    "/workspace/stoneham/private-inputs/mosaic-fixture-v1/crop-1-3.jpg": "2e7d7b95f7139d8a44ef27be18976e2e0b52577e54298e23b1dc9bc6c0a1d011",
+    "/workspace/stoneham/private-inputs/mosaic-fixture-v1/crop-2-1.jpg": "0c7be140c5261fe659051f4a03c7621ad63a173b918ae38ca29125f50f732ff0",
+    "/workspace/stoneham/private-inputs/mosaic-fixture-v1/crop-2-2.jpg": "854ee6dc62e23485e2f76b4500f47dc28a76a867d37b6baa15aada4e31d8e7cf",
+    "/workspace/stoneham/private-inputs/mosaic-fixture-v1/crop-2-3.jpg": "d09b84760f3f2020e95f5a66f3ef0a7b94d4901d74111c675c4ae2a1ac4a8492",
+    "/workspace/stoneham/private-inputs/mosaic-fixture-v1/blurred-bright.jpg": "01fbc8c7eb72e5f2a120635aeaa314086cafbedaf3b05c8e6493c51a05631b83",
+    "/workspace/stoneham/private-inputs/mosaic-fixture-v1/blank.jpg": "4fb11968d239a712353f87d117791b0bf1280841572a59304543ebc5958d7a00",
+    "/workspace/stoneham/private-inputs/baseline-20261031/raw/IMG20261031152837.jpg": "4bff5890eaa326895b1e5d2af9c5922927ff22394cdd0aa029d123a6b43cd43c"
+  },
+  "source_index_legend": {
+    "0": "no observation",
+    "1": "crop-1-1",
+    "2": "crop-1-2",
+    "3": "crop-1-3",
+    "4": "crop-2-1",
+    "5": "crop-2-2",
+    "6": "crop-2-3",
+    "7": "blurred-bright",
+    "9": "user-partial-baseline"
+  },
+  "uncertainty_bits": {
+    "1": "source seam band",
+    "2": "overlap correspondence support insufficient",
+    "4": "overlap registration disagreement",
+    "8": "known hold protection region split",
+    "16": "no observation"
+  },
+  "versions": {
+    "python": "3.12.14",
+    "opencv": "4.12.0",
+    "numpy": "2.2.6",
+    "pillow": "11.3.0"
+  },
+  "code_commit": "2e1c25856e2966d422ea4d0f067f65fe68597120",
+  "code_dirty": false,
+  "code_sha256": {
+    "run.py": "3bbd4145dd4478fc71e0adab470a2a8f80a7ede6bcfedafd6d61a3f7ae988890",
+    "geometry.py": "f06cfa226f25130b10356d25090d8b79c539c475036d8bb2740780f0130b5c21",
+    "__init__.py": "bdefdf956ff630a6bf0a66a83ffbf9fdf80291253df674bcdfbd006f5d614249",
+    "compose.py": "cf654ea9cefb62c904b3cb15346c78d54009533b860b622681d3489f21faad52",
+    "make_mosaic_fixture.py": "b416606a868862c2a3b0f202e409625eaf75ae052582c56f42ab9dafee9eb565",
+    "evaluate_fixture.py": "8b1fabf50f900f3fc8437d9d22d8e46665cdddb670ed365bc28244629ce01c15",
+    "mosaic.py": "7e1294c35ac0573881b8f2383526d75dfe0dcb5531ddab9387a2990a7981320d"
+  },
+  "summary_note": "Compact audit record: full local manifest retains correspondences; raw inputs and full-resolution outputs are intentionally not checked in.",
+  "sources": [
+    {
+      "id": "crop-1-1",
+      "source_code": 1,
+      "input": {
+        "id": "crop-1-1",
+        "image": "crop-1-1.jpg",
+        "description": "Derived from canonical reference; synthetic test input."
+      },
+      "status": "registered-for-inspection",
+      "registration": {
+        "status": "registered-for-inspection",
+        "source": {
+          "raw_size": [
+            4084,
+            3860
+          ],
+          "exif_orientation": 1,
+          "prepared_size": [
+            4084,
+            3860
+          ],
+          "raw_to_prepared": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens_undistortion": "none; camera calibration is not supplied",
+          "full_prepared_size": [
+            4084,
+            3860
+          ],
+          "source_roi": [
+            0,
+            0,
+            4084,
+            3860
+          ]
+        },
+        "reference": {
+          "raw_size": [
+            7292,
+            5514
+          ],
+          "exif_orientation": 1,
+          "prepared_size": [
+            7292,
+            5514
+          ],
+          "raw_to_prepared": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens_undistortion": "none; camera calibration is not supplied"
+        },
+        "matching": {
+          "method": "SIFT, Lowe ratio 0.75, mutual nearest",
+          "descriptor_matcher": "flann",
+          "source_keypoints": 16246,
+          "reference_keypoints": 14442,
+          "tentative_matches": 4542,
+          "source_working_size": [
+            2400,
+            2268
+          ],
+          "reference_working_size": [
+            2400,
+            1815
+          ],
+          "source_native_to_working": [
+            [
+              0.5876591576885406,
+              0.0,
+              -0.2061704211557297
+            ],
+            [
+              0.0,
+              0.5875647668393782,
+              -0.2062176165803109
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "reference_native_to_working": [
+            [
+              0.32912781130005486,
+              0.0,
+              -0.33543609434997257
+            ],
+            [
+              0.0,
+              0.3291621327529924,
+              -0.33541893362350383
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        "coordinate_convention": "EXIF-prepared source pixel centers -> EXIF-prepared full reference pixel centers; normalized hold coordinates use (u*width,v*height)",
+        "source_to_reference": [
+          [
+            0.9999832201665744,
+            -1.3448911065367346e-05,
+            0.40125317693418355
+          ],
+          [
+            -3.644477452483015e-06,
+            0.9999864679581585,
+            0.35291974495804046
+          ],
+          [
+            -2.9769283515295314e-10,
+            -1.7648008221545742e-09,
+            1.0
+          ]
+        ],
+        "reference_to_source": [
+          [
+            1.0000167800445514,
+            1.3448610573659914e-05,
+            -0.40126465626058255
+          ],
+          [
+            3.644482858559265e-06,
+            1.0000135316511227,
+            -0.35292598290522875
+          ],
+          [
+            2.9770426223833473e-10,
+            1.7648287063786106e-09,
+            0.9999999992577022
+          ]
+        ],
+        "raw_source_to_reference": [
+          [
+            0.9999832201665744,
+            -1.3448911065367346e-05,
+            0.40125317693418355
+          ],
+          [
+            -3.644477452483015e-06,
+            0.9999864679581585,
+            0.35291974495804046
+          ],
+          [
+            -2.9769283515295314e-10,
+            -1.7648008221545742e-09,
+            1.0
+          ]
+        ],
+        "source_footprint_reference_pixels": [
+          [
+            0.4012531638145447,
+            0.3529197573661804
+          ],
+          [
+            4083.337646484375,
+            0.338039755821228
+          ],
+          [
+            4083.313720703125,
+            3859.31689453125
+          ],
+          [
+            0.34935620427131653,
+            3859.326904296875
+          ]
+        ],
+        "metrics": {
+          "fit_inliers": 3546,
+          "fit_inlier_ratio": 0.9757842597688497,
+          "source_inlier_hull_fraction": 0.9501174968670358,
+          "fit_inlier_error": {
+            "count": 3546,
+            "median_px": 0.2849562160003945,
+            "p95_px": 1.8319116284944708,
+            "max_px": 7.6807410944712675
+          },
+          "held_out_all_match_error": {
+            "count": 908,
+            "median_px": 0.2982475274490487,
+            "p95_px": 2.779746693925596,
+            "max_px": 6110.004728538671
+          },
+          "held_out_consistent_match_error": {
+            "count": 889,
+            "median_px": 0.2864353569028912,
+            "p95_px": 2.028259450089327,
+            "max_px": 7.290905403500011
+          },
+          "held_out_consistent_fraction": 0.9790748898678414,
+          "validation_note": "Held-out descriptor correspondences test consistency, not independent manual-anchor accuracy. Outliers are retained in held_out_all_match_error.",
+          "shape": {
+            "local_scale_min": 0.999976145199127,
+            "local_scale_max": 1.0000044858043728,
+            "max_anisotropy": 1.0000188520119575,
+            "footprint_area_reference_pixels_squared": 15756009.234372284
+          },
+          "independent_manual_anchor_error": null
+        },
+        "qa_failures": []
+      },
+      "input_hashes": {
+        "image": "53dc2206e28395cfc45197987d5e8d9b24a27bac4e2b3e3d18a5104826e2b141"
+      },
+      "quality": {
+        "registration_weight": 0.8136769635738695,
+        "resolution_weight": 0.9999955142157495,
+        "distortion_weight": 0.9999811483434341,
+        "median_sharpness": 0.6774888038635254,
+        "priority": 1.0
+      },
+      "exposure_gain_rgb": [
+        0.988950276243094,
+        0.9886363636363636,
+        0.9881656804733728
+      ],
+      "selected_pixel_count": 8665379
+    },
+    {
+      "id": "crop-1-2",
+      "source_code": 2,
+      "input": {
+        "id": "crop-1-2",
+        "image": "crop-1-2.jpg",
+        "description": "Derived from canonical reference; synthetic test input."
+      },
+      "status": "registered-for-inspection",
+      "registration": {
+        "status": "registered-for-inspection",
+        "source": {
+          "raw_size": [
+            4084,
+            3860
+          ],
+          "exif_orientation": 1,
+          "prepared_size": [
+            4084,
+            3860
+          ],
+          "raw_to_prepared": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens_undistortion": "none; camera calibration is not supplied",
+          "full_prepared_size": [
+            4084,
+            3860
+          ],
+          "source_roi": [
+            0,
+            0,
+            4084,
+            3860
+          ]
+        },
+        "reference": {
+          "raw_size": [
+            7292,
+            5514
+          ],
+          "exif_orientation": 1,
+          "prepared_size": [
+            7292,
+            5514
+          ],
+          "raw_to_prepared": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens_undistortion": "none; camera calibration is not supplied"
+        },
+        "matching": {
+          "method": "SIFT, Lowe ratio 0.75, mutual nearest",
+          "descriptor_matcher": "flann",
+          "source_keypoints": 16548,
+          "reference_keypoints": 14442,
+          "tentative_matches": 4469,
+          "source_working_size": [
+            2400,
+            2268
+          ],
+          "reference_working_size": [
+            2400,
+            1815
+          ],
+          "source_native_to_working": [
+            [
+              0.5876591576885406,
+              0.0,
+              -0.2061704211557297
+            ],
+            [
+              0.0,
+              0.5875647668393782,
+              -0.2062176165803109
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "reference_native_to_working": [
+            [
+              0.32912781130005486,
+              0.0,
+              -0.33543609434997257
+            ],
+            [
+              0.0,
+              0.3291621327529924,
+              -0.33541893362350383
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        "coordinate_convention": "EXIF-prepared source pixel centers -> EXIF-prepared full reference pixel centers; normalized hold coordinates use (u*width,v*height)",
+        "source_to_reference": [
+          [
+            0.999933386840365,
+            -2.686581172352413e-05,
+            1604.450847513819
+          ],
+          [
+            -5.432358101057208e-06,
+            0.9999573371504301,
+            0.35305718865313956
+          ],
+          [
+            -3.1936493878088027e-09,
+            -7.3933073864902314e-09,
+            1.0
+          ]
+        ],
+        "reference_to_source": [
+          [
+            1.0000614929688123,
+            1.5005176162477866e-05,
+            -1604.5495152574317
+          ],
+          [
+            5.4317962644027746e-06,
+            1.0000426621407834,
+            -0.36178730094856987
+          ],
+          [
+            3.1938859337304484e-09,
+            7.393670722082474e-09,
+            0.9999948729566182
+          ]
+        ],
+        "raw_source_to_reference": [
+          [
+            0.999933386840365,
+            -2.686581172352413e-05,
+            1604.450847513819
+          ],
+          [
+            -5.432358101057208e-06,
+            0.9999573371504301,
+            0.35305718865313956
+          ],
+          [
+            -3.1936493878088027e-09,
+            -7.3933073864902314e-09,
+            1.0
+          ]
+        ],
+        "source_footprint_reference_pixels": [
+          [
+            1604.4508056640625,
+            0.3530571758747101
+          ],
+          [
+            5687.2529296875,
+            0.33088117837905884
+          ],
+          [
+            5687.3115234375,
+            3859.32666015625
+          ],
+          [
+            1604.3929443359375,
+            3859.298583984375
+          ]
+        ],
+        "metrics": {
+          "fit_inliers": 3486,
+          "fit_inlier_ratio": 0.9748322147651006,
+          "source_inlier_hull_fraction": 0.9703704725414313,
+          "fit_inlier_error": {
+            "count": 3486,
+            "median_px": 0.29395363493083027,
+            "p95_px": 1.9410581983939037,
+            "max_px": 7.922871602037142
+          },
+          "held_out_all_match_error": {
+            "count": 893,
+            "median_px": 0.30901193852618075,
+            "p95_px": 2.3989373602851023,
+            "max_px": 5029.592144640686
+          },
+          "held_out_consistent_match_error": {
+            "count": 879,
+            "median_px": 0.30116024491798343,
+            "p95_px": 1.8775487334226972,
+            "max_px": 7.748725995296249
+          },
+          "held_out_consistent_fraction": 0.9843225083986562,
+          "validation_note": "Held-out descriptor correspondences test consistency, not independent manual-anchor accuracy. Outliers are retained in held_out_all_match_error.",
+          "shape": {
+            "local_scale_min": 0.9999340319133305,
+            "local_scale_max": 1.0000306853411016,
+            "max_anisotropy": 1.0000480519633639,
+            "footprint_area_reference_pixels_squared": 15755638.276539762
+          },
+          "independent_manual_anchor_error": null
+        },
+        "qa_failures": []
+      },
+      "input_hashes": {
+        "image": "530b239eeb636f4c2b265783f9bb451792b91893b2df1cb9ffc7ddf9f99d9c07"
+      },
+      "quality": {
+        "registration_weight": 0.8047433020050617,
+        "resolution_weight": 0.9999693156004597,
+        "distortion_weight": 0.9999519503455163,
+        "median_sharpness": 0.681991696357727,
+        "priority": 1.0
+      },
+      "exposure_gain_rgb": [
+        0.988950276243094,
+        0.9830508474576272,
+        0.9882352941176471
+      ],
+      "selected_pixel_count": 3392361
+    },
+    {
+      "id": "crop-1-3",
+      "source_code": 3,
+      "input": {
+        "id": "crop-1-3",
+        "image": "crop-1-3.jpg",
+        "description": "Derived from canonical reference; synthetic test input."
+      },
+      "status": "registered-for-inspection",
+      "registration": {
+        "status": "registered-for-inspection",
+        "source": {
+          "raw_size": [
+            4084,
+            3860
+          ],
+          "exif_orientation": 1,
+          "prepared_size": [
+            4084,
+            3860
+          ],
+          "raw_to_prepared": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens_undistortion": "none; camera calibration is not supplied",
+          "full_prepared_size": [
+            4084,
+            3860
+          ],
+          "source_roi": [
+            0,
+            0,
+            4084,
+            3860
+          ]
+        },
+        "reference": {
+          "raw_size": [
+            7292,
+            5514
+          ],
+          "exif_orientation": 1,
+          "prepared_size": [
+            7292,
+            5514
+          ],
+          "raw_to_prepared": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens_undistortion": "none; camera calibration is not supplied"
+        },
+        "matching": {
+          "method": "SIFT, Lowe ratio 0.75, mutual nearest",
+          "descriptor_matcher": "flann",
+          "source_keypoints": 14421,
+          "reference_keypoints": 14442,
+          "tentative_matches": 3923,
+          "source_working_size": [
+            2400,
+            2268
+          ],
+          "reference_working_size": [
+            2400,
+            1815
+          ],
+          "source_native_to_working": [
+            [
+              0.5876591576885406,
+              0.0,
+              -0.2061704211557297
+            ],
+            [
+              0.0,
+              0.5875647668393782,
+              -0.2062176165803109
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "reference_native_to_working": [
+            [
+              0.32912781130005486,
+              0.0,
+              -0.33543609434997257
+            ],
+            [
+              0.0,
+              0.3291621327529924,
+              -0.33541893362350383
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        "coordinate_convention": "EXIF-prepared source pixel centers -> EXIF-prepared full reference pixel centers; normalized hold coordinates use (u*width,v*height)",
+        "source_to_reference": [
+          [
+            1.0000338387377061,
+            7.219465253132081e-05,
+            3208.226770721453
+          ],
+          [
+            3.2745550794583564e-06,
+            1.000054788206339,
+            0.2729711499854269
+          ],
+          [
+            7.654895007287117e-10,
+            1.1968709554804315e-08,
+            1.0
+          ]
+        ],
+        "reference_to_source": [
+          [
+            0.9999686182217044,
+            -3.3793406168342124e-05,
+            -3208.1260816355875
+          ],
+          [
+            -3.2740639987077555e-06,
+            0.9999452181726438,
+            -0.26245225635730557
+          ],
+          [
+            -7.65426291985848e-10,
+            -1.1968028018526191e-08,
+            1.0000024589280474
+          ]
+        ],
+        "raw_source_to_reference": [
+          [
+            1.0000338387377061,
+            7.219465253132081e-05,
+            3208.226770721453
+          ],
+          [
+            3.2745550794583564e-06,
+            1.000054788206339,
+            0.2729711499854269
+          ],
+          [
+            7.654895007287117e-10,
+            1.1968709554804315e-08,
+            1.0
+          ]
+        ],
+        "source_footprint_reference_pixels": [
+          [
+            3208.226806640625,
+            0.27297115325927734
+          ],
+          [
+            7291.34228515625,
+            0.28634026646614075
+          ],
+          [
+            7291.2841796875,
+            3859.307373046875
+          ],
+          [
+            3208.357177734375,
+            3859.30615234375
+          ]
+        ],
+        "metrics": {
+          "fit_inliers": 3057,
+          "fit_inlier_ratio": 0.973877030901561,
+          "source_inlier_hull_fraction": 0.9609933795534376,
+          "fit_inlier_error": {
+            "count": 3057,
+            "median_px": 0.3158084982252552,
+            "p95_px": 2.2092997632424063,
+            "max_px": 7.955286846974043
+          },
+          "held_out_all_match_error": {
+            "count": 784,
+            "median_px": 0.3166297627552731,
+            "p95_px": 3.8263290977951683,
+            "max_px": 5994.342646118798
+          },
+          "held_out_consistent_match_error": {
+            "count": 756,
+            "median_px": 0.3058222272383877,
+            "p95_px": 2.07224715614536,
+            "max_px": 6.6565197589034675
+          },
+          "held_out_consistent_fraction": 0.9642857142857143,
+          "validation_note": "Held-out descriptor correspondences test consistency, not independent manual-anchor accuracy. Outliers are retained in held_out_all_match_error.",
+          "shape": {
+            "local_scale_min": 0.9999532927966348,
+            "local_scale_max": 1.000065003710535,
+            "max_anisotropy": 1.0000438384473467,
+            "footprint_area_reference_pixels_squared": 15756489.644198218
+          },
+          "independent_manual_anchor_error": null
+        },
+        "qa_failures": []
+      },
+      "input_hashes": {
+        "image": "2e7d7b95f7139d8a44ef27be18976e2e0b52577e54298e23b1dc9bc6c0a1d011"
+      },
+      "quality": {
+        "registration_weight": 0.7835992855066539,
+        "resolution_weight": 0.9999350005146728,
+        "distortion_weight": 0.9999561634743785,
+        "median_sharpness": 0.6617803573608398,
+        "priority": 1.0
+      },
+      "exposure_gain_rgb": [
+        0.9888268156424581,
+        0.9828571428571429,
+        0.9880239520958084
+      ],
+      "selected_pixel_count": 4223028
+    },
+    {
+      "id": "crop-2-1",
+      "source_code": 4,
+      "input": {
+        "id": "crop-2-1",
+        "image": "crop-2-1.jpg",
+        "description": "Derived from canonical reference; synthetic test input."
+      },
+      "status": "registered-for-inspection",
+      "registration": {
+        "status": "registered-for-inspection",
+        "source": {
+          "raw_size": [
+            4084,
+            3860
+          ],
+          "exif_orientation": 1,
+          "prepared_size": [
+            4084,
+            3860
+          ],
+          "raw_to_prepared": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens_undistortion": "none; camera calibration is not supplied",
+          "full_prepared_size": [
+            4084,
+            3860
+          ],
+          "source_roi": [
+            0,
+            0,
+            4084,
+            3860
+          ]
+        },
+        "reference": {
+          "raw_size": [
+            7292,
+            5514
+          ],
+          "exif_orientation": 1,
+          "prepared_size": [
+            7292,
+            5514
+          ],
+          "raw_to_prepared": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens_undistortion": "none; camera calibration is not supplied"
+        },
+        "matching": {
+          "method": "SIFT, Lowe ratio 0.75, mutual nearest",
+          "descriptor_matcher": "flann",
+          "source_keypoints": 15247,
+          "reference_keypoints": 14442,
+          "tentative_matches": 3878,
+          "source_working_size": [
+            2400,
+            2268
+          ],
+          "reference_working_size": [
+            2400,
+            1815
+          ],
+          "source_native_to_working": [
+            [
+              0.5876591576885406,
+              0.0,
+              -0.2061704211557297
+            ],
+            [
+              0.0,
+              0.5875647668393782,
+              -0.2062176165803109
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "reference_native_to_working": [
+            [
+              0.32912781130005486,
+              0.0,
+              -0.33543609434997257
+            ],
+            [
+              0.0,
+              0.3291621327529924,
+              -0.33541893362350383
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        "coordinate_convention": "EXIF-prepared source pixel centers -> EXIF-prepared full reference pixel centers; normalized hold coordinates use (u*width,v*height)",
+        "source_to_reference": [
+          [
+            0.9999941313039554,
+            -8.13227277902294e-06,
+            0.3705715301805131
+          ],
+          [
+            -1.4992903465574968e-05,
+            1.0000056473014503,
+            1654.3666350388658
+          ],
+          [
+            -2.3995621926072625e-09,
+            6.090048988891217e-09,
+            1.0
+          ]
+        ],
+        "reference_to_source": [
+          [
+            1.0000058679309363,
+            8.134613329683259e-06,
+            -0.3840313375502295
+          ],
+          [
+            1.102326132808963e-05,
+            1.0000044279816784,
+            -1654.3739646289218
+          ],
+          [
+            2.3995091408709803e-09,
+            -6.090056436005964e-09,
+            1.0000100742969835
+          ]
+        ],
+        "raw_source_to_reference": [
+          [
+            0.9999941313039554,
+            -8.13227277902294e-06,
+            0.3705715301805131
+          ],
+          [
+            -1.4992903465574968e-05,
+            1.0000056473014503,
+            1654.3666350388658
+          ],
+          [
+            -2.3995621926072625e-09,
+            6.090048988891217e-09,
+            1.0
+          ]
+        ],
+        "source_footprint_reference_pixels": [
+          [
+            0.3705715239048004,
+            1654.3665771484375
+          ],
+          [
+            4083.38671875,
+            1654.3216552734375
+          ],
+          [
+            4083.25927734375,
+            5513.25146484375
+          ],
+          [
+            0.339181125164032,
+            5513.2587890625
+          ]
+        ],
+        "metrics": {
+          "fit_inliers": 3015,
+          "fit_inlier_ratio": 0.9716403480502739,
+          "source_inlier_hull_fraction": 0.9784779664345739,
+          "fit_inlier_error": {
+            "count": 3015,
+            "median_px": 0.2920248283105325,
+            "p95_px": 1.823379643870847,
+            "max_px": 7.9376417550731695
+          },
+          "held_out_all_match_error": {
+            "count": 775,
+            "median_px": 0.32498670124130413,
+            "p95_px": 2.4370331500289764,
+            "max_px": 5951.008987938168
+          },
+          "held_out_consistent_match_error": {
+            "count": 754,
+            "median_px": 0.3162687218504653,
+            "p95_px": 1.7555141273089692,
+            "max_px": 7.226838590787726
+          },
+          "held_out_consistent_fraction": 0.9729032258064516,
+          "validation_note": "Held-out descriptor correspondences test consistency, not independent manual-anchor accuracy. Outliers are retained in held_out_all_match_error.",
+          "shape": {
+            "local_scale_min": 0.9999475116986696,
+            "local_scale_max": 1.0000319537007125,
+            "max_anisotropy": 1.0000471546349337,
+            "footprint_area_reference_pixels_squared": 15755810.639349103
+          },
+          "independent_manual_anchor_error": null
+        },
+        "qa_failures": []
+      },
+      "input_hashes": {
+        "image": "0c7be140c5261fe659051f4a03c7621ad63a173b918ae38ca29125f50f732ff0"
+      },
+      "quality": {
+        "registration_weight": 0.8143836734429257,
+        "resolution_weight": 0.9999680473202939,
+        "distortion_weight": 0.9999528475885211,
+        "median_sharpness": 0.648768424987793,
+        "priority": 1.0
+      },
+      "exposure_gain_rgb": [
+        0.9940119760479041,
+        0.9939759036144579,
+        0.99375
+      ],
+      "selected_pixel_count": 11177794
+    },
+    {
+      "id": "crop-2-2",
+      "source_code": 5,
+      "input": {
+        "id": "crop-2-2",
+        "image": "crop-2-2.jpg",
+        "description": "Derived from canonical reference; synthetic test input."
+      },
+      "status": "registered-for-inspection",
+      "registration": {
+        "status": "registered-for-inspection",
+        "source": {
+          "raw_size": [
+            4084,
+            3860
+          ],
+          "exif_orientation": 1,
+          "prepared_size": [
+            4084,
+            3860
+          ],
+          "raw_to_prepared": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens_undistortion": "none; camera calibration is not supplied",
+          "full_prepared_size": [
+            4084,
+            3860
+          ],
+          "source_roi": [
+            0,
+            0,
+            4084,
+            3860
+          ]
+        },
+        "reference": {
+          "raw_size": [
+            7292,
+            5514
+          ],
+          "exif_orientation": 1,
+          "prepared_size": [
+            7292,
+            5514
+          ],
+          "raw_to_prepared": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens_undistortion": "none; camera calibration is not supplied"
+        },
+        "matching": {
+          "method": "SIFT, Lowe ratio 0.75, mutual nearest",
+          "descriptor_matcher": "flann",
+          "source_keypoints": 15829,
+          "reference_keypoints": 14442,
+          "tentative_matches": 3968,
+          "source_working_size": [
+            2400,
+            2268
+          ],
+          "reference_working_size": [
+            2400,
+            1815
+          ],
+          "source_native_to_working": [
+            [
+              0.5876591576885406,
+              0.0,
+              -0.2061704211557297
+            ],
+            [
+              0.0,
+              0.5875647668393782,
+              -0.2062176165803109
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "reference_native_to_working": [
+            [
+              0.32912781130005486,
+              0.0,
+              -0.33543609434997257
+            ],
+            [
+              0.0,
+              0.3291621327529924,
+              -0.33541893362350383
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        "coordinate_convention": "EXIF-prepared source pixel centers -> EXIF-prepared full reference pixel centers; normalized hold coordinates use (u*width,v*height)",
+        "source_to_reference": [
+          [
+            0.9999593982986469,
+            1.6888531032132484e-05,
+            1604.3244318495715
+          ],
+          [
+            -2.4019964160961548e-05,
+            1.0000086915702247,
+            1654.323241981467
+          ],
+          [
+            -8.061711069044098e-09,
+            1.757765794513807e-09,
+            1.0
+          ]
+        ],
+        "reference_to_source": [
+          [
+            1.0000276687165623,
+            -1.4068812310795165e-05,
+            -1604.3455470843576
+          ],
+          [
+            1.0683521972343851e-05,
+            0.9999942162257334,
+            -1654.3308135845898
+          ],
+          [
+            8.061915347113188e-09,
+            -1.7578690466931722e-09,
+            0.9999899741558614
+          ]
+        ],
+        "raw_source_to_reference": [
+          [
+            0.9999593982986469,
+            1.6888531032132484e-05,
+            1604.3244318495715
+          ],
+          [
+            -2.4019964160961548e-05,
+            1.0000086915702247,
+            1654.323241981467
+          ],
+          [
+            -8.061711069044098e-09,
+            1.757765794513807e-09,
+            1.0
+          ]
+        ],
+        "source_footprint_reference_pixels": [
+          [
+            1604.324462890625,
+            1654.3232421875
+          ],
+          [
+            5687.345703125,
+            1654.2796630859375
+          ],
+          [
+            5687.37255859375,
+            5513.40283203125
+          ],
+          [
+            1604.378662109375,
+            5513.3193359375
+          ]
+        ],
+        "metrics": {
+          "fit_inliers": 3088,
+          "fit_inlier_ratio": 0.9725984251968504,
+          "source_inlier_hull_fraction": 0.9741112311968873,
+          "fit_inlier_error": {
+            "count": 3088,
+            "median_px": 0.2858989103860939,
+            "p95_px": 1.8529581513998554,
+            "max_px": 7.89257198971058
+          },
+          "held_out_all_match_error": {
+            "count": 793,
+            "median_px": 0.3050706394016089,
+            "p95_px": 2.7673868184283745,
+            "max_px": 5086.600098418078
+          },
+          "held_out_consistent_match_error": {
+            "count": 772,
+            "median_px": 0.2934421909338986,
+            "p95_px": 1.888679221361901,
+            "max_px": 6.126256818326822
+          },
+          "held_out_consistent_fraction": 0.9735182849936949,
+          "validation_note": "Held-out descriptor correspondences test consistency, not independent manual-anchor accuracy. Outliers are retained in held_out_all_match_error.",
+          "shape": {
+            "local_scale_min": 0.999957082613917,
+            "local_scale_max": 1.0000422703104113,
+            "max_anisotropy": 1.000043603286032,
+            "footprint_area_reference_pixels_squared": 15756569.680733755
+          },
+          "independent_manual_anchor_error": null
+        },
+        "qa_failures": []
+      },
+      "input_hashes": {
+        "image": "854ee6dc62e23485e2f76b4500f47dc28a76a867d37b6baa15aada4e31d8e7cf"
+      },
+      "quality": {
+        "registration_weight": 0.8119388996758707,
+        "resolution_weight": 0.9999577314762923,
+        "distortion_weight": 0.9999563986151316,
+        "median_sharpness": 0.6530253291130066,
+        "priority": 1.0
+      },
+      "exposure_gain_rgb": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "selected_pixel_count": 5802998
+    },
+    {
+      "id": "crop-2-3",
+      "source_code": 6,
+      "input": {
+        "id": "crop-2-3",
+        "image": "crop-2-3.jpg",
+        "description": "Derived from canonical reference; synthetic test input."
+      },
+      "status": "registered-for-inspection",
+      "registration": {
+        "status": "registered-for-inspection",
+        "source": {
+          "raw_size": [
+            4084,
+            3860
+          ],
+          "exif_orientation": 1,
+          "prepared_size": [
+            4084,
+            3860
+          ],
+          "raw_to_prepared": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens_undistortion": "none; camera calibration is not supplied",
+          "full_prepared_size": [
+            4084,
+            3860
+          ],
+          "source_roi": [
+            0,
+            0,
+            4084,
+            3860
+          ]
+        },
+        "reference": {
+          "raw_size": [
+            7292,
+            5514
+          ],
+          "exif_orientation": 1,
+          "prepared_size": [
+            7292,
+            5514
+          ],
+          "raw_to_prepared": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens_undistortion": "none; camera calibration is not supplied"
+        },
+        "matching": {
+          "method": "SIFT, Lowe ratio 0.75, mutual nearest",
+          "descriptor_matcher": "flann",
+          "source_keypoints": 14473,
+          "reference_keypoints": 14442,
+          "tentative_matches": 3639,
+          "source_working_size": [
+            2400,
+            2268
+          ],
+          "reference_working_size": [
+            2400,
+            1815
+          ],
+          "source_native_to_working": [
+            [
+              0.5876591576885406,
+              0.0,
+              -0.2061704211557297
+            ],
+            [
+              0.0,
+              0.5875647668393782,
+              -0.2062176165803109
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "reference_native_to_working": [
+            [
+              0.32912781130005486,
+              0.0,
+              -0.33543609434997257
+            ],
+            [
+              0.0,
+              0.3291621327529924,
+              -0.33541893362350383
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        "coordinate_convention": "EXIF-prepared source pixel centers -> EXIF-prepared full reference pixel centers; normalized hold coordinates use (u*width,v*height)",
+        "source_to_reference": [
+          [
+            1.0000893871038068,
+            -2.7765597502240396e-05,
+            3208.2911333455995
+          ],
+          [
+            4.208210189851138e-05,
+            0.9999848793041077,
+            1654.3298477196581
+          ],
+          [
+            1.5922964185594896e-08,
+            -7.375658386936187e-09,
+            1.0
+          ]
+        ],
+        "reference_to_source": [
+          [
+            0.9999616998033956,
+            4.102192950481035e-06,
+            -3208.1750415446672
+          ],
+          [
+            -1.5739710069809256e-05,
+            1.0000029188680264,
+            -1654.2841789178974
+          ],
+          [
+            -1.592247042366065e-08,
+            7.375614596438195e-09,
+            1.000038882221309
+          ]
+        ],
+        "raw_source_to_reference": [
+          [
+            1.0000893871038068,
+            -2.7765597502240396e-05,
+            3208.2911333455995
+          ],
+          [
+            4.208210189851138e-05,
+            0.9999848793041077,
+            1654.3298477196581
+          ],
+          [
+            1.5922964185594896e-08,
+            -7.375658386936187e-09,
+            1.0
+          ]
+        ],
+        "source_footprint_reference_pixels": [
+          [
+            3208.291015625,
+            1654.329833984375
+          ],
+          [
+            7291.18212890625,
+            1654.3941650390625
+          ],
+          [
+            7291.2822265625,
+            5513.24169921875
+          ],
+          [
+            3208.275390625,
+            5513.42822265625
+          ]
+        ],
+        "metrics": {
+          "fit_inliers": 2820,
+          "fit_inlier_ratio": 0.9684065934065934,
+          "source_inlier_hull_fraction": 0.9698855875578709,
+          "fit_inlier_error": {
+            "count": 2820,
+            "median_px": 0.27882355911291523,
+            "p95_px": 1.8915938343925192,
+            "max_px": 7.786007086072363
+          },
+          "held_out_all_match_error": {
+            "count": 727,
+            "median_px": 0.32126597314472677,
+            "p95_px": 2.376963983895454,
+            "max_px": 6688.484126518197
+          },
+          "held_out_consistent_match_error": {
+            "count": 706,
+            "median_px": 0.303991049969145,
+            "p95_px": 1.7066330611178862,
+            "max_px": 6.813542895400347
+          },
+          "held_out_consistent_fraction": 0.9711141678129298,
+          "validation_note": "Held-out descriptor correspondences test consistency, not independent manual-anchor accuracy. Outliers are retained in held_out_all_match_error.",
+          "shape": {
+            "local_scale_min": 0.9998961520348859,
+            "local_scale_max": 1.0000860976074342,
+            "max_anisotropy": 1.0000558439235032,
+            "footprint_area_reference_pixels_squared": 15755989.698479176
+          },
+          "independent_manual_anchor_error": null
+        },
+        "qa_failures": []
+      },
+      "input_hashes": {
+        "image": "d09b84760f3f2020e95f5a66f3ef0a7b94d4901d74111c675c4ae2a1ac4a8492"
+      },
+      "quality": {
+        "registration_weight": 0.8087675387746357,
+        "resolution_weight": 0.9999139098047257,
+        "distortion_weight": 0.9999441591948665,
+        "median_sharpness": 0.6241525411605835,
+        "priority": 1.0
+      },
+      "exposure_gain_rgb": [
+        1.0061349693251533,
+        0.9938271604938271,
+        0.9935897435897436
+      ],
+      "selected_pixel_count": 6901566
+    },
+    {
+      "id": "blurred-bright",
+      "source_code": 7,
+      "input": {
+        "id": "blurred-bright",
+        "image": "blurred-bright.jpg",
+        "description": "Derived duplicate with Gaussian blur radius 2 and brightness x1.12."
+      },
+      "status": "registered-for-inspection",
+      "registration": {
+        "status": "registered-for-inspection",
+        "source": {
+          "raw_size": [
+            4084,
+            3860
+          ],
+          "exif_orientation": 1,
+          "prepared_size": [
+            4084,
+            3860
+          ],
+          "raw_to_prepared": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens_undistortion": "none; camera calibration is not supplied",
+          "full_prepared_size": [
+            4084,
+            3860
+          ],
+          "source_roi": [
+            0,
+            0,
+            4084,
+            3860
+          ]
+        },
+        "reference": {
+          "raw_size": [
+            7292,
+            5514
+          ],
+          "exif_orientation": 1,
+          "prepared_size": [
+            7292,
+            5514
+          ],
+          "raw_to_prepared": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens_undistortion": "none; camera calibration is not supplied"
+        },
+        "matching": {
+          "method": "SIFT, Lowe ratio 0.75, mutual nearest",
+          "descriptor_matcher": "flann",
+          "source_keypoints": 12612,
+          "reference_keypoints": 14442,
+          "tentative_matches": 3484,
+          "source_working_size": [
+            2400,
+            2268
+          ],
+          "reference_working_size": [
+            2400,
+            1815
+          ],
+          "source_native_to_working": [
+            [
+              0.5876591576885406,
+              0.0,
+              -0.2061704211557297
+            ],
+            [
+              0.0,
+              0.5875647668393782,
+              -0.2062176165803109
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "reference_native_to_working": [
+            [
+              0.32912781130005486,
+              0.0,
+              -0.33543609434997257
+            ],
+            [
+              0.0,
+              0.3291621327529924,
+              -0.33541893362350383
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        "coordinate_convention": "EXIF-prepared source pixel centers -> EXIF-prepared full reference pixel centers; normalized hold coordinates use (u*width,v*height)",
+        "source_to_reference": [
+          [
+            1.0000385791001385,
+            -1.352029302703124e-05,
+            0.31724020767698147
+          ],
+          [
+            -7.859826203488537e-06,
+            0.9999808260986216,
+            0.36229249575302946
+          ],
+          [
+            3.1790419974680374e-09,
+            -8.355918672447883e-10,
+            1.0
+          ]
+        ],
+        "reference_to_source": [
+          [
+            0.9999614235028678,
+            1.3519765610934205e-05,
+            -0.317232867770645
+          ],
+          [
+            7.86082541786631e-06,
+            1.0000191740725644,
+            -0.36230193614552064
+          ],
+          [
+            -3.17891279272175e-09,
+            8.35564909041212e-10,
+            1.0000000007057601
+          ]
+        ],
+        "raw_source_to_reference": [
+          [
+            1.0000385791001385,
+            -1.352029302703124e-05,
+            0.31724020767698147
+          ],
+          [
+            -7.859826203488537e-06,
+            0.9999808260986216,
+            0.36229249575302946
+          ],
+          [
+            3.1790419974680374e-09,
+            -8.355918672447883e-10,
+            1.0
+          ]
+        ],
+        "source_footprint_reference_pixels": [
+          [
+            0.3172402083873749,
+            0.36229249835014343
+          ],
+          [
+            4083.421875,
+            0.3301965296268463
+          ],
+          [
+            4083.3828125,
+            3859.218505859375
+          ],
+          [
+            0.2650662660598755,
+            3859.30078125
+          ]
+        ],
+        "metrics": {
+          "fit_inliers": 2708,
+          "fit_inlier_ratio": 0.9713055954088953,
+          "source_inlier_hull_fraction": 0.9075170609724614,
+          "fit_inlier_error": {
+            "count": 2708,
+            "median_px": 0.6375650509294184,
+            "p95_px": 2.6866524868244444,
+            "max_px": 7.673773829739761
+          },
+          "held_out_all_match_error": {
+            "count": 696,
+            "median_px": 0.6771759792310261,
+            "p95_px": 3.3420031274198947,
+            "max_px": 6045.749194735915
+          },
+          "held_out_consistent_match_error": {
+            "count": 671,
+            "median_px": 0.6439499341483518,
+            "p95_px": 2.312610779902749,
+            "max_px": 7.364826458995873
+          },
+          "held_out_consistent_fraction": 0.9640804597701149,
+          "validation_note": "Held-out descriptor correspondences test consistency, not independent manual-anchor accuracy. Outliers are retained in held_out_all_match_error.",
+          "shape": {
+            "local_scale_min": 0.999966111090806,
+            "local_scale_max": 1.0000465762654707,
+            "max_anisotropy": 1.0000640752929915,
+            "footprint_area_reference_pixels_squared": 15756372.480234064
+          },
+          "independent_manual_anchor_error": null
+        },
+        "qa_failures": []
+      },
+      "input_hashes": {
+        "image": "01fbc8c7eb72e5f2a120635aeaa314086cafbedaf3b05c8e6493c51a05631b83"
+      },
+      "quality": {
+        "registration_weight": 0.7485973750772926,
+        "resolution_weight": 0.9999534259037768,
+        "distortion_weight": 0.9999359288123887,
+        "median_sharpness": 0.450558602809906,
+        "priority": 1.0
+      },
+      "exposure_gain_rgb": [
+        0.895,
+        0.8877551020408163,
+        0.893048128342246
+      ],
+      "selected_pixel_count": 1216
+    },
+    {
+      "id": "blank-rejection-check",
+      "source_code": 8,
+      "input": {
+        "id": "blank-rejection-check",
+        "image": "blank.jpg",
+        "description": "Synthetic blank image; must be rejected."
+      },
+      "status": "rejected",
+      "error": "Not enough SIFT features. Use a sharper overlapping photo or --alignment-anchors."
+    },
+    {
+      "id": "user-partial-baseline",
+      "source_code": 9,
+      "input": {
+        "id": "user-partial-baseline",
+        "image": "../baseline-20261031/raw/IMG20261031152837.jpg",
+        "description": "User-supplied partial image from the original wall photo session; not a new scan."
+      },
+      "status": "registered-for-inspection",
+      "registration": {
+        "status": "registered-for-inspection",
+        "source": {
+          "raw_size": [
+            960,
+            1280
+          ],
+          "exif_orientation": 1,
+          "prepared_size": [
+            960,
+            1280
+          ],
+          "raw_to_prepared": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens_undistortion": "none; camera calibration is not supplied",
+          "full_prepared_size": [
+            960,
+            1280
+          ],
+          "source_roi": [
+            0,
+            0,
+            960,
+            1280
+          ]
+        },
+        "reference": {
+          "raw_size": [
+            7292,
+            5514
+          ],
+          "exif_orientation": 1,
+          "prepared_size": [
+            7292,
+            5514
+          ],
+          "raw_to_prepared": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "lens_undistortion": "none; camera calibration is not supplied"
+        },
+        "matching": {
+          "method": "SIFT, Lowe ratio 0.75, mutual nearest",
+          "descriptor_matcher": "flann",
+          "source_keypoints": 5937,
+          "reference_keypoints": 14442,
+          "tentative_matches": 1482,
+          "source_working_size": [
+            960,
+            1280
+          ],
+          "reference_working_size": [
+            2400,
+            1815
+          ],
+          "source_native_to_working": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "reference_native_to_working": [
+            [
+              0.32912781130005486,
+              0.0,
+              -0.33543609434997257
+            ],
+            [
+              0.0,
+              0.3291621327529924,
+              -0.33541893362350383
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        "coordinate_convention": "EXIF-prepared source pixel centers -> EXIF-prepared full reference pixel centers; normalized hold coordinates use (u*width,v*height)",
+        "source_to_reference": [
+          [
+            2.740800400405177,
+            -0.03333463699157394,
+            34.43712770700298
+          ],
+          [
+            -0.03658357068003111,
+            2.6105957249040594,
+            168.82884428509726
+          ],
+          [
+            -1.3832365023463742e-05,
+            -5.416279884794768e-05,
+            1.0
+          ]
+        ],
+        "reference_to_source": [
+          [
+            0.36484827782269724,
+            0.004382712001320667,
+            -13.304254939077724
+          ],
+          [
+            0.004769718341315619,
+            0.38177457024465555,
+            -64.61881487149122
+          ],
+          [
+            5.305055852107705e-06,
+            2.0738602525617937e-05,
+            0.9963160348176402
+          ]
+        ],
+        "raw_source_to_reference": [
+          [
+            2.740800400405177,
+            -0.03333463699157394,
+            34.43712770700298
+          ],
+          [
+            -0.03658357068003111,
+            2.6105957249040594,
+            168.82884428509726
+          ],
+          [
+            -1.3832365023463742e-05,
+            -5.416279884794768e-05,
+            1.0
+          ]
+        ],
+        "source_footprint_reference_pixels": [
+          [
+            34.43712615966797,
+            168.82884216308594
+          ],
+          [
+            2698.6630859375,
+            135.543212890625
+          ],
+          [
+            2855.958984375,
+            3785.118896484375
+          ],
+          [
+            -8.808043479919434,
+            3768.865966796875
+          ]
+        ],
+        "metrics": {
+          "fit_inliers": 988,
+          "fit_inlier_ratio": 0.8330522765598651,
+          "source_inlier_hull_fraction": 0.8038175725589934,
+          "fit_inlier_error": {
+            "count": 988,
+            "median_px": 1.3601988530158802,
+            "p95_px": 5.94657789490871,
+            "max_px": 7.9239757324306135
+          },
+          "held_out_all_match_error": {
+            "count": 296,
+            "median_px": 1.8711416454681942,
+            "p95_px": 64.94918178638035,
+            "max_px": 5770.342613819857
+          },
+          "held_out_consistent_match_error": {
+            "count": 239,
+            "median_px": 1.4421891444818755,
+            "p95_px": 6.200470776532489,
+            "max_px": 7.641707620147527
+          },
+          "held_out_consistent_fraction": 0.8074324324324325,
+          "validation_note": "Held-out descriptor correspondences test consistency, not independent manual-anchor accuracy. Outliers are retained in held_out_all_match_error.",
+          "shape": {
+            "local_scale_min": 2.6114254269898027,
+            "local_scale_max": 3.127386008630906,
+            "max_anisotropy": 1.0682880885322381,
+            "footprint_area_reference_pixels_squared": 10021250.242885925
+          },
+          "independent_manual_anchor_error": null
+        },
+        "qa_failures": []
+      },
+      "input_hashes": {
+        "image": "4bff5890eaa326895b1e5d2af9c5922927ff22394cdd0aa029d123a6b43cd43c"
+      },
+      "quality": {
+        "registration_weight": 0.530948106465586,
+        "resolution_weight": 0.31975585912331167,
+        "distortion_weight": 0.9360770851371546,
+        "median_sharpness": 0.634555459022522,
+        "priority": 1.0
+      },
+      "exposure_gain_rgb": [
+        0.9943502824858758,
+        1.0,
+        1.0123456790123457
+      ],
+      "selected_pixel_count": 18749
+    }
+  ]
+}
