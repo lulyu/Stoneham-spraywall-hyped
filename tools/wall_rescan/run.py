@@ -282,7 +282,7 @@ def run(args):
             'source_index_legend': {'0': 'no new observation', '1': str(args.photo.resolve())},
             'sam2': 'not used: registration and unreviewed prelabel transfer only'}
         write_json(output/'manifest.json', manifest)
-        write_json(output/'holds_prelabels.json', {'session': identity, 'datasetRole': 'unreviewed-prelabels', 'publishable': False,
+        write_json(output/'holds_prelabels.json', {'session': identity, 'wallId': identity['wallId'], 'image_size': list(reference.size), 'datasetRole': 'unreviewed-prelabels', 'publishable': False,
             'warning': 'Do not import into the legacy annotator: it treats imported geometry as accepted. Phase C review mode is not implemented.', 'holds': copied})
         write_json(output/'review_queue.json', {'session': identity, 'reviewRevision': 0, 'publishable': False, 'entries': queue})
         write_json(output/'lineage.json', {'session': identity, 'reviewRevision': 0, 'links': [{'oldHoldId':h['id'], 'candidateHoldId':h['id'], 'relation':'unverified-continuity', 'reviewer':None} for h in copied]})

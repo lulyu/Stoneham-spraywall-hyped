@@ -62,7 +62,9 @@ not promise bit-for-bit equivalence across all machines.
 
 No accepted export is produced. Do **not** load the prelabels into the old
 annotator as accepted data; its import behavior predates the rescan workflow.
-A rescan-aware review editor, approval persistence/export gate, changed/new hold
+The file carries the actual backend wallId, which the legacy importer rejects;
+it cannot be directly imported there as accepted data. A rescan-aware review
+editor, approval persistence/export gate, changed/new hold
 classification, multi-source mosaic and WallVersion publication are later phases.
 `new_hold_count`/`removed_hold_count` are null because change classification has
 not run, not evidence that the image contains no changes.

@@ -10,6 +10,7 @@ from PIL import Image, ImageOps
 
 from tools.wall_rescan.geometry import check_shape, exif_matrix, fit_registration, footprint, project, resize_matrix
 from tools.wall_rescan.run import transfer
+from tools.sam2_annotation_server import clean_dataset as legacy_import
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -114,6 +115,9 @@ class PipelineTests(unittest.TestCase):
             self.assertEqual(mask[0,0],0)
             self.assertEqual(mask[100,100],255)
             np.testing.assert_array_equal(provenance,mask>0)
+            prelabels=json.loads((root/'one/holds_prelabels.json').read_text())
+            with self.assertRaisesRegex(ValueError,'Wrong wall ID'):
+                legacy_import(prelabels)
             report=json.loads((root/'one/report.json').read_text())
             self.assertFalse(report['publishable']);self.assertEqual(report['accepted_hold_count'],0)
             for name,content in before.items():self.assertEqual((root/name).read_bytes(),content)
