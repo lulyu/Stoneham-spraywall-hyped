@@ -42,15 +42,20 @@ export default function AnnotationWorkspace() {
     } catch(problem) {next?.dispose();setError(String(problem))}
     finally {if(id===loadId.current)setLoading(false)}
   }
-  const commitMany=async(actions:ReviewAction[])=> {
+  const commitMany=async(actions:ReviewAction[],manual=false)=> {
     if(!data || !assets)throw new Error('Open a scan first.')
     const generation=loadId.current
     if(!actions.length)return
     if(!reviewer.trim())throw new Error('Enter your reviewer name before confirming a decision.')
     let next=data
     for(const action of actions) {
-      if((action.type==='add' || action.type==='refine') && await assets.observedFraction(action.hold)<.99)throw new Error('The edited outline crosses an unobserved gap. No decisions in this batch were saved.')
-      next=applyReview(next,action,reviewer)
+      let measuredAction=action
+      if(action.type==='add' || action.type==='refine'){
+        const fraction=await assets.observedFraction(action.hold)
+        if(!manual && fraction<.99)throw new Error('The edited outline crosses an unobserved gap. No decisions in this batch were saved.')
+        measuredAction={...action,coverageFraction:fraction}
+      }
+      next=applyReview(next,measuredAction,reviewer)
     }
     // Serialize same-origin tabs using a browser lock; the stored state is also compared in saveReview.
     if(!navigator.locks)throw new Error('This browser needs Web Locks for safe saving. Use a current HTTPS browser.')
@@ -60,7 +65,7 @@ export default function AnnotationWorkspace() {
     })
     setData(next)
   }
-  const commit=(action:ReviewAction)=>commitMany([action])
+  const commit=(action:ReviewAction)=>commitMany([action],true)
   const resume=async(file?:File)=> {
     if(!file || !data || !assets)return
     if(file.size>16*1024*1024)throw new Error('Checkpoint exceeds 16 MiB.')

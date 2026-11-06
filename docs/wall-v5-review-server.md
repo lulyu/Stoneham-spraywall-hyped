@@ -100,11 +100,17 @@ distinct: its checkpoints cannot approve this reference-filled JPEG. Tampered
 proposal files, inherited geometry and unknown associations are rejected.
 
 New-photo coverage is still 92.0973%; reference-filled gaps remain unobserved.
-Existing coverage restrictions block confirmations/removals in insufficiently
-observed regions and reject corrected/new outlines crossing gaps. No usable model
+At the user's request, individual Confirm/Confirm unchanged and new/corrected
+outlines may be saved even with insufficient coverage. Their measured coverage
+remains recorded, with a manual partial-coverage confirmation reason. The original
+coverage masks do not change. Bulk confirmation retains its 99% coverage filter;
+removal/replacement still require sufficiently observed old entries. No usable model
 mask means no suggestion, not proof of removal. Alignment QA remains unresolved;
 these proposals do not search entirely new positions or resolve physical identity.
 Review checkpoints remain `publishable: false`.
+
+`scripts/manual-coverage-smoke.cjs` checks manual zero/partial-coverage approvals,
+retained source evidence, unchanged bulk eligibility and export/reload replay.
 
 ## Verification
 

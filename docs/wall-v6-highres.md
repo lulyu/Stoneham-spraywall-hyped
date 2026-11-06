@@ -94,8 +94,10 @@ file hashes, and inspected the whole mosaic and native-pixel detail crop.
 The v1 edge fill was explicitly requested for presentation. It uses
 `public/wall/stoneham-spraywall-canonical.jpg`, the original manually rectified
 composite. The original observation-only PNG and all source masks remain intact.
-The review page displays the new-photo versus v1-fill percentages. The fill does
-not permit confirming unobserved holds or infer that old holds are still present.
+The review page displays the new-photo versus v1-fill percentages. At the user's
+request, these regions can be confirmed manually. Confirmation retains the actual
+coverage/source evidence and a manual partial-coverage reason; the fill itself
+does not become a new observation. Bulk confirmation still skips these regions.
 
 A fresh SAM2.1 Small CPU run on this exact filled high-resolution JPEG took
 **202.61 seconds**, prompted **651** fully observed inherited positions, produced

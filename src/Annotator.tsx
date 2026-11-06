@@ -341,7 +341,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
     const entry=queue[(index + 1) % queue.length]
     setComparison('new');editHold(entry.hold)
     const suggestions=modelByOld.get(entry.hold.id)??[]
-    if(review?.assets.proposals){setCandidates(suggestions);setCandidateIndex(0)}
+    if(review?.assets.proposals){setCandidates(suggestions.length?suggestions:[entry.hold]);setCandidateIndex(0)}
     if(autoPredict && entry.coverageFraction>=.99)setAutoHold(entry.hold)
   }
   const bulkActions=useMemo(()=>review?.assets.proposals && Number.isFinite(threshold) && threshold>=0 && threshold<=1 ? bulkProposalActions(review.data,review.assets.proposals,threshold) : [],[review?.data,review?.assets.proposals,threshold])
@@ -363,7 +363,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
       <button className="small" disabled={busy} onClick={()=>setServiceAttempt(n=>n+1)}>Check SAM2 connection</button>
       {review && <section className="review-panel" aria-label="Scan review">
         <p className="review-badge">DRAFT · {review.data.session.candidateVersion} · revision {review.data.reviewRevision}</p>
-        {Number(review.data.session.referenceFilledFraction)>0 && <p className="annotation-hint">{((1-Number(review.data.session.referenceFilledFraction))*100).toFixed(2)}% new photos · {(Number(review.data.session.referenceFilledFraction)*100).toFixed(2)}% v1 edge fill. Filled areas are display-only and remain unobserved.</p>}
+        {Number(review.data.session.referenceFilledFraction)>0 && <p className="annotation-hint">{((1-Number(review.data.session.referenceFilledFraction))*100).toFixed(2)}% new photos · {(Number(review.data.session.referenceFilledFraction)*100).toFixed(2)}% v1 edge fill. V1-filled areas can be confirmed manually; their coverage/source labels stay recorded.</p>}
         <label>Reviewer name<input ref={reviewerInput} aria-label="Reviewer name" value={review.reviewer} maxLength={100} placeholder="Enter your name to enable confirmation" onChange={event => {review.setReviewer(event.target.value);if(error==='Enter your reviewer name to confirm holds.')setError('')}} /></label>
         <details><summary>Session, reviewer & backups</summary>
         <p className="annotation-hint">{review.assets.inputKind} · QA: {review.assets.qaStatus}. Decisions are local working notes, not publication approval.</p>
@@ -456,12 +456,12 @@ export default function Annotator({ review }: { review?: ReviewController }) {
       {review && <section className="review-quick-actions" aria-label="Quick hold review">
         <div className="review-quick-buttons">
           <button disabled={busy || !pending.length} onClick={nextPending}>Next pending hold</button>
-          <button className="primary" disabled={busy || !canEdit || !preview || !!(selectedEntry && (['removed','dismissed'].includes(selectedEntry.status) || selectedEntry.coverageFraction<.99))} onClick={()=>void accept()}>Confirm</button>
+          <button className="primary" disabled={busy || !canEdit || !preview || !!(selectedEntry && (['removed','dismissed'].includes(selectedEntry.status)))} onClick={()=>void accept()}>Confirm</button>
           <button disabled={!canChangeSelected} onClick={()=>void remove()}>Mark removed</button>
           <button disabled={!canReplace} title="Replace the selected old hold with this outline and a fresh ID" onClick={()=>void replacement()}>Mark replaced</button>
           <button disabled={!canPredict} onClick={()=>void predict()}>Generate mask</button>
         </div>
-        <p className="annotation-hint" role="status">{busy ? 'SAM2 is running…' : !preview ? 'Next pending hold loads its SAM2 suggestion.' : !canEdit ? 'Switch to New scan to confirm.' : selectedEntry && selectedEntry.coverageFraction<.99 ? 'Insufficient new-photo coverage to confirm this hold.' : !review.reviewer.trim() ? 'Enter your reviewer name above to confirm. Tap Confirm to jump there.' : `Outline ready${preview.score===undefined?'':` · score ${preview.score.toFixed(2)}`}`}</p>
+        <p className="annotation-hint" role="status">{busy ? 'SAM2 is running…' : !preview ? 'Next pending hold loads its SAM2 suggestion.' : !canEdit ? 'Switch to New scan to confirm.' : !review.reviewer.trim() ? 'Enter your reviewer name above to confirm. Tap Confirm to jump there.' : `Outline ready${preview.score===undefined?'':` · score ${preview.score.toFixed(2)}`}`}</p>
         {error&&<p className="annotation-error" role="alert">{error}</p>}
       </section>}
       {review && <h2 className="review-edit-heading">Edit outline & rerun SAM2</h2>}

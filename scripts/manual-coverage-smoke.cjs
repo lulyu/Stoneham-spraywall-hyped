@@ -1,0 +1,39 @@
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright')
+const fs=require('node:fs'),assert=require('node:assert/strict')
+const base=process.env.APP_URL||'http://127.0.0.1:8791'
+async function main(){
+ const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox'],proxy:process.env.BROWSER_PROXY?{server:process.env.BROWSER_PROXY}:undefined})
+ try{
+  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,acceptDownloads:true}),page=await context.newPage()
+  if(process.env.BROWSER_FETCH_PROXY==='1')await page.route('https://**/*',async r=>{try{await r.fulfill({response:await r.fetch()})}catch{await r.abort('failed').catch(()=>{})}})
+  if(process.env.AUTH_KEY_FILE)await page.goto(base+'/auth?key='+encodeURIComponent(fs.readFileSync(process.env.AUTH_KEY_FILE,'utf8').trim()))
+  const open=async()=>{await page.goto(base+'/?review=1');await page.getByRole('button',{name:'Open local server scan',exact:true}).click();await page.getByRole('heading',{name:'Review & annotate',exact:true}).waitFor({timeout:90000})}
+  const state=()=>page.evaluate(()=>JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.startsWith('stoneham-wall-review-v1:')))))
+  await open()
+  if(process.env.EXPECTED_VERSION)assert.equal((await state()).session.candidateVersion,process.env.EXPECTED_VERSION)
+  const baseState=await state(),gap=baseState.entries.find(e=>e.coverageFraction===0),partial=baseState.entries.find(e=>e.coverageFraction>0&&e.coverageFraction<.99)
+  assert(gap);assert(partial)
+  const bulk=page.getByRole('button',{name:/^Confirm eligible SAM2 outlines/}),bulkBefore=await bulk.innerText()
+  await page.getByLabel('Reviewer name',{exact:true}).fill('Coverage reviewer')
+  const select=async id=>{await page.getByRole('combobox',{name:'Saved hold',exact:true}).selectOption(id);await page.getByRole('button',{name:'Edit selected',exact:true}).click()}
+  await select(gap.hold.id)
+  const confirm=page.getByRole('button',{name:'Confirm',exact:true});assert(!await confirm.isDisabled())
+  await confirm.click();await page.waitForFunction(()=>JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.startsWith('stoneham-wall-review-v1:')))).reviewRevision===1)
+  const saved=(await state()).entries.find(e=>e.hold.id===gap.hold.id)
+  assert.equal(saved.status,'verified-refined');assert.equal(saved.coverageFraction,0);assert.equal(saved.observed,false)
+  assert(saved.reasonCodes.includes('manual-confirmation-with-partial-coverage'))
+  assert.equal(await bulk.innerText(),bulkBefore)
+  await select(partial.hold.id);await page.getByRole('button',{name:'Confirm unchanged',exact:true}).click()
+  await page.waitForFunction(()=>JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.startsWith('stoneham-wall-review-v1:')))).reviewRevision===2)
+  assert.equal((await state()).entries.find(e=>e.hold.id===partial.hold.id).status,'verified-unchanged')
+  assert.equal(await page.getByRole('alert').count(),0)
+  await page.getByText('Session, reviewer & backups',{exact:true}).click()
+  const downloaded=page.waitForEvent('download');await page.getByRole('button',{name:'Export progress',exact:true}).click()
+  const checkpoint=JSON.parse(fs.readFileSync(await (await downloaded).path(),'utf8'));assert.equal(checkpoint.reviewRevision,2)
+  await open();assert.equal((await state()).reviewRevision,2)
+  assert.equal((await state()).entries.find(e=>e.hold.id===gap.hold.id).coverageFraction,0)
+  assert.equal(await page.getByRole('alert').count(),0)
+  console.log('PASS: manual zero/partial coverage confirmation, measured source evidence retained, batch eligibility unchanged, export and reload history validated.')
+ }finally{for(const c of browser.contexts())for(const p of c.pages())await p.unrouteAll({behavior:'ignoreErrors'}).catch(()=>{});await browser.close()}
+}
+main().catch(e=>{console.error(String(e.stack||e).replace(/([?&]key=)[A-Za-z0-9_-]+/g,'$1[redacted]'));process.exitCode=1})
