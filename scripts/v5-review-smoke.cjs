@@ -2,15 +2,17 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright')
 const fs=require('node:fs'), assert=require('node:assert/strict')
 const base=process.env.APP_URL||'http://127.0.0.1:8790'
 async function main(){
- const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox']})
+ const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox'],proxy:process.env.BROWSER_PROXY?{server:process.env.BROWSER_PROXY}:undefined})
  try{
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,acceptDownloads:true})
   const page=await context.newPage(),errors=[],writes=[]
   page.on('pageerror',e=>errors.push(e.message))
   page.on('request',r=>{if(r.method()==='POST')writes.push(new URL(r.url()).pathname)})
   page.setDefaultTimeout(30000)
+  // Optional transport for environments whose proxy CA is trusted by Node, not Chromium.
+  if(process.env.BROWSER_FETCH_PROXY==='1')await page.route('https://**/*',async route=>route.fulfill({response:await route.fetch()}))
   if(process.env.AUTH_KEY_FILE)await page.goto(base+'/auth?key='+encodeURIComponent(fs.readFileSync(process.env.AUTH_KEY_FILE,'utf8').trim()))
-  else await page.goto(base+'/?review=1')
+  await page.goto(base+'/?review=1')
   const open=async()=>{await page.getByRole('button',{name:'Open local server scan',exact:true}).click();await page.getByRole('heading',{name:'Review & annotate',exact:true}).waitFor({timeout:90000})}
   await open()
   const state=()=>page.evaluate(()=>JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.startsWith('stoneham-wall-review-v1:')))))
@@ -56,4 +58,4 @@ async function main(){
   console.log(`PASS: v5 image + 639 proposals, explicit refinement with old ID, compare lock, real SAM2 (${masks.elapsed_seconds.toFixed(2)}s), wrong-session rejection, checkpoint/reload, mobile layout, no legacy writes.`)
  }finally{await browser.close()}
 }
-main().catch(e=>{console.error(e);process.exitCode=1})
+main().catch(e=>{console.error(String(e.stack||e).replace(/([?&]key=)[A-Za-z0-9_-]+/g,'$1[redacted]'));process.exitCode=1})

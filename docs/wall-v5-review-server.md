@@ -88,3 +88,10 @@ proposals load, loading does not approve, explicit correction retains the old ID
 comparison locks, image/session mismatch rejection, checkpoint export/reload,
 mobile layout and absence of legacy annotation writes. It writes
 `artifacts/v5-review-mobile.png`; test review decisions do not modify production.
+
+For a remote Sandbox URL, set `APP_URL` to its HTTPS origin. In a managed test
+environment with an outbound proxy, set `BROWSER_PROXY` to that proxy. If its CA
+is trusted by Node via `NODE_EXTRA_CA_CERTS` but not by Chromium, also set
+`BROWSER_FETCH_PROXY=1`; Playwright then fetches HTTPS resources through its Node
+transport with certificate validation still enabled. Access keys are redacted
+from test failure output. These settings affect the test harness only.
