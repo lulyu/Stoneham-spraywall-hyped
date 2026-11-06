@@ -1,6 +1,8 @@
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright')
 const fs=require('node:fs'), assert=require('node:assert/strict')
 const base=process.env.APP_URL||'http://127.0.0.1:8790'
+const expectedProposals=Number(process.env.EXPECTED_PROPOSALS||639)
+const expectedVersion=process.env.EXPECTED_VERSION||'2026-11-v5'
 async function main(){
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox'],proxy:process.env.BROWSER_PROXY?{server:process.env.BROWSER_PROXY}:undefined})
  try{
@@ -17,8 +19,10 @@ async function main(){
   await open()
   const state=()=>page.evaluate(()=>JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.startsWith('stoneham-wall-review-v1:')))))
   assert.equal((await state()).entries.length,677)
+  assert.equal((await state()).session.candidateVersion,expectedVersion)
+  if(process.env.EXPECTED_IMAGE_SHA256)assert.equal((await state()).session.registeredImageSha256,process.env.EXPECTED_IMAGE_SHA256)
   assert.equal((await state()).reviewRevision,0)
-  await page.getByRole('heading',{name:'SAM2 suggestions (639)',exact:true}).waitFor()
+  await page.getByRole('heading',{name:`SAM2 suggestions (${expectedProposals})`,exact:true}).waitFor()
   await page.getByText('Session, reviewer & backups',{exact:true}).click()
   await page.getByLabel('Reviewer name',{exact:true}).fill('V5 smoke')
   assert.equal(await page.getByLabel('Auto-run SAM2 on next hold',{exact:true}).isChecked(),false)
@@ -80,7 +84,7 @@ async function main(){
   fs.mkdirSync('artifacts',{recursive:true});await page.screenshot({path:'artifacts/v5-review-mobile.png'})
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
   assert.deepEqual(errors,[]);assert(writes.every(p=>p==='/api/sam2/predict'))
-  console.log(`PASS: v5 image + 639 proposals, explicit refinement with old ID, compare lock, real SAM2 (${masks.elapsed_seconds.toFixed(2)}s), wrong-session rejection, checkpoint/reload, auto-run on next, threshold bulk confirmation, atomic storage failure/retry, bulk reload, mobile layout, no legacy writes.`)
+  console.log(`PASS: ${expectedVersion} image + ${expectedProposals} proposals, explicit refinement with old ID, compare lock, real SAM2 (${masks.elapsed_seconds.toFixed(2)}s), wrong-session rejection, checkpoint/reload, auto-run on next, threshold bulk confirmation, atomic storage failure/retry, bulk reload, mobile layout, no legacy writes.`)
  }finally{await browser.close()}
 }
 main().catch(e=>{console.error(String(e.stack||e).replace(/([?&]key=)[A-Za-z0-9_-]+/g,'$1[redacted]'));process.exitCode=1})

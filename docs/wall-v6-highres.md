@@ -88,3 +88,41 @@ Recorded run used the existing pipeline at commit
 CPU Python environment. No pipeline code was changed. Validation decoded and
 verified all original JPEGs, checked output/map dimensions and exact archived
 file hashes, and inspected the whole mosaic and native-pixel detail crop.
+
+## Reference-filled review and live SAM2
+
+The v1 edge fill was explicitly requested for presentation. It uses
+`public/wall/stoneham-spraywall-canonical.jpg`, the original manually rectified
+composite. The original observation-only PNG and all source masks remain intact.
+The review page displays the new-photo versus v1-fill percentages. The fill does
+not permit confirming unobserved holds or infer that old holds are still present.
+
+A fresh SAM2.1 Small CPU run on this exact filled high-resolution JPEG took
+**202.61 seconds**, prompted **651** fully observed inherited positions, produced
+642 usable masks and **640 unique proposals**. All 677 inherited entries remain
+unreviewed. Twenty-six partial/unobserved entries were skipped and nine prompted
+positions had no usable mask. The committed dataset is
+`src/data/experiments/wall-v6-highres-sam2-refresh.json`; model execution evidence
+is in `artifacts/wall-rescans/wall-v6-highres-sam2-refresh/`.
+
+```sh
+python -m tools.wall_rescan.candidate_review \
+  --manifest public/wall/versions/2026-11-v6-highres/manifest.json \
+  --proposals src/data/experiments/wall-v6-highres-sam2-refresh.json \
+  --output artifacts/wall-rescans/v6-highres-review-session
+python tools/sam2_annotation_server.py \
+  --rescan-session artifacts/wall-rescans/v6-highres-review-session \
+  --checkpoint /path/to/sam2.1_hiera_small.pt --host 0.0.0.0 --port 8787
+```
+
+Use the established private access-key mechanism when serving a remote Sandbox.
+The existing `stoneham-v5-review` named Sandbox can host this v6 session without
+renaming the Sandbox; the UI/session explicitly identifies v6. Its old v5 files
+and browser checkpoints are preserved. Reload, then Open local server scan to
+load the new image; the distinct image/model/session identity prevents silently
+applying old approvals. Next/Confirm, manual editing, fresh inference, threshold
+bulk confirmation and progress exports retain the established behavior.
+
+The browser regression scripts accept `EXPECTED_VERSION=2026-11-v6-highres` and
+`EXPECTED_IMAGE_SHA256` to verify the exact served image; set
+`EXPECTED_PROPOSALS=640` for the full inference/bulk script.

@@ -12,6 +12,8 @@ async function main(){
   const open=async()=>{await page.getByRole('button',{name:'Open local server scan',exact:true}).click();await page.getByRole('heading',{name:'Review & annotate',exact:true}).waitFor({timeout:90000})}
   const state=()=>page.evaluate(()=>JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.startsWith('stoneham-wall-review-v1:')))))
   await open()
+  if(process.env.EXPECTED_VERSION)assert.equal((await state()).session.candidateVersion,process.env.EXPECTED_VERSION)
+  if(process.env.EXPECTED_IMAGE_SHA256)assert.equal((await state()).session.registeredImageSha256,process.env.EXPECTED_IMAGE_SHA256)
   assert(await page.getByLabel('Reviewer name',{exact:true}).isVisible())
   const bulk=page.getByRole('button',{name:/^Confirm eligible SAM2 outlines/})
   assert(!await bulk.isDisabled());await bulk.click()
