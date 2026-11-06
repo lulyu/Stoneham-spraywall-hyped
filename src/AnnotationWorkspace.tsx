@@ -38,7 +38,7 @@ export default function AnnotationWorkspace() {
         return restored
       })
       if(id!==loadId.current){next.dispose();return}
-      active.current?.dispose();active.current=next;setAssets(next);setData(restored);setEpoch(e=>e+1)
+      active.current?.dispose();active.current=next;setAssets(next);setData(restored);setReviewer(name=>name || restored.history.at(-1)?.reviewer || '');setEpoch(e=>e+1)
     } catch(problem) {next?.dispose();setError(String(problem))}
     finally {if(id===loadId.current)setLoading(false)}
   }

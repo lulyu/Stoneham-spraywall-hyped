@@ -48,6 +48,11 @@ function inside([x, y]: Point, polygon: Point[]) {
 export default function Annotator({ review }: { review?: ReviewController }) {
   const [status, setStatus] = useState<Status>({ state: 'loading', device: 'checking' })
   const [error, setError] = useState('')
+  const reviewerInput=useRef<HTMLInputElement>(null)
+  const requireReviewer=()=>{
+    if(!review || review.reviewer.trim())return true
+    setError('Enter your reviewer name to confirm holds.');reviewerInput.current?.focus();return false
+  }
   const [prompts, setPrompts] = useState<Prompt[]>([])
   const [box, setBox] = useState<Box | null>(null)
   const [boxStart, setBoxStart] = useState<Point | null>(null)
@@ -67,7 +72,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
   const [replaceExisting, setReplaceExisting] = useState(false)
   const [tool, setTool] = useState<Tool>('positive')
   const [busy, setBusy] = useState(false)
-  const [autoPredict,setAutoPredict]=useState(true)
+  const [autoPredict,setAutoPredict]=useState(()=>!review?.assets.proposals)
   const [autoHold,setAutoHold]=useState<PolygonHoldCandidate|null>(null)
   const [threshold,setThreshold]=useState(.95)
   const [batchNotice,setBatchNotice]=useState('')
@@ -234,7 +239,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
     finally { if(id===predictionId.current)setBusy(false) }
   }
   const accept = async () => {
-    if (!preview) return
+    if (!preview || !requireReviewer()) return
     setBusy(true); setError('')
     try {
       if (review) {
@@ -335,12 +340,12 @@ export default function Annotator({ review }: { review?: ReviewController }) {
     const entry=queue[(index + 1) % queue.length]
     setComparison('new');editHold(entry.hold)
     const suggestions=modelByOld.get(entry.hold.id)??[]
-    if(suggestions.length){setCandidates(suggestions);setCandidateIndex(0)}
+    if(review?.assets.proposals){setCandidates(suggestions);setCandidateIndex(0)}
     if(autoPredict && entry.coverageFraction>=.99)setAutoHold(entry.hold)
   }
   const bulkActions=useMemo(()=>review?.assets.proposals && Number.isFinite(threshold) && threshold>=0 && threshold<=1 ? bulkProposalActions(review.data,review.assets.proposals,threshold) : [],[review?.data,review?.assets.proposals,threshold])
   const confirmBatch=async()=>{
-    if(!review || !bulkActions.length)return
+    if(!review || !bulkActions.length || !requireReviewer())return
     setBusy(true);setError('');setBatchNotice('')
     try{await review.commitMany(bulkActions);clear();setBatchNotice(`${bulkActions.length} SAM2 outlines confirmed. Other entries remain pending.`)}
     catch(problem){setError(`Batch not saved: ${String(problem)}`)}finally{setBusy(false)}
@@ -354,9 +359,10 @@ export default function Annotator({ review }: { review?: ReviewController }) {
       <p className="annotation-status" role="status">{review && (!serviceMatches || status.state === 'error') ? 'Manual editing ready · SAM2 needs a matching local rescan server.' : status.state === 'ready' ? `SAM2.1 Small ready · ${status.device.toUpperCase()}` : status.state === 'loading' ? 'Loading SAM2 and preparing wall tiles…' : status.error}</p>
       {review && <section className="review-panel" aria-label="Scan review">
         <p className="review-badge">DRAFT · {review.data.session.candidateVersion} · revision {review.data.reviewRevision}</p>
+        <label>Reviewer name<input ref={reviewerInput} aria-label="Reviewer name" value={review.reviewer} maxLength={100} placeholder="Enter your name to enable confirmation" onChange={event => {review.setReviewer(event.target.value);if(error==='Enter your reviewer name to confirm holds.')setError('')}} /></label>
         <details><summary>Session, reviewer & backups</summary>
         <p className="annotation-hint">{review.assets.inputKind} · QA: {review.assets.qaStatus}. Decisions are local working notes, not publication approval.</p>
-        <label>Reviewer name<input aria-label="Reviewer name" value={review.reviewer} maxLength={100} placeholder="Name for review history" onChange={event => review.setReviewer(event.target.value)} /></label>
+
 
         <div className="annotation-actions">
 
@@ -366,16 +372,6 @@ export default function Annotator({ review }: { review?: ReviewController }) {
         <p className="annotation-hint">Saved on this browser after every decision. Reopen the same scan to resume. Export a backup before clearing browser data.</p>
         </details>
         <div className="review-counts"><span>{pending.length} pending</span><span>{review.data.entries.filter(confirmed).length} confirmed</span><span>{review.data.entries.filter(e => e.status === 'removed').length} removed</span></div>
-        <label className="annotation-inline"><input type="checkbox" checked={autoPredict} disabled={busy} onChange={event=>setAutoPredict(event.target.checked)} />Auto-run SAM2 on next hold</label>
-        <p className="annotation-hint">Next hold loads its saved suggestion immediately and runs a fresh mask when SAM2 is ready. Turn auto-run off to use saved results only.</p>
-        <button disabled={busy || !pending.length} onClick={nextPending}>Next unreviewed hold</button>
-        {review.assets.proposals && <section aria-label="Bulk confirmation">
-          <label>Minimum SAM2 score<input aria-label="Minimum SAM2 score" type="number" min="0" max="1" step="0.01" value={Number.isFinite(threshold)?threshold:''} disabled={busy} onChange={event=>setThreshold(event.target.value===''?NaN:Number(event.target.value))} /></label>
-          <button disabled={busy || !canEdit || !bulkActions.length || !review.reviewer.trim()} onClick={()=>void confirmBatch()}>Confirm eligible SAM2 outlines ({bulkActions.length})</button>
-          <p className="annotation-hint">Uses saved SAM2 scores. Skips reviewed entries, coverage gaps, shared masks and alignment/change warnings. Confirms the proposed outline while keeping its old ID.</p>
-          {!review.reviewer.trim()&&<p className="annotation-hint">Enter your reviewer name above to enable bulk confirmation.</p>}
-          {batchNotice&&<p role="status">{batchNotice}</p>}
-        </section>}
         <fieldset className="annotation-tools"><legend>Compare wall</legend>
           {(['new', 'old', 'overlay'] as const).map(value => <button key={value} disabled={busy} aria-pressed={comparison === value} onClick={() => setComparison(value)}>{ { new: 'New scan', old: 'Old wall', overlay: 'Overlay' }[value]}</button>)}
         </fieldset>
@@ -387,11 +383,6 @@ export default function Annotator({ review }: { review?: ReviewController }) {
         <p className="annotation-hint">Orange = pending · cyan = confirmed · red dashed = removed · green = new. QA seams are not hold-change detections.</p>
         <div className="review-links">{review.assets.sources && <a href={review.assets.sources} target="_blank" rel="noreferrer">Photo source map ↗</a>}{review.assets.qa && <a href={review.assets.qa} target="_blank" rel="noreferrer">Full QA preview ↗</a>}</div></details>
       </section>}
-      <fieldset disabled={busy} className="annotation-tools">
-        <legend>Prompt tool</legend>
-        {(['positive', 'negative', 'box', 'pan', 'select', ...(review ? ['polygon', 'vertex'] : [])] as Tool[]).map((value) => <button key={value} type="button" disabled={!canEdit && value !== 'pan'} aria-pressed={tool === value}
-          onClick={() => { setTool(value); setBoxStart(null); if (value !== 'polygon') setManualPoints([]); else invalidate() }}>{({ positive: '＋ Hold', negative: '− Exclude', box: 'Box', pan: 'Pan', select: 'Select', polygon: 'Draw polygon', vertex: 'Move vertex' })[value]}</button>)}
-      </fieldset>
       <div className="annotation-zoom"><button onClick={() => zoom(1.5)}>Zoom in</button><button onClick={() => zoom(1 / 1.5)}>Zoom out</button><button onClick={fit}>Fit wall</button></div>
       <button className="annotation-coverage-toggle" type="button" aria-pressed={coverConfirmed}
         disabled={!imageReady || (!review && !savedLoaded)} onClick={() => setCoverConfirmed((value) => !value)}>
@@ -457,8 +448,22 @@ export default function Annotator({ review }: { review?: ReviewController }) {
           {boxStart && <circle className="annotation-box-start" cx={boxStart[0] * WIDTH} cy={boxStart[1] * HEIGHT} r={7 / view.scale} />}
         </svg>
       </div>
+      {review && <section className="review-quick-actions" aria-label="Quick hold review">
+        <div className="review-quick-buttons">
+          <button disabled={busy || !pending.length} onClick={nextPending}>Next pending hold</button>
+          <button className="primary" disabled={busy || !canEdit || !preview || !!(selectedEntry && (['removed','dismissed'].includes(selectedEntry.status) || selectedEntry.coverageFraction<.99))} onClick={()=>void accept()}>Confirm</button>
+        </div>
+        <p className="annotation-hint" role="status">{busy ? 'SAM2 is running…' : !preview ? 'Next pending hold loads its SAM2 suggestion.' : !canEdit ? 'Switch to New scan to confirm.' : selectedEntry && selectedEntry.coverageFraction<.99 ? 'Insufficient new-photo coverage to confirm this hold.' : !review.reviewer.trim() ? 'Enter your reviewer name above to confirm. Tap Confirm to jump there.' : `Outline ready${preview.score===undefined?'':` · score ${preview.score.toFixed(2)}`}`}</p>
+        {error&&<p className="annotation-error" role="alert">{error}</p>}
+      </section>}
+      {review && <h2 className="review-edit-heading">Edit outline & rerun SAM2</h2>}
+      <fieldset disabled={busy} className="annotation-tools">
+        <legend>Prompt tool</legend>
+        {(['positive', 'negative', 'box', 'pan', 'select', ...(review ? ['polygon', 'vertex'] : [])] as Tool[]).map((value) => <button key={value} type="button" disabled={!canEdit && value !== 'pan'} aria-pressed={tool === value}
+          onClick={() => { setTool(value); setBoxStart(null); if (value !== 'polygon') setManualPoints([]); else invalidate() }}>{({ positive: '＋ Hold', negative: '− Exclude', box: 'Box', pan: 'Pan', select: 'Select', polygon: 'Draw polygon', vertex: 'Move vertex' })[value]}</button>)}
+      </fieldset>
       <p className="annotation-hint">{tool === 'polygon' ? 'Tap around the outline, then Finish polygon. Up to 16 vertices.' : tool === 'vertex' ? 'Drag the round handles, then explicitly confirm the correction.' : tool === 'box' ? 'Drag a box, or tap its two opposite corners.' : tool === 'pan' ? 'Drag to move the wall.' : tool === 'select' ? 'Tap a blue hold to edit it, or an orange suggestion to review.' : tool === 'positive' ? 'Tap inside the hold. Add more points to refine it.' : 'Tap unwanted areas to exclude them.'} Pinch to zoom.</p>
-      {review && <div className="annotation-actions"><button disabled={busy || !pending.length} onClick={nextPending}>Next pending hold</button><button disabled={busy || !manualPoints.length} onClick={() => setManualPoints(p => p.slice(0,-1))}>Undo vertex</button><button disabled={busy || manualPoints.length < 3 || !canEdit} onClick={finishPolygon}>Finish polygon</button></div>}
+      {review && <div className="annotation-actions"><button disabled={busy || !manualPoints.length} onClick={() => setManualPoints(p => p.slice(0,-1))}>Undo vertex</button><button disabled={busy || manualPoints.length < 3 || !canEdit} onClick={finishPolygon}>Finish polygon</button></div>}
       <div className="annotation-actions">
         <button disabled={busy || (!prompts.length && !box && !boxStart)} onClick={() => { if (boxStart) setBoxStart(null); else if (prompts.length) setPrompts((p) => p.slice(0, -1)); else setBox(null); invalidate() }}>Undo prompt</button>
         <button disabled={busy} onClick={clear}>New hold / Clear</button>
@@ -468,6 +473,19 @@ export default function Annotator({ review }: { review?: ReviewController }) {
       {candidates.length > 0 && <div className="annotation-actions"><label>Outline candidate<select value={candidateIndex} disabled={busy} onChange={(event) => setCandidateIndex(Number(event.target.value))}>
         {candidates.map((candidate, index) => <option key={index} value={index}>Option {index + 1} · {candidate.score === undefined ? 'saved outline' : `score ${candidate.score.toFixed(2)}`}</option>)}
       </select></label><button className="primary" disabled={busy || !canEdit || (!review && !savedLoaded) || !!(selectedEntry && ['removed', 'dismissed'].includes(selectedEntry.status))} onClick={() => void accept()}>{review ? editingOriginal ? 'Confirm corrected outline' : 'Confirm new hold' : editingOriginal ? 'Save changes' : 'Accept hold'}</button></div>}
+      {review && <section className="annotation-library" aria-label="Batch review tools"><h2>Batch confirmation & automation</h2>
+        <label className="annotation-inline"><input type="checkbox" checked={autoPredict} disabled={busy} onChange={event=>setAutoPredict(event.target.checked)} />Auto-run SAM2 on next hold</label>
+        <p className="annotation-hint">Next pending hold loads its saved SAM2 suggestion immediately. Enable auto-run here if you also want a fresh prediction.</p>
+        {review.assets.proposals && <section aria-label="Bulk confirmation">
+          <label>Minimum SAM2 score<input aria-label="Minimum SAM2 score" type="number" min="0" max="1" step="0.01" value={Number.isFinite(threshold)?threshold:''} disabled={busy} onChange={event=>setThreshold(event.target.value===''?NaN:Number(event.target.value))} /></label>
+          {busy ? <p className="review-required">Wait for the current operation to finish.</p> : !canEdit ? <p className="review-required">Switch to New scan to confirm.</p> : !bulkActions.length ? <p className="review-required">No pending suggestions qualify at this threshold.</p> : null}
+          <button disabled={busy || !canEdit || !bulkActions.length} onClick={()=>void confirmBatch()}>Confirm eligible SAM2 outlines ({bulkActions.length})</button>
+          {!review.reviewer.trim()&&<p className="review-required" role="status">Enter your reviewer name above. You can tap this button to jump to the name field.</p>}
+          <p className="annotation-hint">Uses saved SAM2 scores. Skips reviewed entries, coverage gaps, shared masks and alignment/change warnings. Confirms the proposed outline while keeping its old ID.</p>
+
+          {batchNotice&&<p role="status">{batchNotice}</p>}
+        </section>}
+      </section>}
       {review?.assets.proposals && <section className="annotation-library" aria-label="SAM2 proposals">
         <h2>SAM2 suggestions ({review.assets.proposals.proposals.length})</h2>
         <label className="annotation-inline"><input type="checkbox" checked={showSuggestions} onChange={event => setShowSuggestions(event.target.checked)} />Show SAM2 suggestions</label>
@@ -494,7 +512,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
       </section>}
       {editingOriginal && <p className="annotation-hint">Editing {editingOriginal.id}. Save changes keeps its ID; Clear cancels this edit.</p>}
       {suggestionId && <button disabled={busy} onClick={() => void skipSuggestion()}>Skip this suggestion</button>}
-      {error && <p className="annotation-error" role="alert">{error}</p>}
+      {!review && error && <p className="annotation-error" role="alert">{error}</p>}
       {!review && <section className="annotation-library">
         <h2>Auto suggestions ({pendingSuggestions.length})</h2>
         <p>Orange = unreviewed. Blue = accepted. Model scores do not guarantee accuracy.</p>

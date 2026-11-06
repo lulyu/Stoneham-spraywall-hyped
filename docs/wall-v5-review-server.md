@@ -42,12 +42,17 @@ this is a temporary process, not durable hosting.
 
 ## Review workflow
 
-1. Expand **Session, reviewer & backups** and enter your reviewer name.
-2. Choose **Next unreviewed hold**, or select an entry and **Edit selected**.
-   Next loads any saved suggestion immediately. **Auto-run SAM2 on next hold**
-   defaults on and requests a fresh box-prompted mask when the matching service
-   is ready, including if it finishes loading after selection. Disable it to use
-   the saved suggestions only. Prediction never records an approval.
+1. Enter your reviewer name in the always-visible field above the wall. If it
+   is missing, confirmation buttons focus that field and explain what is needed,
+   rather than silently disabling. Reopening saved progress restores the latest
+   reviewer name; it remains an editable local history label.
+2. Choose **Next pending hold**, or select an entry and **Edit selected**.
+   The primary **Next pending hold** and **Confirm** buttons sit side by side
+   directly below the wall. Next immediately loads the saved SAM2 suggestion,
+   without an inference request or approval. Confirm explicitly saves that outline.
+   Editing and rerun controls follow below. **Auto-run SAM2 on next hold** is
+   optional and defaults off for v5 bundles; enable it to request fresh masks.
+   Prediction never records an approval.
 3. Compare **Old wall**, **New scan** and **Overlay**. Decisions are disabled in
    comparison modes; return to New scan to edit.
 4. **Load SAM2 suggestion** copies its outline into the editable draft. Loading
@@ -118,3 +123,8 @@ is trusted by Node via `NODE_EXTRA_CA_CERTS` but not by Chromium, also set
 `BROWSER_FETCH_PROXY=1`; Playwright then fetches HTTPS resources through its Node
 transport with certificate validation still enabled. Access keys are redacted
 from test failure output. These settings affect the test harness only.
+
+Quick-review mobile regression: run `node scripts/v5-quick-review-smoke.cjs` with
+the same APP_URL, AUTH_KEY_FILE and optional proxy variables. It checks adjacent
+buttons directly below the wall, immediate cached suggestions without inference,
+missing-name focus/explanation, confirmation, name/history restore and layout.
