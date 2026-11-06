@@ -53,6 +53,12 @@ this is a temporary process, not durable hosting.
    Editing and rerun controls follow below. **Auto-run SAM2 on next hold** is
    optional and defaults off for v5 bundles; enable it to request fresh masks.
    Prediction never records an approval.
+   The quick toolbar also contains **Mark removed**, **Mark replaced** and
+   **Generate mask**. Mark replaced atomically removes the inherited identity
+   and saves the displayed outline with a fresh ID. Phones show Next/Confirm
+   above the other three actions; wider screens show all five in one row.
+   Pinch gestures provide zoom, and Fit wall remains available; separate Zoom in
+   and Zoom out buttons have been removed.
 3. Compare **Old wall**, **New scan** and **Overlay**. Decisions are disabled in
    comparison modes; return to New scan to edit.
 4. **Load SAM2 suggestion** copies its outline into the editable draft. Loading

@@ -170,15 +170,6 @@ export default function Annotator({ review }: { review?: ReviewController }) {
     return () => observer.disconnect()
   }, [])
 
-  const zoom = (factor: number) => {
-    const element = viewport.current
-    if (!element) return
-    const x = element.clientWidth / 2, y = element.clientHeight / 2
-    setView((previous) => {
-      const scale = Math.min(2, Math.max(.02, previous.scale * factor))
-      return { scale, x: x - (x - previous.x) * scale / previous.scale, y: y - (y - previous.y) * scale / previous.scale }
-    })
-  }
   const wallPoint = (event: ReactPointerEvent<HTMLDivElement>): Point => {
     const rect = event.currentTarget.getBoundingClientRect()
     return [Math.max(0, Math.min(CROP_WIDTH - 1, (event.clientX - rect.left - view.x) / view.scale)) / WIDTH,
@@ -253,7 +244,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
     finally { setBusy(false) }
   }
   const remove = async () => {
-    if (!selectedId) return
+    if (!selectedId || !requireReviewer()) return
     setBusy(true); setError('')
     try {
       if (review) { await review.commit({ type: 'remove', id: selectedId }); setSelectedId(''); clear(); return }
@@ -321,7 +312,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
     try { await review.commit({ type, id: selectedId }); clear() } catch (problem) { setError(String(problem)) } finally { setBusy(false) }
   }
   const replacement = async () => {
-    if (!review || !preview || !editingOriginal) return
+    if (!review || !preview || !editingOriginal || !requireReviewer()) return
     setBusy(true); setError('')
     try { await review.commit({ type: 'add', replaces: editingOriginal.id, hold: { ...preview, id: `scan-${crypto.randomUUID()}` } }); clear() }
     catch (problem) { setError(String(problem)) } finally { setBusy(false) }
@@ -350,6 +341,8 @@ export default function Annotator({ review }: { review?: ReviewController }) {
     try{await review.commitMany(bulkActions);clear();setBatchNotice(`${bulkActions.length} SAM2 outlines confirmed. Other entries remain pending.`)}
     catch(problem){setError(`Batch not saved: ${String(problem)}`)}finally{setBusy(false)}
   }
+  const canChangeSelected=Boolean(!busy && canEdit && selectedEntry && !['removed','dismissed'].includes(selectedEntry.status) && selectedEntry.coverageFraction>=.99)
+  const canReplace=Boolean(canChangeSelected && preview && editingOriginal && selectedEntry?.oldHoldId===selectedEntry?.hold.id)
   return (
     <main className={`annotation-shell ${review?.assets.proposals ? 'has-model-proposals' : ''}`}>
       <header className="annotation-header">
@@ -384,7 +377,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
         <p className="annotation-hint">Orange = pending · cyan = confirmed · red dashed = removed · green = new. QA seams are not hold-change detections.</p>
         <div className="review-links">{review.assets.sources && <a href={review.assets.sources} target="_blank" rel="noreferrer">Photo source map ↗</a>}{review.assets.qa && <a href={review.assets.qa} target="_blank" rel="noreferrer">Full QA preview ↗</a>}</div></details>
       </section>}
-      <div className="annotation-zoom"><button onClick={() => zoom(1.5)}>Zoom in</button><button onClick={() => zoom(1 / 1.5)}>Zoom out</button><button onClick={fit}>Fit wall</button></div>
+      <div className="annotation-zoom"><button onClick={fit}>Fit wall</button></div>
       <button className="annotation-coverage-toggle" type="button" aria-pressed={coverConfirmed}
         disabled={!imageReady || (!review && !savedLoaded)} onClick={() => setCoverConfirmed((value) => !value)}>
         {coverConfirmed ? 'Show original holds' : 'Cover confirmed holds'}
@@ -453,6 +446,9 @@ export default function Annotator({ review }: { review?: ReviewController }) {
         <div className="review-quick-buttons">
           <button disabled={busy || !pending.length} onClick={nextPending}>Next pending hold</button>
           <button className="primary" disabled={busy || !canEdit || !preview || !!(selectedEntry && (['removed','dismissed'].includes(selectedEntry.status) || selectedEntry.coverageFraction<.99))} onClick={()=>void accept()}>Confirm</button>
+          <button disabled={!canChangeSelected} onClick={()=>void remove()}>Mark removed</button>
+          <button disabled={!canReplace} title="Replace the selected old hold with this outline and a fresh ID" onClick={()=>void replacement()}>Mark replaced</button>
+          <button disabled={!canPredict} onClick={()=>void predict()}>Generate mask</button>
         </div>
         <p className="annotation-hint" role="status">{busy ? 'SAM2 is running…' : !preview ? 'Next pending hold loads its SAM2 suggestion.' : !canEdit ? 'Switch to New scan to confirm.' : selectedEntry && selectedEntry.coverageFraction<.99 ? 'Insufficient new-photo coverage to confirm this hold.' : !review.reviewer.trim() ? 'Enter your reviewer name above to confirm. Tap Confirm to jump there.' : `Outline ready${preview.score===undefined?'':` · score ${preview.score.toFixed(2)}`}`}</p>
         {error&&<p className="annotation-error" role="alert">{error}</p>}
@@ -468,7 +464,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
       <div className="annotation-actions">
         <button disabled={busy || (!prompts.length && !box && !boxStart)} onClick={() => { if (boxStart) setBoxStart(null); else if (prompts.length) setPrompts((p) => p.slice(0, -1)); else setBox(null); invalidate() }}>Undo prompt</button>
         <button disabled={busy} onClick={clear}>New hold / Clear</button>
-        <button className="primary" disabled={!canPredict} onClick={() => void predict()}>{busy ? 'Working…' : 'Generate mask'}</button>
+        {!review && <button className="primary" disabled={!canPredict} onClick={() => void predict()}>{busy ? 'Working…' : 'Generate mask'}</button>}
       </div>
       <p className="annotation-hint">{prompts.filter((p) => p.label === 1).length} positive · {prompts.filter((p) => p.label === 0).length} negative · {box ? 'box set' : 'no box'}{timing !== null && ` · ${timing.toFixed(2)}s`}</p>
       {candidates.length > 0 && <div className="annotation-actions"><label>Outline candidate<select value={candidateIndex} disabled={busy} onChange={(event) => setCandidateIndex(Number(event.target.value))}>
@@ -506,10 +502,9 @@ export default function Annotator({ review }: { review?: ReviewController }) {
 
         <div className="annotation-actions">
           <button className="primary" disabled={busy || !canEdit || selectedEntry.status !== 'inherited-unreviewed' || (!!preview && stable(preview.polygon) !== stable(selectedEntry.hold.polygon))} onClick={() => void reviewDecision('confirm')}>Confirm unchanged</button>
-          <button disabled={busy || !canEdit || ['removed','dismissed'].includes(selectedEntry.status)} onClick={() => void remove()}>Mark removed</button>
           <button disabled={busy || !canEdit} onClick={() => void reviewDecision('reset')}>Reset decision</button>
         </div>
-        {preview && selectedEntry.oldHoldId === selectedEntry.hold.id && <details><summary>Different / moved hold?</summary><p>Replacing removes the old hold and assigns a new ID to this outline. Existing routes stay on their old wall version.</p><button disabled={busy || !canEdit || selectedEntry.status === 'removed'} onClick={() => void replacement()}>Confirm replacement with new ID</button></details>}
+        {preview && selectedEntry.oldHoldId === selectedEntry.hold.id && <details><summary>Different / moved hold?</summary><p>Replacing removes the old hold and assigns a new ID to this outline. Existing routes stay on their old wall version.</p><p>Use Mark replaced beside Confirm above to record this replacement.</p></details>}
       </section>}
       {editingOriginal && <p className="annotation-hint">Editing {editingOriginal.id}. Save changes keeps its ID; Clear cancels this edit.</p>}
       {suggestionId && <button disabled={busy} onClick={() => void skipSuggestion()}>Skip this suggestion</button>}

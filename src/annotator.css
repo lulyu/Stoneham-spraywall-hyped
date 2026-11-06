@@ -62,7 +62,13 @@
 @media(max-width:600px) { .annotation-header h1 { font-size:22px; } .review-panel { padding:10px; } .annotation-actions label { min-width:0; } }
 
 .review-quick-actions { margin: 10px 0 22px; }
-.review-quick-buttons { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:10px; }
+.review-quick-buttons { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
 .review-quick-buttons button { width:100%; min-height:52px; font-weight:700; }
 .review-required { color:#ffd184; font-size:14px; line-height:1.5; }
 .review-edit-heading { font-size:18px; margin:20px 0 12px; }
+
+@media(max-width:640px) {
+  .review-quick-buttons { grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; }
+  .review-quick-buttons button { grid-column:span 2; padding:10px 8px; font-size:13px; line-height:1.3; }
+  .review-quick-buttons button:nth-child(-n+2) { grid-column:span 3; }
+}
