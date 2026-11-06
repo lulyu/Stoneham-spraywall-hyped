@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { Point, PolygonHoldCandidate } from './types'
 import './annotator.css'
@@ -83,6 +83,16 @@ export default function Annotator({ review }: { review?: ReviewController }) {
   const imageReady = !!review || status.state === 'ready'
   const visibleEntries = review?.data.entries.filter(entry => showRemoved || !['removed', 'dismissed'].includes(entry.status))
   const coverHolds = review ? review.data.entries.filter(confirmed).map(entry => entry.hold) : saved.holds
+  const modelByOld = useMemo(() => {
+    const map = new Map<string, NonNullable<ReviewController['assets']['proposals']>['proposals']>()
+    for (const proposal of review?.assets.proposals?.proposals ?? []) for (const id of proposal.oldHoldIds) map.set(id, [...(map.get(id) ?? []), proposal])
+    return map
+  }, [review?.assets.proposals])
+  const selectedProposals = modelByOld.get(selectedId) ?? []
+  const pendingModel = useMemo(() => {
+    const pendingIds = new Set(review?.data.entries.filter(e => e.status === 'inherited-unreviewed').map(e => e.hold.id))
+    return review?.assets.proposals?.proposals.filter(p => p.oldHoldIds.some(id => pendingIds.has(id))) ?? []
+  }, [review?.data, review?.assets.proposals])
   const preview = candidates[candidateIndex]
   const pendingSuggestions = suggestions.filter((hold) => !saved.dismissed_suggestions?.includes(hold.id) &&
     !saved.holds.some((accepted) => accepted.id === hold.id || (inside(hold.center, accepted.polygon) && inside(accepted.center, hold.polygon))))
@@ -188,10 +198,16 @@ export default function Annotator({ review }: { review?: ReviewController }) {
       else setBoxStart(end)
     } else if (!started.moved && tool === 'select') {
       const accepted = (review ? visibleEntries!.map(entry => entry.hold) : saved.holds).filter((hold) => inside(end, hold.polygon))
-      const automatic = showSuggestions ? pendingSuggestions.filter((hold) => inside(end, hold.polygon)) : []
+      const automatic = showSuggestions ? (review ? pendingModel : pendingSuggestions).filter((hold) => inside(end, hold.polygon)) : []
       const nearest = <T extends { center: Point }>(list: T[]) => list.sort((a, b) => Math.hypot(a.center[0] - end[0], a.center[1] - end[1]) - Math.hypot(b.center[0] - end[0], b.center[1] - end[1]))[0]
       if (accepted.length) editHold(nearest(accepted))
-      else if (automatic.length) reviewSuggestion(nearest(automatic))
+      else if (automatic.length) {
+        const chosen = nearest(automatic)
+        if (review && 'oldHoldIds' in chosen) {
+          const old = review.data.entries.find(e => (chosen.oldHoldIds as string[]).includes(e.hold.id) && e.status === 'inherited-unreviewed')
+          if (old) { editHold(old.hold); setCandidates([chosen]); setTool('vertex') }
+        } else reviewSuggestion(chosen)
+      }
     } else if (!started.moved && tool !== 'pan') {
       if (prompts.length >= 64) { setError('Maximum 64 prompts per hold. Undo or start a new hold.'); return }
       setPrompts((previous) => [...previous, { point: end, label: tool === 'positive' ? 1 : 0 }])
@@ -300,7 +316,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
     setComparison('new'); editHold(queue[(index + 1) % queue.length].hold)
   }
   return (
-    <main className="annotation-shell">
+    <main className={`annotation-shell ${review?.assets.proposals ? 'has-model-proposals' : ''}`}>
       <header className="annotation-header">
         <div><div className="eyebrow">STONEHAM · FULL WALL</div><h1>{review ? 'Review & annotate' : 'Hold annotator'}</h1></div>
         <a href={BASE}>Back to wall</a>
@@ -391,7 +407,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
           {!review && saved.holds.map((hold) => <polygon key={hold.id} className={`annotation-saved ${coverConfirmed ? 'annotation-covered' : ''} ${selectedId === hold.id ? 'annotation-selected' : ''}`} points={points(hold.polygon)} style={coverConfirmed ? { fill: wallColors[hold.id] ?? 'rgb(170, 168, 162)', stroke: 'none' } : undefined} />)}
           {review && visibleEntries!.map(entry => <polygon key={entry.hold.id} className={`annotation-saved review-${entry.status} ${selectedId === entry.hold.id ? 'annotation-selected' : ''} ${coverConfirmed && confirmed(entry) ? 'annotation-covered' : ''}`} points={points(entry.hold.polygon)} style={{ strokeWidth: (selectedId === entry.hold.id ? 3 : 1.5) / view.scale, ...(['removed','dismissed'].includes(entry.status) ? { strokeDasharray: `${6/view.scale} ${4/view.scale}` } : {}), ...(coverConfirmed && confirmed(entry) ? { fill: wallColors[entry.hold.id] ?? 'rgb(170,168,162)', stroke: 'none' } : {}) }} />)}
           {manualPoints.length > 0 && <polyline className="annotation-preview" points={points(manualPoints)} />}
-          {showSuggestions && !coverConfirmed && pendingSuggestions.map((hold) => <polygon key={hold.id} className="annotation-suggestion" points={points(hold.polygon)} />)}
+          {showSuggestions && !coverConfirmed && (review ? pendingModel : pendingSuggestions).map((hold) => <polygon key={hold.id} className="annotation-suggestion" points={points(hold.polygon)} />)}
           {preview && <polygon className="annotation-preview" points={points(preview.polygon)} style={review ? { strokeWidth: 3/view.scale } : undefined} />}
           {review && tool === 'vertex' && preview && preview.polygon.map((point,index) => <circle key={index} className="annotation-vertex" cx={point[0]*WIDTH} cy={point[1]*HEIGHT} r={8/view.scale} />)}
           {box && <rect className="annotation-box" x={box[0] * WIDTH} y={box[1] * HEIGHT} width={(box[2] - box[0]) * WIDTH} height={(box[3] - box[1]) * HEIGHT} />}
@@ -413,9 +429,23 @@ export default function Annotator({ review }: { review?: ReviewController }) {
       {candidates.length > 0 && <div className="annotation-actions"><label>Outline candidate<select value={candidateIndex} disabled={busy} onChange={(event) => setCandidateIndex(Number(event.target.value))}>
         {candidates.map((candidate, index) => <option key={index} value={index}>Option {index + 1} · {candidate.score === undefined ? 'saved outline' : `score ${candidate.score.toFixed(2)}`}</option>)}
       </select></label><button className="primary" disabled={busy || !canEdit || (!review && !savedLoaded) || !!(selectedEntry && ['removed', 'dismissed'].includes(selectedEntry.status))} onClick={() => void accept()}>{review ? editingOriginal ? 'Confirm corrected outline' : 'Confirm new hold' : editingOriginal ? 'Save changes' : 'Accept hold'}</button></div>}
+      {review?.assets.proposals && <section className="annotation-library" aria-label="SAM2 proposals">
+        <h2>SAM2 suggestions ({review.assets.proposals.proposals.length})</h2>
+        <label className="annotation-inline"><input type="checkbox" checked={showSuggestions} onChange={event => setShowSuggestions(event.target.checked)} />Show SAM2 suggestions</label>
+        <p>Cyan dashed outlines are inherited; orange outlines are SAM2 suggestions. Select an inherited hold, load its suggestion, then inspect and confirm a correction or replacement.</p>
+      </section>}
       {review && selectedEntry && <section className="review-decision">
         <p>{selectedEntry.hold.id} · {selectedEntry.status} · observed {(selectedEntry.coverageFraction*100).toFixed(1)}%</p>
         <p className="annotation-hint">{selectedEntry.reasonCodes.join(' · ')}</p>
+        {review.assets.proposals && <div className="model-proposal-controls">
+          <p>Model recommendation: {review.assets.proposals.recommendations[selectedEntry.hold.id] ?? 'Not an inherited hold'}.</p>
+          {selectedProposals.length ? selectedProposals.map(proposal => <div key={proposal.id}>
+            <p>Score {proposal.score.toFixed(2)}{proposal.oldHoldIds.length > 1 ? ` · shared by ${proposal.oldHoldIds.length} old holds; inspect for merging` : ''}</p>
+            <button disabled={busy || !canEdit || ['removed','dismissed'].includes(selectedEntry.status)} onClick={() => { editHold(selectedEntry.hold); setCandidates([proposal]); setTool('vertex') }}>Load SAM2 suggestion</button>
+          </div>) : <p>No saved suggestion. Use points / a box and Generate mask, or draw an outline.</p>}
+          <button disabled={busy || !canEdit} onClick={() => editHold(selectedEntry.hold)}>Restore saved outline</button>
+        </div>}
+
         <div className="annotation-actions">
           <button className="primary" disabled={busy || !canEdit || selectedEntry.status !== 'inherited-unreviewed' || (!!preview && stable(preview.polygon) !== stable(selectedEntry.hold.polygon))} onClick={() => void reviewDecision('confirm')}>Confirm unchanged</button>
           <button disabled={busy || !canEdit || ['removed','dismissed'].includes(selectedEntry.status)} onClick={() => void remove()}>Mark removed</button>

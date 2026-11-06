@@ -86,9 +86,9 @@ an accepted catalog or migrates routes. No usable mask is not proof of removal.
 The committed candidate dataset is copied to
 `src/data/experiments/wall-v5-sam2-refresh.json` after a successful run. It is
 intentionally not a normal accepted `holds` array or a browser review checkpoint.
-The current unified editor does not import this model-proposal format yet;
-inspect its overlays/JSON, then manually review corrections. Integrating these
-proposals as selectable drafts in the editor is a separate incremental change.
+The unified editor can now load these proposals as selectable drafts using the
+[v5 review bundle and live SAM2 server](wall-v5-review-server.md). Each suggestion
+still requires explicit human confirmation; loading a draft never approves it.
 
 This first pass does not search new locations away from old hints. A later grid /
 color-seed pass must search observed regions without excluding unreviewed old

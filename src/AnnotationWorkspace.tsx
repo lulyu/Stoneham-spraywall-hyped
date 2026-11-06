@@ -84,7 +84,7 @@ export default function AnnotationWorkspace() {
           <label className="review-file">Or select scan files<input aria-label="Select scan files" type="file" multiple disabled={loading} onChange={event=>{const files=Array.from(event.target.files??[]);if(files.length)void open(()=>loadReviewFiles(files));event.target.value=''}} /></label>
           <button disabled={loading} onClick={()=>void open(loadServerReview)}>Open local server scan</button>
         </div>
-        <details><summary>What to import</summary><p>Select the Phase B output folder containing manifest.json, holds_prelabels.json, review_queue.json, report.json, wall_registered.png, coverage.png and uncertainty.png. Keep these files together. The old reference comes from the app and is hash checked. Optional review-progress.json resumes exported progress.</p></details>
+        <details><summary>What to import</summary><p>Select the Phase B output folder containing manifest.json, holds_prelabels.json, review_queue.json, report.json, wall_registered.png (or wall_registered.jpg for v5), coverage.png and uncertainty.png. A v5 bundle also includes hash-bound sam2-proposals.json. Keep these files together. The old reference comes from the app and is hash checked. Optional review-progress.json resumes exported progress.</p></details>
         </details>
         {loading&&<p role="status">Checking scan identity and image bytes… Large images can take a moment.</p>}
         {error&&<p className="annotation-error" role="alert">{error}</p>}

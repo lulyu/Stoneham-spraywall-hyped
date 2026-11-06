@@ -2,9 +2,11 @@ import referenceMapUrl from './data/polygons/holds.json?url'
 import { initializeReview, sameSession, validateProgress } from './wallReview'
 import type { WallReview } from './wallReview'
 import type { PolygonHoldCandidate } from './types'
+import { validateProposals } from './wallProposals'
+import type { ModelProposals } from './wallProposals'
 
 export type ReviewAssets = {
-  baseline: WallReview; initial: WallReview; image: string; reference: string
+  proposals?: ModelProposals; baseline: WallReview; initial: WallReview; image: string; reference: string
   coverage: string; uncertainty: string; sources?: string; qa?: string
   inputKind: string; qaStatus: string; dispose: () => void
   observedFraction: (hold:PolygonHoldCandidate)=>Promise<number>
@@ -39,7 +41,9 @@ export async function loadReviewFiles(files: File[]):Promise<ReviewAssets> {
     sameSession(baseline.session,prelabels.session)
     if(await sha256(new TextEncoder().encode(referenceText))!==baseline.session.referenceHoldsSha256) throw new Error('This app has a different old hold map. Use the build for the reference version; do not transfer approvals.')
     if(report.sessionId!==baseline.session.sessionId || report.publishable!==false) throw new Error('QA report belongs to another scan.')
-    const candidate=get('wall_registered.png')
+    const imageFile=manifest.imageFile ?? 'wall_registered.png'
+    if(!['wall_registered.png','wall_registered.jpg'].includes(imageFile))throw new Error('Unsupported candidate image file.')
+    const candidate=get(imageFile)
     if(candidate.size>180*1024*1024) throw new Error('Candidate image exceeds 180 MiB.')
     if(await sha256(await candidate.arrayBuffer())!==baseline.session.registeredImageSha256) throw new Error('Candidate image hash differs. Rebuild the scan and start a new session.')
     const candidateBitmap=await decoded(candidate,size);candidateBitmap.close()
@@ -51,6 +55,15 @@ export async function loadReviewFiles(files: File[]):Promise<ReviewAssets> {
     if(await sha256(await reference.arrayBuffer())!==baseline.session.referenceImageSha256) throw new Error('Wrong old reference image. Include hash-matching reference.jpg in the selected files.')
     const referenceBitmap=await decoded(reference,size);referenceBitmap.close()
     const coverage=get('coverage.png'), uncertainty=get('uncertainty.png')
+    for(const [file,key] of [[coverage,'coverageSha256'],[uncertainty,'uncertaintySha256']] as const) {
+      if(baseline.session[key] && await sha256(await file.arrayBuffer())!==baseline.session[key])throw new Error(`Wrong scan evidence: ${file.name}.`)
+    }
+    const proposalFile=get('sam2-proposals.json',true)
+    let proposals:ModelProposals|undefined
+    if(baseline.session.proposalsSha256) {
+      if(!proposalFile || proposalFile.size>16*1024*1024 || await sha256(await proposalFile.arrayBuffer())!==baseline.session.proposalsSha256)throw new Error('Missing or changed SAM2 proposal data.')
+      proposals=validateProposals(JSON.parse(await proposalFile.text()),baseline)
+    } else if(proposalFile)throw new Error('SAM2 proposals must be bound to the scan identity.')
     const coverageBitmap=await decoded(coverage,size);bitmaps.push(coverageBitmap)
     const uncertaintyBitmap=await decoded(uncertainty,size)
     const overlay=document.createElement('canvas');overlay.width=2048;overlay.height=Math.round(2048*size[1]/size[0])
@@ -65,7 +78,7 @@ export async function loadReviewFiles(files: File[]):Promise<ReviewAssets> {
     const qaMask=await new Promise<Blob>((resolve,reject)=>overlay.toBlob(blob=>blob?resolve(blob):reject(new Error('QA overlay failed.')),'image/png'))
     const progress=get('review-progress.json',true)
     const initial=progress?validateProgress(JSON.parse(await progress.text()),baseline):baseline
-    return {baseline,initial,image:url(candidate),reference:url(reference),coverage:url(coverage),uncertainty:url(qaMask),
+    return {proposals,baseline,initial,image:url(candidate),reference:url(reference),coverage:url(coverage),uncertainty:url(qaMask),
       sources:get('source-index-preview.png',true)?url(get('source-index-preview.png')):undefined,
       qa:get('qa-overlay.jpg',true)?url(get('qa-overlay.jpg')):undefined,
       inputKind:manifest.inputKind,qaStatus:report.status,dispose,
@@ -94,7 +107,7 @@ export async function loadServerReview():Promise<ReviewAssets> {
   if(!response.ok || !response.headers.get('content-type')?.includes('application/json')) throw new Error('No local rescan server. Import a scan folder, or start the server with --rescan-session.')
   const bundle=await response.json()
   if(!Array.isArray(bundle.files))throw new Error('Invalid review bundle.')
-  const allowed=['manifest.json','holds_prelabels.json','review_queue.json','report.json','wall_registered.png','coverage.png','uncertainty.png','source-index-preview.png','qa-overlay.jpg']
+  const allowed=['manifest.json','holds_prelabels.json','review_queue.json','report.json','wall_registered.png','coverage.png','uncertainty.png','source-index-preview.png','qa-overlay.jpg','wall_registered.jpg','sam2-proposals.json']
   const files:File[]=[]
   // Sequential fetch bounds peak memory while handling full-resolution images.
   for(const name of allowed.filter(n=>bundle.files.includes(n))) {
