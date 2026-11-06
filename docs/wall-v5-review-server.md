@@ -123,6 +123,26 @@ comparison locks, image/session mismatch rejection, checkpoint export/reload,
 mobile layout and absence of legacy annotation writes. It writes
 `artifacts/v5-review-mobile.png`; test review decisions do not modify production.
 
+### Service failures and recovery
+
+The temporary Sandbox stops at its configured wall-clock timeout even while the
+page is open. A stopped gateway can return plaintext HTTP 410 with
+`x-vercel-error: SANDBOX_STOPPED`; platform errors can also contain a nested
+`error.message` object. The client recognizes both forms, shows readable failure
+details and preserves points, box, selection and draft. It never renders an error
+object as `[object Object]`. Status requests time out after 20 seconds and mask
+requests after 120 seconds, without approving or saving any geometry.
+
+After the service is restarted, **Check SAM2 connection** refreshes availability
+without reloading the page or clearing editing state. Then retry Generate mask.
+A connection check does not restart the VM itself; Sandbox management remains
+outside the review app. Cached suggestions, manual editing and browser progress
+do not depend on successful inference.
+
+`node scripts/sam2-errors-smoke.cjs` uses the same APP_URL/AUTH_KEY_FILE/proxy
+settings to check nested errors, a simulated stopped gateway, draft preservation,
+connection recovery and a real inference retry. It does not stop the actual VM.
+
 For a remote Sandbox URL, set `APP_URL` to its HTTPS origin. In a managed test
 environment with an outbound proxy, set `BROWSER_PROXY` to that proxy. If its CA
 is trusted by Node via `NODE_EXTRA_CA_CERTS` but not by Chromium, also set

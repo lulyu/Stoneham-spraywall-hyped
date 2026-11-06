@@ -6,6 +6,7 @@ import { annotationWallColors } from './annotationWallColors'
 import { bulkProposalActions } from './wallProposals'
 import { confirmed, stable } from './wallReview'
 import type { ReviewController } from './AnnotationWorkspace'
+import { sam2Request, Sam2RequestError } from './sam2Api'
 
 const WIDTH = 7292
 const HEIGHT = 5514
@@ -21,15 +22,7 @@ type Saved = { holds: PolygonHoldCandidate[]; dismissed_suggestions?: string[] }
 type Tool = 'positive' | 'negative' | 'box' | 'pan' | 'select' | 'polygon' | 'vertex'
 
 async function request<T>(path: string, body?: unknown): Promise<T> {
-  const response = await fetch(`${API}/${path}`, body === undefined ? undefined : {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-  })
-  if (!response.headers.get('content-type')?.includes('application/json')) {
-    throw new Error('SAM2 service unavailable. Open this page using the Python annotation server.')
-  }
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.error || `Request failed (${response.status})`)
-  return result as T
+  return sam2Request<T>(`${API}/${path}`,body)
 }
 
 function points(polygon: Point[]) {
@@ -47,6 +40,8 @@ function inside([x, y]: Point, polygon: Point[]) {
 
 export default function Annotator({ review }: { review?: ReviewController }) {
   const [status, setStatus] = useState<Status>({ state: 'loading', device: 'checking' })
+  const [serviceAttempt,setServiceAttempt]=useState(0)
+  const connectionError=useRef('')
   const [error, setError] = useState('')
   const reviewerInput=useRef<HTMLInputElement>(null)
   const requireReviewer=()=>{
@@ -118,9 +113,18 @@ export default function Annotator({ review }: { review?: ReviewController }) {
         const next = await request<Status>('status')
         if (!alive) return
         setStatus(next)
+        if(next.state==='ready'){
+          const previousConnectionError=connectionError.current
+          setError(previous=>previous===previousConnectionError?'':previous)
+          connectionError.current=''
+        }
         if (next.state === 'loading') timer = setTimeout(poll, 1500)
       } catch (problem) {
-        if (alive) setStatus({ state: 'error', device: 'unavailable', error: String(problem) })
+        if (alive) {
+          const message=problem instanceof Error?problem.message:String(problem)
+          connectionError.current=message
+          setStatus({ state: 'error', device: 'unavailable', error: message })
+        }
       }
     }
     void poll()
@@ -132,7 +136,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
       if (alive) { setSaved(data); setSavedLoaded(true) }
     }).catch((problem) => { if (alive) setError(`Could not load saved holds: ${String(problem)}`) })
     return () => { alive = false; clearTimeout(timer) }
-  }, [review?.assets])
+  }, [review?.assets,serviceAttempt])
 
   useEffect(() => {
     if (!coverConfirmed || !imageReady) return
@@ -226,7 +230,13 @@ export default function Annotator({ review }: { review?: ReviewController }) {
       if(id!==predictionId.current)return
       setCandidates(result.candidates); setCandidateIndex(0); setTiming(result.elapsed_seconds)
       if (!result.candidates.length) setError('No usable outline. Add a positive point or tighten the box and try again.')
-    } catch (problem) { if(id===predictionId.current)setError(String(problem)) }
+    } catch (problem) {
+      if(id===predictionId.current){
+        const message=problem instanceof Error?problem.message:String(problem)
+        setError(message)
+        if(problem instanceof Sam2RequestError && (problem.status===0 || problem.status===410 || problem.code.startsWith('SANDBOX_'))){connectionError.current=message;setStatus({state:'error',device:'unavailable',error:message})}
+      }
+    }
     finally { if(id===predictionId.current)setBusy(false) }
   }
   const accept = async () => {
@@ -349,7 +359,8 @@ export default function Annotator({ review }: { review?: ReviewController }) {
         <div><div className="eyebrow">STONEHAM · FULL WALL</div><h1>{review ? 'Review & annotate' : 'Hold annotator'}</h1></div>
         <a href={BASE}>Back to wall</a>
       </header>
-      <p className="annotation-status" role="status">{review && (!serviceMatches || status.state === 'error') ? 'Manual editing ready · SAM2 needs a matching local rescan server.' : status.state === 'ready' ? `SAM2.1 Small ready · ${status.device.toUpperCase()}` : status.state === 'loading' ? 'Loading SAM2 and preparing wall tiles…' : status.error}</p>
+      <p className="annotation-status" role="status">{review && (!serviceMatches || status.state === 'error') ? `Manual editing ready · ${status.error || 'SAM2 needs a matching scan server.'}` : status.state === 'ready' ? `SAM2.1 Small ready · ${status.device.toUpperCase()}` : status.state === 'loading' ? 'Loading SAM2 and preparing wall tiles…' : status.error}</p>
+      <button className="small" disabled={busy} onClick={()=>setServiceAttempt(n=>n+1)}>Check SAM2 connection</button>
       {review && <section className="review-panel" aria-label="Scan review">
         <p className="review-badge">DRAFT · {review.data.session.candidateVersion} · revision {review.data.reviewRevision}</p>
         {Number(review.data.session.referenceFilledFraction)>0 && <p className="annotation-hint">{((1-Number(review.data.session.referenceFilledFraction))*100).toFixed(2)}% new photos · {(Number(review.data.session.referenceFilledFraction)*100).toFixed(2)}% v1 edge fill. Filled areas are display-only and remain unobserved.</p>}
