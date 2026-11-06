@@ -8,7 +8,7 @@ import './annotator.css'
 
 export type ReviewController = {
   assets:ReviewAssets; data:WallReview; reviewer:string; setReviewer:(name:string)=>void
-  commit:(action:ReviewAction)=>Promise<void>; exportProgress:()=>void; resume:(file?:File)=>Promise<void>
+  commit:(action:ReviewAction)=>Promise<void>; commitMany:(actions:ReviewAction[])=>Promise<void>; exportProgress:()=>void; resume:(file?:File)=>Promise<void>
 }
 function download(data:unknown,name:string) {
   const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}))
@@ -42,13 +42,16 @@ export default function AnnotationWorkspace() {
     } catch(problem) {next?.dispose();setError(String(problem))}
     finally {if(id===loadId.current)setLoading(false)}
   }
-  const commit=async(action:ReviewAction)=> {
+  const commitMany=async(actions:ReviewAction[])=> {
     if(!data || !assets)throw new Error('Open a scan first.')
     const generation=loadId.current
-    if(action.type==='add' || action.type==='refine') {
-      if(await assets.observedFraction(action.hold)<.99)throw new Error('The edited outline crosses an unobserved gap. Capture more coverage before confirming it.')
+    if(!actions.length)return
+    if(!reviewer.trim())throw new Error('Enter your reviewer name before confirming a decision.')
+    let next=data
+    for(const action of actions) {
+      if((action.type==='add' || action.type==='refine') && await assets.observedFraction(action.hold)<.99)throw new Error('The edited outline crosses an unobserved gap. No decisions in this batch were saved.')
+      next=applyReview(next,action,reviewer)
     }
-    const next=applyReview(data,action,reviewer)
     // Serialize same-origin tabs using a browser lock; the stored state is also compared in saveReview.
     if(!navigator.locks)throw new Error('This browser needs Web Locks for safe saving. Use a current HTTPS browser.')
     await navigator.locks.request(reviewKey(data.session),()=>{
@@ -57,6 +60,7 @@ export default function AnnotationWorkspace() {
     })
     setData(next)
   }
+  const commit=(action:ReviewAction)=>commitMany([action])
   const resume=async(file?:File)=> {
     if(!file || !data || !assets)return
     if(file.size>16*1024*1024)throw new Error('Checkpoint exceeds 16 MiB.')
@@ -89,7 +93,7 @@ export default function AnnotationWorkspace() {
         {loading&&<p role="status">Checking scan identity and image bytes… Large images can take a moment.</p>}
         {error&&<p className="annotation-error" role="alert">{error}</p>}
       </section>
-      {assets&&data&&<Annotator key={`${data.session.sessionId}:${epoch}`} review={{assets,data,reviewer,setReviewer,commit,resume,
+      {assets&&data&&<Annotator key={`${data.session.sessionId}:${epoch}`} review={{assets,data,reviewer,setReviewer,commit,commitMany,resume,
         exportProgress:()=>download(validateProgress(data,assets.baseline),'review-progress.json')}} />}
     </>}
   </>

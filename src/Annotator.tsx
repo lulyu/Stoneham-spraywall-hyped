@@ -3,6 +3,7 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { Point, PolygonHoldCandidate } from './types'
 import './annotator.css'
 import { annotationWallColors } from './annotationWallColors'
+import { bulkProposalActions } from './wallProposals'
 import { confirmed, stable } from './wallReview'
 import type { ReviewController } from './AnnotationWorkspace'
 
@@ -66,6 +67,12 @@ export default function Annotator({ review }: { review?: ReviewController }) {
   const [replaceExisting, setReplaceExisting] = useState(false)
   const [tool, setTool] = useState<Tool>('positive')
   const [busy, setBusy] = useState(false)
+  const [autoPredict,setAutoPredict]=useState(true)
+  const [autoHold,setAutoHold]=useState<PolygonHoldCandidate|null>(null)
+  const [threshold,setThreshold]=useState(.95)
+  const [batchNotice,setBatchNotice]=useState('')
+  const predictionId=useRef(0)
+  useEffect(()=>()=>{predictionId.current++},[])
   const [timing, setTiming] = useState<number | null>(null)
   const viewport = useRef<HTMLDivElement>(null)
   const [view, setView] = useState({ scale: .15, x: 0, y: 0 })
@@ -214,15 +221,17 @@ export default function Annotator({ review }: { review?: ReviewController }) {
       invalidate()
     }
   }
-  const clear = () => { setPrompts([]); setBox(null); setBoxStart(null); invalidate(); setError(''); setEditingOriginal(null); setSelectedId(''); setSuggestionId(''); setManualPoints([]) }
-  const predict = async () => {
+  const clear = () => { predictionId.current++; setAutoHold(null); setBusy(false); setPrompts([]); setBox(null); setBoxStart(null); invalidate(); setError(''); setEditingOriginal(null); setSelectedId(''); setSuggestionId(''); setManualPoints([]) }
+  const predict = async (input?:{points:Prompt[];box:Box|null}) => {
+    const id=++predictionId.current
     setBusy(true); setError('')
     try {
-      const result = await request<{ candidates: Candidate[]; elapsed_seconds: number }>('predict', { points: prompts, box, ...(review ? { sessionId: review.data.session.sessionId, image_sha256: review.data.session.registeredImageSha256 } : {}) })
+      const result = await request<{ candidates: Candidate[]; elapsed_seconds: number }>('predict', { points: input?.points ?? prompts, box: input ? input.box : box, ...(review ? { sessionId: review.data.session.sessionId, image_sha256: review.data.session.registeredImageSha256 } : {}) })
+      if(id!==predictionId.current)return
       setCandidates(result.candidates); setCandidateIndex(0); setTiming(result.elapsed_seconds)
       if (!result.candidates.length) setError('No usable outline. Add a positive point or tighten the box and try again.')
-    } catch (problem) { setError(String(problem)) }
-    finally { setBusy(false) }
+    } catch (problem) { if(id===predictionId.current)setError(String(problem)) }
+    finally { if(id===predictionId.current)setBusy(false) }
   }
   const accept = async () => {
     if (!preview) return
@@ -258,6 +267,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
     if (review) element.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
   const prepareOutline = (hold: PolygonHoldCandidate) => {
+    predictionId.current++;setAutoHold(null)
     setPrompts([]); setBoxStart(null); setError(''); setTiming(null)
     const xs = hold.polygon.map(([x]) => x), ys = hold.polygon.map(([, y]) => y)
     setBox([Math.max(0, Math.min(...xs) - .003), Math.max(0, Math.min(...ys) - .003), Math.min(1, Math.max(...xs) + .003), Math.min(1, Math.max(...ys) + .003)])
@@ -291,6 +301,15 @@ export default function Annotator({ review }: { review?: ReviewController }) {
   const canEdit = !review || comparison === 'new'
   const canPredict = canEdit && serviceMatches && status.state === 'ready' && !busy && (box !== null || prompts.some((prompt) => prompt.label === 1))
 
+  useEffect(()=> {
+    if(!autoPredict){setAutoHold(null);return}
+    if(!autoHold || !serviceMatches || status.state!=='ready' || !canEdit)return
+    const xs=autoHold.polygon.map(p=>p[0]),ys=autoHold.polygon.map(p=>p[1])
+    const bounds:Box=[Math.max(0,Math.min(...xs)-.003),Math.max(0,Math.min(...ys)-.003),Math.min(1,Math.max(...xs)+.003),Math.min(1,Math.max(...ys)+.003)]
+    setAutoHold(null)
+    void predict({points:[],box:bounds})
+  },[autoHold,autoPredict,serviceMatches,status.state,canEdit])
+
   const reviewDecision = async (type: 'confirm' | 'reset') => {
     if (!review || !selectedId) return
     setBusy(true); setError('')
@@ -313,7 +332,18 @@ export default function Annotator({ review }: { review?: ReviewController }) {
     const queue = covered.length ? covered : pending
     if (!queue.length) return
     const index = queue.findIndex(entry => entry.hold.id === selectedId)
-    setComparison('new'); editHold(queue[(index + 1) % queue.length].hold)
+    const entry=queue[(index + 1) % queue.length]
+    setComparison('new');editHold(entry.hold)
+    const suggestions=modelByOld.get(entry.hold.id)??[]
+    if(suggestions.length){setCandidates(suggestions);setCandidateIndex(0)}
+    if(autoPredict && entry.coverageFraction>=.99)setAutoHold(entry.hold)
+  }
+  const bulkActions=useMemo(()=>review?.assets.proposals && Number.isFinite(threshold) && threshold>=0 && threshold<=1 ? bulkProposalActions(review.data,review.assets.proposals,threshold) : [],[review?.data,review?.assets.proposals,threshold])
+  const confirmBatch=async()=>{
+    if(!review || !bulkActions.length)return
+    setBusy(true);setError('');setBatchNotice('')
+    try{await review.commitMany(bulkActions);clear();setBatchNotice(`${bulkActions.length} SAM2 outlines confirmed. Other entries remain pending.`)}
+    catch(problem){setError(`Batch not saved: ${String(problem)}`)}finally{setBusy(false)}
   }
   return (
     <main className={`annotation-shell ${review?.assets.proposals ? 'has-model-proposals' : ''}`}>
@@ -336,9 +366,18 @@ export default function Annotator({ review }: { review?: ReviewController }) {
         <p className="annotation-hint">Saved on this browser after every decision. Reopen the same scan to resume. Export a backup before clearing browser data.</p>
         </details>
         <div className="review-counts"><span>{pending.length} pending</span><span>{review.data.entries.filter(confirmed).length} confirmed</span><span>{review.data.entries.filter(e => e.status === 'removed').length} removed</span></div>
+        <label className="annotation-inline"><input type="checkbox" checked={autoPredict} disabled={busy} onChange={event=>setAutoPredict(event.target.checked)} />Auto-run SAM2 on next hold</label>
+        <p className="annotation-hint">Next hold loads its saved suggestion immediately and runs a fresh mask when SAM2 is ready. Turn auto-run off to use saved results only.</p>
         <button disabled={busy || !pending.length} onClick={nextPending}>Next unreviewed hold</button>
+        {review.assets.proposals && <section aria-label="Bulk confirmation">
+          <label>Minimum SAM2 score<input aria-label="Minimum SAM2 score" type="number" min="0" max="1" step="0.01" value={Number.isFinite(threshold)?threshold:''} disabled={busy} onChange={event=>setThreshold(event.target.value===''?NaN:Number(event.target.value))} /></label>
+          <button disabled={busy || !canEdit || !bulkActions.length || !review.reviewer.trim()} onClick={()=>void confirmBatch()}>Confirm eligible SAM2 outlines ({bulkActions.length})</button>
+          <p className="annotation-hint">Uses saved SAM2 scores. Skips reviewed entries, coverage gaps, shared masks and alignment/change warnings. Confirms the proposed outline while keeping its old ID.</p>
+          {!review.reviewer.trim()&&<p className="annotation-hint">Enter your reviewer name above to enable bulk confirmation.</p>}
+          {batchNotice&&<p role="status">{batchNotice}</p>}
+        </section>}
         <fieldset className="annotation-tools"><legend>Compare wall</legend>
-          {(['new', 'old', 'overlay'] as const).map(value => <button key={value} aria-pressed={comparison === value} onClick={() => setComparison(value)}>{ { new: 'New scan', old: 'Old wall', overlay: 'Overlay' }[value]}</button>)}
+          {(['new', 'old', 'overlay'] as const).map(value => <button key={value} disabled={busy} aria-pressed={comparison === value} onClick={() => setComparison(value)}>{ { new: 'New scan', old: 'Old wall', overlay: 'Overlay' }[value]}</button>)}
         </fieldset>
         {comparison === 'overlay' && <label>New scan opacity<input aria-label="New scan opacity" type="range" min="0" max="1" step=".05" value={opacity} onChange={event => setOpacity(Number(event.target.value))} /></label>}
         {comparison !== 'new' && <p className="annotation-hint">Comparison view · switch to New scan to edit or confirm.</p>}
@@ -468,7 +507,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
       <section className="annotation-library">
         <h2>{review ? 'Review entries' : 'Accepted holds'} ({saved.holds.length})</h2>
         <p>{review ? 'Choose any entry to inspect, correct, remove or reset its decision.' : 'Saved on this running server. Export a copy to your phone.'}</p>
-        <div className="annotation-actions"><label>Saved hold<select aria-label="Saved hold" value={selectedId} onChange={(event) => setSelectedId(event.target.value)}><option value="">Choose a hold</option>
+        <div className="annotation-actions"><label>Saved hold<select aria-label="Saved hold" disabled={busy} value={selectedId} onChange={(event) => setSelectedId(event.target.value)}><option value="">Choose a hold</option>
           {saved.holds.map((hold, index) => <option key={hold.id} value={hold.id}>{index + 1}. {hold.id}</option>)}</select></label>
           <button disabled={busy || !selectedId} onClick={() => { const hold = saved.holds.find((h) => h.id === selectedId); if (hold) editHold(hold) }}>Edit selected</button>
           {!review && <button disabled={busy || !selectedId} onClick={() => void remove()}>Delete selected</button>}

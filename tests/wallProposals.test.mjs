@@ -32,3 +32,30 @@ test('wrong candidate, changed geometry, unknown associations and duplicate prop
   x=>{x.entries.pop()},x=>{x.proposals[0].evidence.modelScore=2}
  ]){const changed=structuredClone(raw);mutate(changed);assert.throws(()=>validateProposals(changed,base))}
 })
+
+test('bulk confirmation respects threshold, ambiguity, coverage, risk and existing decisions',async()=>{
+ const {bulkProposalActions}=await import('../src/wallProposals.ts')
+ const {validateProgress}=await import('../src/wallReview.ts')
+ const model=validateProposals(raw,base),actions=bulkProposalActions(base,model,.95)
+ assert(actions.length>0 && actions.length<639)
+ assert.equal(bulkProposalActions(base,model,1).length,0)
+ assert.throws(()=>bulkProposalActions(base,model,NaN))
+ const first=actions[0],proposal=model.proposals.find(p=>p.oldHoldIds.includes(first.id))
+ for(const mutate of [
+  m=>{m.proposals.find(p=>p.id===proposal.id).score=.94},
+  m=>{m.proposals.find(p=>p.id===proposal.id).uncertaintyFraction=.01},
+  m=>{m.proposals.find(p=>p.id===proposal.id).observedFraction=.98},
+  m=>{m.proposals.find(p=>p.id===proposal.id).oldHoldIds.push(holds.find(h=>h.id!==first.id).id)},
+  m=>{m.recommendations[first.id]='alignment-needs-review'},
+  m=>{m.proposals.push({...proposal,id:'duplicate-proposal'})}
+ ]){const changed=structuredClone(model);mutate(changed);assert(!bulkProposalActions(base,changed,.95).some(a=>a.id===first.id))}
+ const gap=structuredClone(base);gap.entries.find(e=>e.hold.id===first.id).coverageFraction=.98
+ assert(!bulkProposalActions(gap,model,.95).some(a=>a.id===first.id))
+ let next=base
+ for(const action of actions)next=applyReview(next,action,'Bulk reviewer')
+ assert.equal(next.reviewRevision,actions.length);assert.equal(next.entries.length,677)
+ assert.equal(bulkProposalActions(next,model,.95).length,0)
+ assert.deepEqual(validateProgress(next,base),next)
+ assert.equal(base.reviewRevision,0)
+ console.log(`Bulk fixture: ${actions.length} eligible at 0.95; ${JSON.stringify(next).length} checkpoint bytes`)
+})

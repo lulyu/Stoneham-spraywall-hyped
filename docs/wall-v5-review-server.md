@@ -44,6 +44,10 @@ this is a temporary process, not durable hosting.
 
 1. Expand **Session, reviewer & backups** and enter your reviewer name.
 2. Choose **Next unreviewed hold**, or select an entry and **Edit selected**.
+   Next loads any saved suggestion immediately. **Auto-run SAM2 on next hold**
+   defaults on and requests a fresh box-prompted mask when the matching service
+   is ready, including if it finishes loading after selection. Disable it to use
+   the saved suggestions only. Prediction never records an approval.
 3. Compare **Old wall**, **New scan** and **Overlay**. Decisions are disabled in
    comparison modes; return to New scan to edit.
 4. **Load SAM2 suggestion** copies its outline into the editable draft. Loading
@@ -59,6 +63,25 @@ this is a temporary process, not durable hosting.
 7. Export progress regularly. Decisions are stored in this browser, not on the
    Python server. Reload and reopen the bundle to restore local history; to move
    devices or temporary hostnames, explicitly resume the exported checkpoint.
+
+### Bulk confirmation
+
+Set **Minimum SAM2 score** (default 0.95), enter your reviewer name, then click
+**Confirm eligible SAM2 outlines (N)**. The count updates with the threshold and
+existing decisions. This explicitly adopts the saved SAM2 contours as refinements
+with the original inherited IDs; it does not confirm the old outline unchanged.
+Batch scoring uses the archived, hash-bound proposals, not the latest interactive
+mask score. Only still-pending, fully observed, unambiguous proposals with no
+uncertainty pixels and a possible-unchanged/suggested-refinement recommendation
+qualify. Shared masks, duplicate associations and alignment/change warnings stay
+pending even at a high model score.
+
+The user-requested bulk action checks actual polygon coverage for every candidate
+before saving anything, records ordinary per-entry reviewer/history decisions,
+then performs one guarded storage write. Coverage, quota or stale-tab failures
+leave the whole batch unsaved and available for retry. Checkpoints replay the
+individual decisions normally; use Reset decision to undo individual entries.
+All results remain non-publishable.
 
 The session binds the exact JPEG, reference/map, coverage, uncertainty, proposal
 file and candidate manifest hashes. The original Phase B session is deliberately
