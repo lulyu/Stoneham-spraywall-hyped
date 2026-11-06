@@ -72,7 +72,8 @@ individual files is the fallback.
    Overlapping old and replacement geometry is allowed; it is not deduplicated
    against unreviewed/removed old outlines.
 6. **New hold / Clear** followed by drawing or SAM2 creates a separate new hold.
-   There is no score-based bulk approval in review mode.
+   V5 review bundles also support an explicit score-threshold bulk confirmation
+   of eligible SAM2 contours; see [v5 review controls](wall-v5-review-server.md#bulk-confirmation).
 7. **Reset decision** returns inherited geometry to its original unreviewed state;
    a new hold becomes dismissed. For replacement reversal, reset/dismiss the new
    replacement first, then reset the old entry. This avoids two active identities

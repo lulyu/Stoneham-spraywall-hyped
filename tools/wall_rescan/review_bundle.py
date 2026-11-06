@@ -9,7 +9,7 @@ from pathlib import Path
 
 FILES = ('manifest.json', 'holds_prelabels.json', 'review_queue.json', 'report.json',
          'wall_registered.png', 'coverage.png', 'uncertainty.png',
-         'source-index-preview.png', 'qa-overlay.jpg')
+         'source-index-preview.png', 'qa-overlay.jpg', 'wall_registered.jpg', 'sam2-proposals.json')
 REQUIRED = FILES[:7]
 
 
@@ -22,10 +22,14 @@ class ReviewBundle:
     def __init__(self, directory, root):
         self.directory = Path(directory).resolve()
         self.paths = {name: self.directory / name for name in FILES if (self.directory / name).is_file()}
-        if any(name not in self.paths for name in REQUIRED):
-            raise ValueError('Rescan folder needs manifest, prelabels, queue, report, registered PNG, coverage and uncertainty.')
+        manifest = json.loads((self.directory / 'manifest.json').read_text())
+        self.image_name = manifest.get('imageFile', 'wall_registered.png')
+        if self.image_name not in ('wall_registered.png', 'wall_registered.jpg'):
+            raise ValueError('Unsupported candidate image file.')
+        required = [self.image_name if name == 'wall_registered.png' else name for name in REQUIRED]
+        if any(name not in self.paths for name in required):
+            raise ValueError('Rescan folder needs manifest, prelabels, queue, report, registered image, coverage and uncertainty.')
         self.hashes = {name: digest(path) for name, path in self.paths.items()}
-        manifest = json.loads(self.paths['manifest.json'].read_text())
         session = manifest.get('session', {})
         for key in ('sessionId', 'referenceImageSha256', 'referenceHoldsSha256', 'registeredImageSha256'):
             value = session.get(key)
@@ -44,7 +48,7 @@ class ReviewBundle:
         if manifest.get('publishable') is not False or report.get('publishable') is not False or report.get('sessionId') != session['sessionId']:
             raise ValueError('Expected a non-publishable scan candidate and matching QA report.')
         expected = {
-            'wall_registered.png': session['registeredImageSha256'],
+            self.image_name: session['registeredImageSha256'],
             'reference': session['referenceImageSha256'],
             'holds': session['referenceHoldsSha256'],
         }
@@ -52,6 +56,9 @@ class ReviewBundle:
                   'holds': digest(Path(root) / 'src/data/polygons/holds.json')}
         if any(actual[key] != value for key, value in expected.items()):
             raise ValueError('Candidate/reference image or hold map differs from the session hashes.')
+        for name, key in [('coverage.png', 'coverageSha256'), ('uncertainty.png', 'uncertaintySha256'), ('sam2-proposals.json', 'proposalsSha256')]:
+            if key in session and self.hashes.get(name) != session[key]:
+                raise ValueError('Scan evidence hash differs: ' + name)
         self.session = session
 
     def file(self, name):
@@ -65,4 +72,4 @@ class ReviewBundle:
     def validate_prediction(self, body):
         if body.get('sessionId') != self.session['sessionId'] or body.get('image_sha256') != self.session['registeredImageSha256']:
             raise ValueError('Prediction session/image mismatch. Open the matching scan server.')
-        self.file('wall_registered.png')
+        self.file(self.image_name)

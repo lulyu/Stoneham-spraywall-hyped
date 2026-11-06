@@ -8,7 +8,7 @@ import './annotator.css'
 
 export type ReviewController = {
   assets:ReviewAssets; data:WallReview; reviewer:string; setReviewer:(name:string)=>void
-  commit:(action:ReviewAction)=>Promise<void>; exportProgress:()=>void; resume:(file?:File)=>Promise<void>
+  commit:(action:ReviewAction)=>Promise<void>; commitMany:(actions:ReviewAction[])=>Promise<void>; exportProgress:()=>void; resume:(file?:File)=>Promise<void>
 }
 function download(data:unknown,name:string) {
   const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}))
@@ -38,17 +38,20 @@ export default function AnnotationWorkspace() {
         return restored
       })
       if(id!==loadId.current){next.dispose();return}
-      active.current?.dispose();active.current=next;setAssets(next);setData(restored);setEpoch(e=>e+1)
+      active.current?.dispose();active.current=next;setAssets(next);setData(restored);setReviewer(name=>name || restored.history.at(-1)?.reviewer || '');setEpoch(e=>e+1)
     } catch(problem) {next?.dispose();setError(String(problem))}
     finally {if(id===loadId.current)setLoading(false)}
   }
-  const commit=async(action:ReviewAction)=> {
+  const commitMany=async(actions:ReviewAction[])=> {
     if(!data || !assets)throw new Error('Open a scan first.')
     const generation=loadId.current
-    if(action.type==='add' || action.type==='refine') {
-      if(await assets.observedFraction(action.hold)<.99)throw new Error('The edited outline crosses an unobserved gap. Capture more coverage before confirming it.')
+    if(!actions.length)return
+    if(!reviewer.trim())throw new Error('Enter your reviewer name before confirming a decision.')
+    let next=data
+    for(const action of actions) {
+      if((action.type==='add' || action.type==='refine') && await assets.observedFraction(action.hold)<.99)throw new Error('The edited outline crosses an unobserved gap. No decisions in this batch were saved.')
+      next=applyReview(next,action,reviewer)
     }
-    const next=applyReview(data,action,reviewer)
     // Serialize same-origin tabs using a browser lock; the stored state is also compared in saveReview.
     if(!navigator.locks)throw new Error('This browser needs Web Locks for safe saving. Use a current HTTPS browser.')
     await navigator.locks.request(reviewKey(data.session),()=>{
@@ -57,6 +60,7 @@ export default function AnnotationWorkspace() {
     })
     setData(next)
   }
+  const commit=(action:ReviewAction)=>commitMany([action])
   const resume=async(file?:File)=> {
     if(!file || !data || !assets)return
     if(file.size>16*1024*1024)throw new Error('Checkpoint exceeds 16 MiB.')
@@ -84,12 +88,12 @@ export default function AnnotationWorkspace() {
           <label className="review-file">Or select scan files<input aria-label="Select scan files" type="file" multiple disabled={loading} onChange={event=>{const files=Array.from(event.target.files??[]);if(files.length)void open(()=>loadReviewFiles(files));event.target.value=''}} /></label>
           <button disabled={loading} onClick={()=>void open(loadServerReview)}>Open local server scan</button>
         </div>
-        <details><summary>What to import</summary><p>Select the Phase B output folder containing manifest.json, holds_prelabels.json, review_queue.json, report.json, wall_registered.png, coverage.png and uncertainty.png. Keep these files together. The old reference comes from the app and is hash checked. Optional review-progress.json resumes exported progress.</p></details>
+        <details><summary>What to import</summary><p>Select the Phase B output folder containing manifest.json, holds_prelabels.json, review_queue.json, report.json, wall_registered.png (or wall_registered.jpg for v5), coverage.png and uncertainty.png. A v5 bundle also includes hash-bound sam2-proposals.json. Keep these files together. The old reference comes from the app and is hash checked. Optional review-progress.json resumes exported progress.</p></details>
         </details>
         {loading&&<p role="status">Checking scan identity and image bytes… Large images can take a moment.</p>}
         {error&&<p className="annotation-error" role="alert">{error}</p>}
       </section>
-      {assets&&data&&<Annotator key={`${data.session.sessionId}:${epoch}`} review={{assets,data,reviewer,setReviewer,commit,resume,
+      {assets&&data&&<Annotator key={`${data.session.sessionId}:${epoch}`} review={{assets,data,reviewer,setReviewer,commit,commitMany,resume,
         exportProgress:()=>download(validateProgress(data,assets.baseline),'review-progress.json')}} />}
     </>}
   </>

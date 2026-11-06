@@ -52,6 +52,7 @@
 .review-panel input:not([type=checkbox]) { max-width:100%; }
 .review-panel input[type=range] { display:block; width:100%; min-height:44px; accent-color:#c9ff53; }
 .review-inherited-unreviewed { stroke:#ffac28; fill:#ffac2812; }
+.has-model-proposals .review-inherited-unreviewed { stroke:#33d6ff; fill:transparent; stroke-dasharray:4 3; vector-effect:non-scaling-stroke; }
 .review-verified-unchanged, .review-verified-refined { stroke:#33d6ff; fill:transparent; }
 .review-new { stroke:#c9ff53; fill:transparent; }
 .review-removed, .review-dismissed { stroke:#ff6e91; stroke-dasharray:6 4; fill:transparent; }
@@ -59,3 +60,9 @@
 .annotation-shell select { max-width:100%; }
 .annotation-shell summary { cursor:pointer; padding:10px 0; min-height:44px; }
 @media(max-width:600px) { .annotation-header h1 { font-size:22px; } .review-panel { padding:10px; } .annotation-actions label { min-width:0; } }
+
+.review-quick-actions { margin: 10px 0 22px; }
+.review-quick-buttons { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:10px; }
+.review-quick-buttons button { width:100%; min-height:52px; font-weight:700; }
+.review-required { color:#ffd184; font-size:14px; line-height:1.5; }
+.review-edit-heading { font-size:18px; margin:20px 0 12px; }
