@@ -33,9 +33,11 @@ export async function loadReviewFiles(files: File[]):Promise<ReviewAssets> {
   const dispose=()=>{urls.forEach(URL.revokeObjectURL);bitmaps.forEach(b=>b.close())}
   try {
     const [manifest,prelabels,queue,report]=await Promise.all(['manifest.json','holds_prelabels.json','review_queue.json','report.json'].map(json))
-    const mapResponse=await fetch(referenceMapUrl)
-    if(!mapResponse.ok)throw new Error('Could not load the old hold map.')
-    const referenceText=await mapResponse.text()
+    const suppliedMap=get('reference-holds.json',true)
+    const mapResponse=suppliedMap?null:await fetch(referenceMapUrl)
+    if(mapResponse && !mapResponse.ok)throw new Error('Could not load the old hold map.')
+    if(suppliedMap && suppliedMap.size>16*1024*1024)throw new Error('Reference hold map is too large.')
+    const referenceText=suppliedMap?await suppliedMap.text():await mapResponse!.text()
     const oldMap=JSON.parse(referenceText)
     const baseline=initializeReview(manifest,prelabels,queue,oldMap), size=baseline.session.coordinateFrame.size
     sameSession(baseline.session,prelabels.session)
@@ -107,7 +109,7 @@ export async function loadServerReview():Promise<ReviewAssets> {
   if(!response.ok || !response.headers.get('content-type')?.includes('application/json')) throw new Error('No local rescan server. Import a scan folder, or start the server with --rescan-session.')
   const bundle=await response.json()
   if(!Array.isArray(bundle.files))throw new Error('Invalid review bundle.')
-  const allowed=['manifest.json','holds_prelabels.json','review_queue.json','report.json','wall_registered.png','coverage.png','uncertainty.png','source-index-preview.png','qa-overlay.jpg','wall_registered.jpg','sam2-proposals.json']
+  const allowed=['manifest.json','holds_prelabels.json','review_queue.json','report.json','wall_registered.png','coverage.png','uncertainty.png','source-index-preview.png','qa-overlay.jpg','wall_registered.jpg','sam2-proposals.json','reference.jpg','reference-holds.json']
   const files:File[]=[]
   // Sequential fetch bounds peak memory while handling full-resolution images.
   for(const name of allowed.filter(n=>bundle.files.includes(n))) {

@@ -46,6 +46,22 @@ class ReviewBundleTests(unittest.TestCase):
             (scan/'coverage.png').unlink()
             with self.assertRaisesRegex(ValueError,'folder needs'):ReviewBundle(scan,root)
 
+    def test_supplied_references_are_hash_bound_and_do_not_change_production(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);scan,session=self.make_bundle(root)
+            (scan/'reference.jpg').write_bytes(b'reviewed v6 image')
+            (scan/'reference-holds.json').write_text('[{"id":"reviewed-hold"}]')
+            session.update(referenceImageSha256=digest(scan/'reference.jpg'),referenceHoldsSha256=digest(scan/'reference-holds.json'))
+            for name in ('manifest.json','holds_prelabels.json','review_queue.json'):
+                data=json.loads((scan/name).read_text());data['session']=session
+                (scan/name).write_text(json.dumps(data))
+            bundle=ReviewBundle(scan,root)
+            self.assertEqual(bundle.file('reference.jpg'),scan/'reference.jpg')
+            self.assertEqual((root/'src/data/polygons/holds.json').read_text(),'[]')
+            (scan/'reference-holds.json').write_text('[]')
+            with self.assertRaisesRegex(ValueError,'changed on disk'):bundle.file('reference-holds.json')
+            with self.assertRaisesRegex(ValueError,'hashes'):ReviewBundle(scan,root)
+
     def test_review_server_never_seeds_or_writes_legacy_storage(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);scan,session=self.make_bundle(root);bundle=ReviewBundle(scan,root)

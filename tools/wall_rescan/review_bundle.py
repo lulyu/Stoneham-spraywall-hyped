@@ -9,7 +9,8 @@ from pathlib import Path
 
 FILES = ('manifest.json', 'holds_prelabels.json', 'review_queue.json', 'report.json',
          'wall_registered.png', 'coverage.png', 'uncertainty.png',
-         'source-index-preview.png', 'qa-overlay.jpg', 'wall_registered.jpg', 'sam2-proposals.json')
+         'source-index-preview.png', 'qa-overlay.jpg', 'wall_registered.jpg', 'sam2-proposals.json',
+         'reference.jpg', 'reference-holds.json')
 REQUIRED = FILES[:7]
 
 
@@ -52,8 +53,9 @@ class ReviewBundle:
             'reference': session['referenceImageSha256'],
             'holds': session['referenceHoldsSha256'],
         }
-        actual = {**self.hashes, 'reference': digest(Path(root) / 'public/wall/stoneham-spraywall-canonical.jpg'),
-                  'holds': digest(Path(root) / 'src/data/polygons/holds.json')}
+        reference = self.paths.get('reference.jpg', Path(root) / 'public/wall/stoneham-spraywall-canonical.jpg')
+        holds = self.paths.get('reference-holds.json', Path(root) / 'src/data/polygons/holds.json')
+        actual = {**self.hashes, 'reference': digest(reference), 'holds': digest(holds)}
         if any(actual[key] != value for key, value in expected.items()):
             raise ValueError('Candidate/reference image or hold map differs from the session hashes.')
         for name, key in [('coverage.png', 'coverageSha256'), ('uncertainty.png', 'uncertaintySha256'), ('sam2-proposals.json', 'proposalsSha256')]:

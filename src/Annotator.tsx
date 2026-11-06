@@ -67,7 +67,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
   const [replaceExisting, setReplaceExisting] = useState(false)
   const [tool, setTool] = useState<Tool>('positive')
   const [busy, setBusy] = useState(false)
-  const [autoPredict,setAutoPredict]=useState(()=>!review?.assets.proposals)
+  const [autoPredict,setAutoPredict]=useState(()=>!review?.assets.proposals && review?.data.session.reviewPurpose!=='final-image-recheck')
   const [autoHold,setAutoHold]=useState<PolygonHoldCandidate|null>(null)
   const [threshold,setThreshold]=useState(.95)
   const [batchNotice,setBatchNotice]=useState('')
@@ -461,7 +461,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
           <button disabled={!canReplace} title="Replace the selected old hold with this outline and a fresh ID" onClick={()=>void replacement()}>Mark replaced</button>
           <button disabled={!canPredict} onClick={()=>void predict()}>Generate mask</button>
         </div>
-        <p className="annotation-hint" role="status">{busy ? 'SAM2 is running…' : !preview ? 'Next pending hold loads its SAM2 suggestion.' : !canEdit ? 'Switch to New scan to confirm.' : !review.reviewer.trim() ? 'Enter your reviewer name above to confirm. Tap Confirm to jump there.' : `Outline ready${preview.score===undefined?'':` · score ${preview.score.toFixed(2)}`}`}</p>
+        <p className="annotation-hint" role="status">{busy ? 'SAM2 is running…' : !preview ? review.assets.proposals ? 'Next pending hold loads its SAM2 suggestion.' : 'Next pending hold loads your saved outline.' : !canEdit ? 'Switch to New scan to confirm.' : !review.reviewer.trim() ? 'Enter your reviewer name above to confirm. Tap Confirm to jump there.' : `Outline ready${preview.score===undefined?'':` · score ${preview.score.toFixed(2)}`}`}</p>
         {error&&<p className="annotation-error" role="alert">{error}</p>}
       </section>}
       {review && <h2 className="review-edit-heading">Edit outline & rerun SAM2</h2>}

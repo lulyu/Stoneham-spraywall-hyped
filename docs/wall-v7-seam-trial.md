@@ -41,8 +41,8 @@ non-seam uncertainty bits are retained and the seam bit is recomputed.
 
 Changing seam placement does not correct global alignment errors or parallax.
 Some seams, exposure changes and projection shifts can remain. The candidate is
-an image experiment with `publishable: false`; it has no review session and is
-not selected by the annotation tool or production catalog. Completed v6 approvals
+an image experiment with `publishable: false`; it is not selected by the
+production catalog. A separate final-review session is described below. Completed v6 approvals
 remain bound to the original v6 JPEG hash. Reusing those outlines on this new
 image would require checking affected geometry against the new projection.
 
@@ -65,3 +65,40 @@ The runner reads the committed transform recipe and v6 masks, checks original
 photo/reference/image hashes, and refuses to reuse an existing output directory.
 It does not need to rerun feature registration or SAM2. Run with the recorded
 OpenCV 4.11 environment for the same graph-cut implementation.
+
+## Final review using the completed outlines
+
+After the user selected this image for a final review, a distinct unapproved
+bundle was prepared with:
+
+```sh
+python -m tools.wall_rescan.recheck_review \
+  --output artifacts/wall-rescans/v7-final-review-session
+```
+
+It includes the 797 completed v6 outlines unchanged as starting geometry,
+the reviewed v6 JPEG for comparison, and the new JPEG/masks. All 797 entries
+start pending, with revision zero and no imported approval history. The 26
+previous removals stay recorded in the original v6 checkpoint and are not
+reintroduced as active holds. The session binds the source checkpoint,
+geometry snapshot, candidate manifest, references and evidence by SHA-256.
+Compact identity evidence is tracked under `reviews/2026-11-v7-final-review/`.
+
+The editor/server now accept optional `reference-holds.json` and `reference.jpg`
+inside a review bundle, checking their session hashes instead of requiring the
+production reference. Existing bundles still use the original app reference.
+This keeps the production catalog unchanged while allowing subsequent review
+rounds to start from the user's completed work. For this final-review purpose,
+automatic SAM2 inference starts off so Next shows the saved outline. Generate
+mask and opt-in auto-run remain available on the matching SAM2 server.
+
+Validation passed: frontend tests/build, 40 offline rescan tests, and a mobile
+browser check against the local SAM2 server. The browser verified exact saved
+geometry, all entries pending, no automatic inference, confirmation, reload,
+checkpoint export, rejection of the v6 checkpoint against v7, and live SAM2
+inference without silently saving a decision. Test storage was isolated.
+
+The new image is uploaded to GitHub. Uploading this final-review bundle to the
+existing Vercel Sandbox was blocked by automatic approval review, which requested
+explicit authorization for the new image/geometry/review-file transfer to Vercel.
+The prepared bundle remains local until that authorization arrives.
