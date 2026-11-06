@@ -1,0 +1,18 @@
+{
+  "format": "stoneham-reviewed-backup-v1",
+  "checkpoint": "review-progress-r826.json",
+  "checkpointSha256": "89db8e592a33780b18099f80912ae9b9564abacdfa294093c44d38ba5a6adbb5",
+  "sessionId": "77d254189eb3ccfb1edcdecb9306179861d9925a0bfe91fcefa7c393ad53b228",
+  "imageSha256": "d77c50fc3856998546edcb56645d71183f8942294c4c2653154d3d7c6facc396",
+  "reviewRevision": 826,
+  "historyEvents": 837,
+  "statusCounts": {
+    "verified-refined": 651,
+    "removed": 26,
+    "new": 146
+  },
+  "confirmedHoldCount": 797,
+  "confirmedPartialCoverage": 26,
+  "pendingCount": 0,
+  "publishable": false
+}
