@@ -44,7 +44,8 @@ def prepare(manifest_path, proposals_path, output, root=ROOT):
                'candidateVersion': m['wallVersionId'], 'registeredImageSha256': expected['image'],
                'sourceSessionId': m['sourceSession']['sessionId'], 'candidateManifestSha256': digest(manifest_path),
                'coverageSha256': expected['coverage'], 'uncertaintySha256': expected['uncertainty'],
-               'proposalsSha256': digest(proposals_path)}
+               'proposalsSha256': digest(proposals_path),
+               'referenceFilledFraction': m.get('referenceFilledFraction', 0)}
     session.pop('sessionId')
     session['sessionId'] = hashlib.sha256(json.dumps(session, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
     coverage = np.asarray(Image.open(paths['coverage.png']).convert('L'))

@@ -1,0 +1,121 @@
+{
+  "format": "stoneham-wall-candidate-v1",
+  "gymId": "stoneham-crg",
+  "wallId": "spray-wall-1",
+  "wallVersionId": "2026-11-v6-highres",
+  "referenceVersion": "2026-10-v4",
+  "status": "candidate-needs-review",
+  "publishable": false,
+  "image": "wall.jpg",
+  "imageRole": "registered-high-resolution-new-photos-with-v1-reference-in-no-observation-gaps",
+  "imageSha256": "d77c50fc3856998546edcb56645d71183f8942294c4c2653154d3d7c6facc396",
+  "imageSize": [
+    7292,
+    5514
+  ],
+  "coverage": "coverage.png",
+  "coverageSha256": "e67a01071a1b5e225bf577ac4dc63f618f57e9be349ae1a924b53fb4c75cafc0",
+  "uncertainty": "uncertainty.png",
+  "uncertaintySha256": "d00f507d77e243cdd7007508a660c7fb3ec12e8d1875ec94444f7febc2ea77f6",
+  "sourceIndex": "source-index.png",
+  "sourceIndexSha256": "00734f03ee2813528f2b4491b63e6066c5042a39efdc757281f12f9f8e2445f7",
+  "sourceSession": {
+    "scanId": "stoneham-drive-highres-20261106",
+    "gymId": "stoneham-crg",
+    "wallId": "spray-wall-1",
+    "referenceVersion": "2026-10-v4",
+    "candidateVersion": "2026-11-v6-highres-candidate",
+    "referenceImageSha256": "0dddcf36d5e9df223bea360cb9a6a03c7871d40be20f7d73a976c14d1a2a7693",
+    "referenceHoldsSha256": "8296a7b5683441bedcea9e1e32dc2d6099bcc9e788200c577869dd87a9ba09fc",
+    "inputManifestSha256": "c8370e94bfab4d284fca8042d917393cdcf556f1cc4a1ddc92b559661df485af",
+    "sourceContents": [
+      {
+        "id": "IMG20261105175524",
+        "hashes": {
+          "image": "346fc36b582266b488e088fe67a43040571bac424fc2525f5e88411a7af8f943"
+        }
+      },
+      {
+        "id": "IMG20261105175533",
+        "hashes": {
+          "image": "98aa54cfc3c9dd68ac21340dbbd1c958970e976d32c4c4c7d7624b857c2a13ed"
+        }
+      },
+      {
+        "id": "IMG20261105175541",
+        "hashes": {
+          "image": "c9f4d38c9c2351bde35f6ecf712662283a2f2d9250569d76ef873591e005a03e"
+        }
+      },
+      {
+        "id": "IMG20261105175549",
+        "hashes": {
+          "image": "a943fd27d29813c640922a94e129bc4f7e70d09cf2e599cabd9957cc226f0745"
+        }
+      }
+    ],
+    "registeredImageSha256": "faa6a776187c230b5d5e0eb1df224a1cebfee061c35b9d9cbba6b3daf8d5373e",
+    "coordinateFrame": {
+      "size": [
+        7292,
+        5514
+      ],
+      "orientation": "EXIF-prepared canonical reference"
+    },
+    "sessionId": "ef871dc8c75c77aa082dc2e753c9fa6893e17c787b9528271ce0a6174732090a"
+  },
+  "referenceImageSha256": "0dddcf36d5e9df223bea360cb9a6a03c7871d40be20f7d73a976c14d1a2a7693",
+  "referenceHoldsSha256": "8296a7b5683441bedcea9e1e32dc2d6099bcc9e788200c577869dd87a9ba09fc",
+  "observedCoverageFraction": 0.9224866400013848,
+  "referenceFilledFraction": 0.07751335999861521,
+  "qaFailures": [
+    "required-region-coverage-below-threshold",
+    "overlap-alignment-not-verified"
+  ],
+  "sources": [
+    {
+      "name": "IMG20261105175524.jpg",
+      "driveFileId": "1kXDNx0gWInmIh-DDmGt-tVJLdESQ7wJ9",
+      "bytes": 19308106,
+      "size": [
+        6144,
+        8192
+      ],
+      "sha256": "346fc36b582266b488e088fe67a43040571bac424fc2525f5e88411a7af8f943"
+    },
+    {
+      "name": "IMG20261105175533.jpg",
+      "driveFileId": "1xZ3tAFn44cpW0NI4953dCEI5FmeFmxAg",
+      "bytes": 18637749,
+      "size": [
+        6144,
+        8192
+      ],
+      "sha256": "98aa54cfc3c9dd68ac21340dbbd1c958970e976d32c4c4c7d7624b857c2a13ed"
+    },
+    {
+      "name": "IMG20261105175541.jpg",
+      "driveFileId": "1V1i6lFh8yPVNcD02aFb6WHhIfTGhTDOr",
+      "bytes": 18103148,
+      "size": [
+        6144,
+        8192
+      ],
+      "sha256": "c9f4d38c9c2351bde35f6ecf712662283a2f2d9250569d76ef873591e005a03e"
+    },
+    {
+      "name": "IMG20261105175549.jpg",
+      "driveFileId": "16iIjIJc_zbD8toJbDMTYEcVgjy-2ZMkA",
+      "bytes": 21433107,
+      "size": [
+        6144,
+        8192
+      ],
+      "sha256": "a943fd27d29813c640922a94e129bc4f7e70d09cf2e599cabd9957cc226f0745"
+    }
+  ],
+  "note": "Only zero-coverage pixels are filled from the v1 canonical image for presentation. Coverage/source-index/uncertainty stay unchanged. Prior image approvals do not transfer; candidate remains unpublished.",
+  "fallbackReference": "stoneham-spraywall-canonical.jpg (v1 canonical, production v4 coordinate frame)",
+  "referenceFilledPixelCount": 3116664,
+  "filledLosslessSha256": "fff9844add28e9da1d68995a9ea438c5b9bac82ddbf7a385886d5f14f96e8914"
+}

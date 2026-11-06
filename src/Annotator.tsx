@@ -359,6 +359,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
       <p className="annotation-status" role="status">{review && (!serviceMatches || status.state === 'error') ? 'Manual editing ready · SAM2 needs a matching local rescan server.' : status.state === 'ready' ? `SAM2.1 Small ready · ${status.device.toUpperCase()}` : status.state === 'loading' ? 'Loading SAM2 and preparing wall tiles…' : status.error}</p>
       {review && <section className="review-panel" aria-label="Scan review">
         <p className="review-badge">DRAFT · {review.data.session.candidateVersion} · revision {review.data.reviewRevision}</p>
+        {Number(review.data.session.referenceFilledFraction)>0 && <p className="annotation-hint">{((1-Number(review.data.session.referenceFilledFraction))*100).toFixed(2)}% new photos · {(Number(review.data.session.referenceFilledFraction)*100).toFixed(2)}% v1 edge fill. Filled areas are display-only and remain unobserved.</p>}
         <label>Reviewer name<input ref={reviewerInput} aria-label="Reviewer name" value={review.reviewer} maxLength={100} placeholder="Enter your name to enable confirmation" onChange={event => {review.setReviewer(event.target.value);if(error==='Enter your reviewer name to confirm holds.')setError('')}} /></label>
         <details><summary>Session, reviewer & backups</summary>
         <p className="annotation-hint">{review.assets.inputKind} · QA: {review.assets.qaStatus}. Decisions are local working notes, not publication approval.</p>

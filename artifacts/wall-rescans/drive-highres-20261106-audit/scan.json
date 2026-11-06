@@ -1,0 +1,38 @@
+{
+  "scanId": "stoneham-drive-highres-20261106",
+  "referenceVersion": "2026-10-v4",
+  "candidateVersion": "2026-11-v6-highres-candidate",
+  "referenceImage": "../../public/wall/stoneham-spraywall-canonical.jpg",
+  "referenceHolds": "../../src/data/polygons/holds.json",
+  "inputKind": "real-captures",
+  "settings": {
+    "max_side": 3000,
+    "features": 24000,
+    "matcher": "flann",
+    "max_error_px": 8,
+    "max_overlap_error_px": 10,
+    "min_coverage": 0.995,
+    "cell": 32,
+    "guard_pixels": 8,
+    "normalize_exposure": true,
+    "seed": 0
+  },
+  "sources": [
+    {
+      "id": "IMG20261105175524",
+      "image": "raw/IMG20261105175524.jpg"
+    },
+    {
+      "id": "IMG20261105175533",
+      "image": "raw/IMG20261105175533.jpg"
+    },
+    {
+      "id": "IMG20261105175541",
+      "image": "raw/IMG20261105175541.jpg"
+    },
+    {
+      "id": "IMG20261105175549",
+      "image": "raw/IMG20261105175549.jpg"
+    }
+  ]
+}

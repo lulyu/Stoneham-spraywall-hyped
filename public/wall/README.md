@@ -19,3 +19,7 @@ All future hold geometry should be authored against this exact image so wall res
 `versions/2026-11-v5/` stores the new registered, reference-filled candidate plus
 actual coverage/provenance masks. It is not active or approved; the v4 canonical
 path above stays unchanged. See [the experiment](../../docs/wall-v5-sam2-refresh.md).
+
+`versions/2026-11-v6-highres/` contains the original-resolution four-photo candidate,
+with v1 reference pixels filling only unobserved edge gaps. Coverage/provenance
+remain unchanged; it is not active or approved. See [high-resolution scan notes](../../docs/wall-v6-highres.md).
