@@ -70,6 +70,7 @@ artifacts/wall-rescans/wall-v6-highres-sam2-refresh/*
 !artifacts/wall-rescans/wall-v6-highres-sam2-refresh/report.json
 !artifacts/wall-rescans/wall-v6-highres-sam2-refresh/old-vs-sam2-overlay.jpg
 !artifacts/wall-rescans/wall-v6-highres-sam2-refresh/sam2-proposals-overlay.jpg
+!artifacts/wall-rescans/wall-v6-highres-sam2-refresh/geometry-validation.json
 
 !artifacts/wall-rescans/wall-v5-sam2-refresh/
 artifacts/wall-rescans/wall-v5-sam2-refresh/*

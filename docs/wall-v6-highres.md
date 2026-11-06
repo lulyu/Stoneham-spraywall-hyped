@@ -99,11 +99,18 @@ not permit confirming unobserved holds or infer that old holds are still present
 
 A fresh SAM2.1 Small CPU run on this exact filled high-resolution JPEG took
 **202.61 seconds**, prompted **651** fully observed inherited positions, produced
-642 usable masks and **640 unique proposals**. All 677 inherited entries remain
-unreviewed. Twenty-six partial/unobserved entries were skipped and nine prompted
-positions had no usable mask. The committed dataset is
+642 usable masks and **640 raw unique proposals**. The browser polygon validator
+rejected one self-crossing shared proposal, leaving **639 valid suggestions** for
+the editor. Its two associated inherited entries remain pending for manual
+correction. All 677 inherited entries remain unreviewed. Twenty-six
+partial/unobserved entries were skipped and nine prompted positions originally
+had no usable mask. The committed dataset is
 `src/data/experiments/wall-v6-highres-sam2-refresh.json`; model execution evidence
 is in `artifacts/wall-rescans/wall-v6-highres-sam2-refresh/`.
+The original execution report/overlays retain raw-run counts and evidence;
+`geometry-validation.json` records the rejected contour, validator/source hashes
+and delivered count. The delivered dataset explicitly records this validation
+stage; no rejected contour was repaired or automatically approved.
 
 ```sh
 python -m tools.wall_rescan.candidate_review \
@@ -125,4 +132,4 @@ bulk confirmation and progress exports retain the established behavior.
 
 The browser regression scripts accept `EXPECTED_VERSION=2026-11-v6-highres` and
 `EXPECTED_IMAGE_SHA256` to verify the exact served image; set
-`EXPECTED_PROPOSALS=640` for the full inference/bulk script.
+`EXPECTED_PROPOSALS=639` for the full inference/bulk script.

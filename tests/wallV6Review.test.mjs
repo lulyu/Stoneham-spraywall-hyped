@@ -17,8 +17,9 @@ test('high-resolution reference-filled candidate has its own valid, unapproved s
  const base=initializeReview({session,publishable:false},{session,publishable:false,holds},
   {session,publishable:false,reviewRevision:0,entries},holds)
  const model=validateProposals(raw,base)
- assert.equal(base.entries.length,677);assert.equal(model.proposals.length,640)
+ assert.equal(base.entries.length,677);assert.equal(model.proposals.length,639)
  assert(base.entries.every(e=>e.status==='inherited-unreviewed'));assert.equal(base.reviewRevision,0)
+ assert.equal(raw.metadata.rawProposalCount,640);assert.equal(raw.metadata.geometryValidation.rejectedProposalCount,1);
  assert.equal(raw.metadata.acceptedHoldCount,0);assert(m.referenceFilledFraction>0)
  assert(raw.entries.filter(e=>e.observationFraction<.99).every(e=>e.proposalId===null))
  const actions=bulkProposalActions(base,model,.95);assert(actions.length>0)
