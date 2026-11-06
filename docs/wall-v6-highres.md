@@ -133,3 +133,10 @@ bulk confirmation and progress exports retain the established behavior.
 The browser regression scripts accept `EXPECTED_VERSION=2026-11-v6-highres` and
 `EXPECTED_IMAGE_SHA256` to verify the exact served image; set
 `EXPECTED_PROPOSALS=639` for the full inference/bulk script.
+
+Verified on the protected Vercel Sandbox with the exact v6 image hash: quick
+Next/Confirm, all 639 delivered suggestions, real CPU inference (0.41s in the
+recorded check), wrong-session rejection, threshold bulk confirmation, atomic
+quota-failure retry and checkpoint/reload all passed. Frontend tests/build and
+39 offline Python tests passed. Browser checks use isolated storage and do not
+change the user's progress or production data.
