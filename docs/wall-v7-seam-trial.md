@@ -98,7 +98,12 @@ geometry, all entries pending, no automatic inference, confirmation, reload,
 checkpoint export, rejection of the v6 checkpoint against v7, and live SAM2
 inference without silently saving a decision. Test storage was isolated.
 
-The new image is uploaded to GitHub. Uploading this final-review bundle to the
-existing Vercel Sandbox was blocked by automatic approval review, which requested
-explicit authorization for the new image/geometry/review-file transfer to Vercel.
-The prepared bundle remains local until that authorization arrives.
+The new image is uploaded to GitHub. After the user's explicit authorization,
+the final-review bundle was uploaded to the existing named Vercel Sandbox
+`stoneham-v5-review` and served from an isolated `stoneham-v7-final-live` directory.
+The same mobile-browser checks passed against the remote authenticated URL,
+including exact image identity, 797 saved outlines, confirm/reload/export and
+live SAM2 inference. A new private access key was generated for this review;
+keys and authenticated links are not stored in the repository. The original
+v6 files and checkpoint remain intact. Sandbox runtime is temporary; exported
+review checkpoints remain the durable backup.
