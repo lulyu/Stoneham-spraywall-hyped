@@ -60,6 +60,14 @@ class RefreshTests(unittest.TestCase):
         self.assertEqual(mapping['proposal-b'],'proposal-a');self.assertEqual(HOLD,original)
         with self.assertRaises(ValueError):clean_dataset(dict(format='stoneham-sam2-refresh-v1',proposals=unique,publishable=False))
 
+    def test_explicit_partial_prompt_retains_real_coverage_as_a_draft(self):
+        masks=np.zeros((1,100,100),bool);masks[0,35:65,35:65]=True
+        coverage=np.zeros((100,100),np.uint8);uncertain=np.zeros_like(coverage)
+        result=select_mask(masks,[.99],HOLD,[50,50],[0,0,100,100],coverage,uncertain,(100,100),.75,min_observed=0)
+        self.assertIsNotNone(result)
+        self.assertEqual(result['evidence']['observedFraction'],0)
+        self.assertNotIn('status',result)
+
     def test_uncertain_alignment_stays_provisional_even_with_high_overlap(self):
         evidence=dict(uncertaintyFraction=.01,oldMaskIoU=1.,areaRatio=1.,centerDriftPixels=0.)
         self.assertEqual(recommendation(evidence),'alignment-needs-review')

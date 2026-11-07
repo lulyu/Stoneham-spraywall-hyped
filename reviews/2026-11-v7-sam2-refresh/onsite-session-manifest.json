@@ -1,0 +1,32 @@
+{
+  "session": {
+    "scanId": "2026-11-v7-seam-trial-sam2-review",
+    "gymId": "stoneham",
+    "wallId": "spray-wall-1",
+    "referenceVersion": "2026-11-v6-highres",
+    "candidateVersion": "2026-11-v7-seam-trial",
+    "referenceImageSha256": "d77c50fc3856998546edcb56645d71183f8942294c4c2653154d3d7c6facc396",
+    "referenceHoldsSha256": "d8c8d3b13584ca8317b142474fc44d1733fb84dc0ff4635d90a849903d6268f0",
+    "registeredImageSha256": "6fb57bee42af9b5b51283d79502968466cf7d25eaf0f5a6a64b3c92c22e4e72b",
+    "coverageSha256": "e67a01071a1b5e225bf577ac4dc63f618f57e9be349ae1a924b53fb4c75cafc0",
+    "uncertaintySha256": "8da6d0218b4ae8e45f48fc9d09610963531fc87bdf870e3bcbf6bf30f2abfd39",
+    "coordinateFrame": {
+      "size": [
+        7292,
+        5514
+      ],
+      "orientation": "canonical"
+    },
+    "candidateManifestSha256": "41276d008b1d97a4dbd474eff527c81bb5749b9ce4d258e52b48d047777f8696",
+    "sourceCheckpointSha256": "89db8e592a33780b18099f80912ae9b9564abacdfa294093c44d38ba5a6adbb5",
+    "sourceReviewedGeometrySha256": "76d98300985e3e1f48767caac6678e695a8688f3c7f09e099ff2d35f0a648077",
+    "reviewPurpose": "final-image-recheck",
+    "referenceFilledFraction": 0.07751335999861521,
+    "sourceSessionId": "da6af5151ad5e85deb4ada406b48b740c67d48c60e0eaf15f7326e42b6ba44db",
+    "proposalsSha256": "2c2ddece13d38e35cba6842556d1f01b021268d073a1464645b02b7fe3844f46",
+    "sessionId": "87c78fea4c1eaa399015d81df4c76f107be90585f6cb640381884e08d9c75184"
+  },
+  "publishable": false,
+  "inputKind": "real-captures",
+  "imageFile": "wall_registered.jpg"
+}

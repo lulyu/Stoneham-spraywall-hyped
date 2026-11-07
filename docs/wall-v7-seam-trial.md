@@ -107,3 +107,14 @@ live SAM2 inference. A new private access key was generated for this review;
 keys and authenticated links are not stored in the repository. The original
 v6 files and checkpoint remain intact. Sandbox runtime is temporary; exported
 review checkpoints remain the durable backup.
+
+## Full SAM2 rerun after image drift
+
+The user subsequently reported outline drift and requested fresh segmentation
+for all 797 holds. The completed geometry is now used as SAM2 prompts on the
+exact v7 image, with all locations included, rather than simply displaying
+the v6 polygons. See the [refresh evidence and exact live proposal backup](../reviews/2026-11-v7-sam2-refresh/README.md).
+The new onsite review has 795 valid unique suggestions covering all 797 prompts;
+two suggestions each associate with two hold IDs and need manual inspection.
+The preview's Next action loads these fresh suggestions. No approvals transfer
+from the earlier geometry-only recheck or the completed v6 checkpoint.

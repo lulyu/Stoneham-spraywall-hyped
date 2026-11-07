@@ -61,7 +61,7 @@ def prompt_for(hold, size):
     return seed, box
 
 
-def select_mask(masks, scores, old, seed, region, coverage, uncertainty, size, min_score):
+def select_mask(masks, scores, old, seed, region, coverage, uncertainty, size, min_score, min_observed=.99):
     left, top, right, bottom = region
     w, h = right-left, bottom-top
     old_mask = np.zeros((h, w), np.uint8)
@@ -83,7 +83,7 @@ def select_mask(masks, scores, old, seed, region, coverage, uncertainty, size, m
         if component[0].any() or component[-1].any() or component[:, 0].any() or component[:, -1].any():
             continue
         observed = float(np.count_nonzero(component & (coverage[top:bottom, left:right] > 0)) / area)
-        if observed < .99:
+        if observed < min_observed:
             continue
         intersection = int(np.count_nonzero(component & (old_mask > 0)))
         iou = intersection / max(1, area+old_area-intersection)
@@ -101,7 +101,7 @@ def select_mask(masks, scores, old, seed, region, coverage, uncertainty, size, m
             continue
         normalized = [[(int(x)+left)/size[0], (int(y)+top)/size[1]] for x, y in polygon[:, 0]]
         # Simplification can bridge a narrow observation gap; validate exported geometry too.
-        if coverage_fraction(normalized, coverage, size) < .99:
+        if coverage_fraction(normalized, coverage, size) < min_observed:
             continue
         quality = .55*float(score)+.35*iou-.08*abs(math.log(ratio))
         evidence = dict(modelScore=float(score), oldMaskIoU=iou, areaRatio=ratio, centerDriftPixels=drift,
@@ -168,6 +168,7 @@ def overlays(image, old, proposals, output):
 
 def run(args):
     started = time.monotonic()
+    include_partial = getattr(args, 'include_partial', False)
     if args.output.exists() and any(args.output.iterdir()):
         raise ValueError('Choose a new/empty output directory; prior experiment data is never overwritten.')
     if any((ROOT/p).resolve() == args.output.resolve() or (ROOT/p).resolve() in args.output.resolve().parents for p in ['public', 'src', 'backend', 'tools']):
@@ -212,7 +213,7 @@ def run(args):
     with torch.inference_mode():
         for row in range(3):
             for col in range(3):
-                group = [h for h in old if min(2,int(h['center'][0]*3)) == col and min(2,int(h['center'][1]*3)) == row and by_id[h['id']]['observationFraction'] >= .99]
+                group = [h for h in old if min(2,int(h['center'][0]*3)) == col and min(2,int(h['center'][1]*3)) == row and (include_partial or by_id[h['id']]['observationFraction'] >= .99)]
                 if not group:
                     continue
                 initial = [max(0,round(col*size[0]/3)-160), max(0,round(row*size[1]/3)-160), min(size[0],round((col+1)*size[0]/3)+160), min(size[1],round((row+1)*size[1]/3)+160)]
@@ -226,10 +227,13 @@ def run(args):
                     masks,scores,_ = predictor.predict(point_coords=np.asarray([[seed[0]-left,seed[1]-top]],np.float32),point_labels=np.array([1],np.int32),box=np.asarray(box,np.float32)-[left,top,left,top],multimask_output=True)
                     entry = by_id[hold['id']]
                     entry['prompt'] = dict(point=[seed[0]/size[0],seed[1]/size[1]],box=[box[0]/size[0],box[1]/size[1],box[2]/size[0],box[3]/size[1]],tileRegion=region)
-                    best = select_mask(masks,scores,hold,seed,region,coverage,uncertainty,size,args.min_score)
+                    best = select_mask(masks,scores,hold,seed,region,coverage,uncertainty,size,args.min_score,min_observed=0 if include_partial else .99)
                     if best:
                         best.update(id='sam2-v5-'+hashlib.sha256((version['imageSha256']+hold['id']).encode()).hexdigest()[:14],oldHoldIds=[hold['id']],status='needs-review')
                         entry.update(proposalId=best['id'],recommendation=recommendation(best['evidence']),evidence=best['evidence'])
+                        if best['evidence']['observedFraction'] < .99 or entry['observationFraction'] < .99:
+                            entry.update(recommendation='partial-observation')
+                            entry['reasonCodes'].append('reference-filled-mask-requires-manual-review')
                         proposals.append(best)
                     else:
                         entry['reasonCodes'].append('no-eligible-mask-is-not-proof-of-removal')
@@ -246,8 +250,15 @@ def run(args):
     if any(digest(path)!=hashes[key] for key,path in paths.items()):
         raise ValueError('Inputs changed during inference; output is invalid.')
     counts = {name:sum(e['recommendation']==name for e in entries) for name in sorted({e['recommendation'] for e in entries})}
-    metadata = dict(wallVersionId=version['wallVersionId'],referenceVersion=version['referenceVersion'],sourceSessionId=version['sourceSession']['sessionId'],imageSize=list(size),hashes=hashes,versionManifestSha256=digest(args.version_manifest),checkpointSha256=digest(args.checkpoint),model='SAM2.1 Small',device='cuda' if cuda else 'cpu',cudaAvailable=cuda,python=platform.python_version(),torch=torch.__version__,opencv=cv2.__version__,numpy=np.__version__,seed=args.seed,threads=args.threads,minScore=args.min_score,oldHoldCount=len(old),promptCount=prompts,masksBeforeDedup=len(proposals),proposalCount=len(unique),recommendations=counts,elapsedSeconds=round(time.monotonic()-started,2),codeCommit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),scriptSha256=digest(__file__),reviewRequired=True,acceptedHoldCount=0,limitations=['Point and box prompts assume rough old placement, not continued hold identity.','Reference-filled/partially observed old locations are skipped.','No automatic removed classification or approval; SAM2 score is not identity evidence.','No search for entirely new holds away from old prompts in this first pass.','No automatic publication or old-route migration.'])
+    try:
+        commit = subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True,stderr=subprocess.DEVNULL).strip()
+    except (OSError, subprocess.CalledProcessError):
+        commit = 'unavailable-in-source-only-runtime'
+    metadata = dict(wallVersionId=version['wallVersionId'],referenceVersion=version['referenceVersion'],sourceSessionId=version['sourceSession']['sessionId'],imageSize=list(size),hashes=hashes,versionManifestSha256=digest(args.version_manifest),checkpointSha256=digest(args.checkpoint),model='SAM2.1 Small',device='cuda' if cuda else 'cpu',cudaAvailable=cuda,python=platform.python_version(),torch=torch.__version__,opencv=cv2.__version__,numpy=np.__version__,seed=args.seed,threads=args.threads,minScore=args.min_score,oldHoldCount=len(old),promptCount=prompts,masksBeforeDedup=len(proposals),proposalCount=len(unique),recommendations=counts,elapsedSeconds=round(time.monotonic()-started,2),codeCommit=commit,scriptSha256=digest(__file__),reviewRequired=True,acceptedHoldCount=0,limitations=['Point and box prompts assume rough old placement, not continued hold identity.','Reference-filled/partially observed old locations are skipped.','No automatic removed classification or approval; SAM2 score is not identity evidence.','No search for entirely new holds away from old prompts in this first pass.','No automatic publication or old-route migration.'])
     payload = dict(format='stoneham-sam2-refresh-v1',datasetRole='unreviewed-model-proposals',wallId=version['wallId'],publishable=False,metadata=metadata,entries=entries,proposals=unique)
+    metadata['includePartialObservationPrompts'] = include_partial
+    if include_partial:
+        metadata['limitations'][1] = 'Partial/reference-filled locations were explicitly prompted; actual observation evidence remains recorded and bulk approval still excludes these regions.'
     write(args.output/'sam2-refresh.json',payload)
     write(args.output/'report.json',metadata)
     overlays(image,old,unique,args.output)
@@ -264,6 +275,7 @@ def main():
     parser.add_argument('--threads',type=int,default=4)
     parser.add_argument('--seed',type=int,default=0)
     parser.add_argument('--min-score',type=float,default=.75)
+    parser.add_argument('--include-partial',action='store_true',help='Also prompt partial/reference-filled locations as manual-review suggestions; never changes coverage or approves them.')
     args=parser.parse_args()
     if args.threads<1 or not 0<=args.min_score<=1:
         parser.error('threads must be positive and min-score between 0 and 1.')

@@ -13,15 +13,15 @@ def digest(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
-def prepare(manifest_path, proposals_path, output, root=ROOT):
+def prepare(manifest_path, proposals_path, output, root=ROOT, old_holds=None, reference_image=None):
     from tools.wall_rescan.sam2_refresh import coverage_fraction
     import numpy as np
     from PIL import Image
     manifest_path, proposals_path, output = map(Path, (manifest_path, proposals_path, output))
     m = json.loads(manifest_path.read_text())
     model = json.loads(proposals_path.read_text())
-    old_path = root / 'src/data/polygons/holds.json'
-    reference = root / 'public/wall/stoneham-spraywall-canonical.jpg'
+    old_path = Path(old_holds) if old_holds is not None else root / 'src/data/polygons/holds.json'
+    reference = Path(reference_image) if reference_image is not None else root / 'public/wall/stoneham-spraywall-canonical.jpg'
     old = json.loads(old_path.read_text())
     paths = {name: manifest_path.parent / m[key] for name, key in
              [('wall_registered.jpg', 'image'), ('coverage.png', 'coverage'), ('uncertainty.png', 'uncertainty')]}
@@ -73,6 +73,10 @@ def prepare(manifest_path, proposals_path, output, root=ROOT):
     for name, path in paths.items():
         shutil.copyfile(path, output / name)
     shutil.copyfile(proposals_path, output / 'sam2-proposals.json')
+    if old_holds is not None:
+        shutil.copyfile(old_path, output / 'reference-holds.json')
+    if reference_image is not None:
+        shutil.copyfile(reference, output / 'reference.jpg')
     return session
 
 
@@ -81,6 +85,8 @@ if __name__ == '__main__':
     parser.add_argument('--manifest', type=Path, default=ROOT / 'public/wall/versions/2026-11-v5/manifest.json')
     parser.add_argument('--proposals', type=Path, default=ROOT / 'src/data/experiments/wall-v5-sam2-refresh.json')
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--old-holds', type=Path)
+    parser.add_argument('--reference', type=Path)
     args = parser.parse_args()
-    session = prepare(args.manifest, args.proposals, args.output)
+    session = prepare(args.manifest, args.proposals, args.output, old_holds=args.old_holds, reference_image=args.reference)
     print(f"Review bundle ready: {args.output} (session {session['sessionId']})")
