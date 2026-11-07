@@ -1,6 +1,6 @@
 {
   "wallVersionId": "2026-11-v7",
-  "status": "reviewed-candidate",
+  "status": "published",
   "gymId": "stoneham-crg",
   "wallId": "spray-wall-1",
   "image": "wall/versions/2026-11-v7-seam-trial/wall.jpg",
@@ -9,5 +9,5 @@
   "sourceSessionId": "87c78fea4c1eaa399015d81df4c76f107be90585f6cb640381884e08d9c75184",
   "reviewRevision": 805,
   "holdCount": 797,
-  "routeMigration": "not-implemented"
+  "routeMigration": "hold-id-compatibility"
 }

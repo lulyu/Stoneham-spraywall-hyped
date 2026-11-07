@@ -9,6 +9,16 @@ const walls: WallVersion[] = wallCatalog.map((wall) => ({
   holdIds: new Set<string>(wall.holdIds),
 }))
 
+export function wallVersionsFor(gymId:string,wallId:string) {
+  return walls.filter(wall=>wall.gymId===gymId&&wall.wallId===wallId)
+}
+export function latestWall(gymId:string,wallId:string):WallVersion {
+  const versions=wallVersionsFor(gymId,wallId)
+  const wall=versions.find(wall=>wall.active)
+  if(!wall)throw new ApiError(404,'No published wall version')
+  return wall
+}
+
 export function getWallVersion(gymId: string, wallId: string, wallVersionId: string): WallVersion | undefined {
   return walls.find((wall) =>
     wall.gymId === gymId && wall.wallId === wallId && wall.wallVersionId === wallVersionId,

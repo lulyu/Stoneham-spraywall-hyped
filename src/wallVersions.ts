@@ -3,9 +3,10 @@ import reviewedHolds from './data/walls/2026-11-v7/holds.json'
 import candidate from './data/walls/2026-11-v7/manifest.json'
 import type { PolygonHoldCandidate } from './types'
 
-export const DEFAULT_WALL_VERSION = '2026-10-v4'
+export const LEGACY_WALL_VERSION = '2026-10-v4'
+export const DEFAULT_WALL_VERSION = '2026-11-v7'
 export const wallVersions = [
-  {id:DEFAULT_WALL_VERSION,label:'Original wall · v4',image:'wall/stoneham-spraywall-canonical.jpg',holds:polygonCandidates,candidate:false},
+  {id:LEGACY_WALL_VERSION,label:'Original wall · v4',image:'wall/stoneham-spraywall-canonical.jpg',holds:polygonCandidates,candidate:false},
   {id:candidate.wallVersionId,label:'New wall · reviewed candidate',image:candidate.image,holds:reviewedHolds as PolygonHoldCandidate[],candidate:true},
 ]
 export function findWallVersion(id:string) { return wallVersions.find(wall=>wall.id===id) }

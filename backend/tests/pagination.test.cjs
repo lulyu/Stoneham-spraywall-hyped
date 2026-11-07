@@ -4,7 +4,7 @@ const sdk = require('@aws-sdk/lib-dynamodb')
 process.env.DYNAMODB_TABLE = 'pagination-test'
 const partition = 'GYM#stoneham-crg#WALL#spray-wall-1#VERSION#2026-10-v4'
 const rows = Array.from({length:125}, (_,i) => ({
- id:'p'+i, name:'Route '+i, grade:'V1', setter:'Tester', holds:[], revision:1,
+ gymId:'stoneham-crg',wallId:'spray-wall-1',wallVersionId:'2026-10-v4', id:'p'+i, name:'Route '+i, grade:'V1', setter:'Tester', holds:[], revision:1,
  pk:'PROBLEM#p'+i, sk:'META', gsi1pk:partition, gsi1sk:'PROBLEM#'+String(i).padStart(4,'0'),
  entityType:'problem',
 }))

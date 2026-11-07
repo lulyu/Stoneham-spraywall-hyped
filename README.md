@@ -2,6 +2,13 @@
 
 A small, mobile-first spray-wall route-setting app for the Stoneham wall.
 
+The current wall is the human-reviewed **November v7 map with 797 holds**.
+Explore includes every route: compatible routes use the current image, while
+outdated routes open on a historical wall and offer creator-only Upgrade copies.
+The footer provides Browse wall history. Each wall publication scans route
+compatibility before the frontend is released; see the
+[publication and Upgrade workflow](docs/wall-publication.md).
+
 ## MVP
 
 The first version intentionally keeps everything local so we can validate the climbing interaction before building infrastructure:

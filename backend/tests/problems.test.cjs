@@ -13,6 +13,12 @@ sdk.DynamoDBDocumentClient.from = () => ({
     switch (command.constructor.name) {
       case 'GetCommand': return { Item: item }
       case 'QueryCommand': return { Items: item ? [item] : [] }
+      case 'TransactWriteCommand': {
+        const primary=input.TransactItems.find(action=>action.Put?.Item?.sk==='META').Put
+        writes.push(primary)
+        if(conflict||(primary.ExpressionAttributeValues&&primary.ExpressionAttributeValues[':revision']!==item.revision))throw Object.assign(new Error('conflict'),{name:'ConditionalCheckFailedException'})
+        item=primary.Item;return {}
+      }
       case 'PutCommand':
         writes.push(input)
         if (conflict || (input.ExpressionAttributeValues &&

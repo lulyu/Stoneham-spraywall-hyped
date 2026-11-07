@@ -12,10 +12,17 @@ button, input, select { font: inherit; }
 button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
 .app-shell { max-width: 980px; margin: 0 auto; min-height: 100vh; padding-bottom: env(safe-area-inset-bottom); }
-.wall-version-picker { padding: 0 18px 14px; }
-.wall-version-picker label { display: grid; gap: 6px; font-size: 13px; color: #aeb5a6; }
-.wall-version-picker select { max-width: 100%; }
-.wall-version-picker p { margin: 8px 0 0; font-size: 13px; }
+.wall-history { padding: 24px 18px; color: #91998a; font-size: 13px; }
+.wall-history nav { display: flex; flex-wrap: wrap; gap: 16px; padding: 12px 0; }
+.wall-history a, .wall-history-notice a { color: #b3c59b; }
+.wall-history-notice { padding: 0 18px; font-size: 13px; color: #aaa; }
+.problem-card.outdated { background: #1c1e1b; color: #92968e; border-color: #393d36; }
+.problem-card.outdated .grade-chip { color: #9b9f97; background: #30342d; }
+.problem-card.outdated .problem-copy small, .problem-card.outdated .chevron { color: #81877a; }
+.route-old-wall { color: #b55c65; margin: 6px 0 0; font-size: 14px; }
+.upgrade-route-button { margin: 10px 0; }
+.upgrade-notice { padding: 12px 0; color: #c0cbb3; }
+.upgrade-notice p { font-size: 13px; }
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 18px 18px 12px; }
 .topbar h1, .section-heading h2 { margin: 0; font-size: 24px; letter-spacing: -0.04em; }
 .eyebrow { font-size: 10px; font-weight: 800; letter-spacing: .18em; color: #9ea792; margin-bottom: 2px; }

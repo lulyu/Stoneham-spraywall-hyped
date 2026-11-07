@@ -24,7 +24,7 @@ class HighResolutionReviewTests(unittest.TestCase):
         self.assertEqual(len(m['sources']), 4)
         self.assertTrue(all(s['size'] == [6144, 8192] for s in m['sources']))
         catalog = json.loads((ROOT / 'backend/walls.json').read_text())
-        self.assertEqual([v['wallVersionId'] for v in catalog if v['active']], ['2026-10-v4'])
+        self.assertEqual([v['wallVersionId'] for v in catalog if v['active']], ['2026-11-v7'])
 
     def test_v6_review_uses_new_image_and_preserves_reference_fill_metadata(self):
         manifest = ROOT / 'public/wall/versions/2026-11-v6-highres/manifest.json'

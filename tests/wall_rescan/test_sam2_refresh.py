@@ -82,7 +82,7 @@ class RefreshTests(unittest.TestCase):
         for key in ['image','coverage','uncertainty','sourceIndex']:
             self.assertEqual(hashlib.sha256((path.parent/data[key]).read_bytes()).hexdigest(),data[key+'Sha256'])
         catalog=json.loads((ROOT/'backend/walls.json').read_text())
-        self.assertEqual([v['wallVersionId'] for v in catalog if v['active']],['2026-10-v4'])
+        self.assertEqual([v['wallVersionId'] for v in catalog if v['active']],['2026-11-v7'])
 
 class RecordedRefreshTests(unittest.TestCase):
     def test_recorded_result_is_bound_and_entirely_unreviewed(self):

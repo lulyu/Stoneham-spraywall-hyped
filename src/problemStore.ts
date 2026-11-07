@@ -4,12 +4,15 @@ import type { Problem, ProblemHold } from './types'
 export const STORAGE_KEY = 'stoneham-spraywall:problems:v3'
 export type ProblemInput = Pick<Problem, 'name' | 'grade' | 'setter' | 'notes' | 'holds'>
 export type ProblemPage = { items: Problem[]; nextCursor?: string }
+export type UpgradeDraft = ProblemInput & {sourceId:string;sourceRevision:number;targetWallVersionId:string;removedHoldIds:string[]}
 export interface ProblemStore {
   shared: boolean
   list(cursor?: string): Promise<ProblemPage>
   get(id: string): Promise<Problem>
   create(input: ProblemInput): Promise<Problem>
   update(existing: Problem, input: ProblemInput): Promise<Problem>
+  getUpgradeDraft?(id:string):Promise<UpgradeDraft>
+  upgrade?(source:UpgradeDraft,input:ProblemInput,automaticName:boolean):Promise<Problem>
 }
 export class ProblemStoreError extends Error {
   status: number
@@ -63,7 +66,7 @@ export function createLocalProblemStore(storage: Pick<Storage, 'getItem' | 'setI
   }
 }
 
-export function createApiProblemStore(baseUrl: string, fetcher: typeof fetch = fetch, token: () => Promise<string | undefined> = async () => undefined, wallVersionId='2026-10-v4'): ProblemStore {
+export function createApiProblemStore(baseUrl: string, fetcher: typeof fetch = fetch, token: () => Promise<string | undefined> = async () => undefined, wallVersionId='2026-10-v4',allVersions=false): ProblemStore {
   const base = baseUrl.replace(/\/+$/, '')
   const collection = '/v1/gyms/stoneham-crg/walls/spray-wall-1/versions/'+encodeURIComponent(wallVersionId)+'/problems'
   async function request<T>(method: string, path: string, payload?: unknown): Promise<T> {
@@ -86,15 +89,17 @@ export function createApiProblemStore(baseUrl: string, fetcher: typeof fetch = f
   }
   return {
     shared: true,
-    async list(cursor) { return request<ProblemPage>('GET', collection + (cursor ? '?cursor=' + encodeURIComponent(cursor) : '')) },
+    async list(cursor) { return request<ProblemPage>('GET', (allVersions?'/v1/gyms/stoneham-crg/walls/spray-wall-1/problems':collection) + (cursor ? '?cursor=' + encodeURIComponent(cursor) : '')) },
     get(id) { return request('GET', '/v1/problems/' + encodeURIComponent(id)) },
     create(input) { return request('POST', collection, input) },
     async update(existing, input) {
-      if((existing.wallVersionId??'2026-10-v4')!==wallVersionId)throw new Error('Open this route on its original wall before editing it.')
+      if(!allVersions&&(existing.wallVersionId??'2026-10-v4')!==wallVersionId)throw new Error('Open this route on its original wall before editing it.')
       if (!Number.isSafeInteger(existing.revision) || existing.revision! < 1) {
         throw new Error('Reload this problem before editing; its revision is missing.')
       }
-      return request('PATCH', '/v1/problems/' + encodeURIComponent(existing.id), { ...input, revision: existing.revision })
+      return request('PATCH', '/v1/problems/' + encodeURIComponent(existing.id), { ...input, revision: existing.revision,...(allVersions?{editWallVersionId:wallVersionId}:{}) })
     },
+    getUpgradeDraft(id){return request('GET','/v1/problems/'+encodeURIComponent(id)+'/upgrade')},
+    upgrade(source,input,automaticName){return request('POST','/v1/problems/'+encodeURIComponent(source.sourceId)+'/upgrade',{...input,sourceRevision:source.sourceRevision,automaticName})},
   }
 }

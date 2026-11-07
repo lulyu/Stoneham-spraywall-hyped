@@ -1,6 +1,7 @@
 import type { Problem, ProblemHold } from './types'
+import type { UpgradeDraft } from './problemStore'
 export const DRAFT_RECOVERY_KEY = 'stoneham-spraywall:reauth-draft:v1'
-export type RecoveryDraft = { userId: string; name: string; grade: string; setter: string; draft: ProblemHold[]; editing: Problem | null }
+export type RecoveryDraft = { userId: string; name: string; grade: string; setter: string; draft: ProblemHold[]; editing: Problem | null; upgrade?:UpgradeDraft }
 export function storeRecoveryDraft(storage: Pick<Storage, 'setItem'>, draft: RecoveryDraft, key=DRAFT_RECOVERY_KEY) {
   storage.setItem(key, JSON.stringify({ ...draft, storedAt: Date.now() }))
 }
@@ -16,6 +17,8 @@ export function readRecoveryDraft(storage: Pick<Storage, 'getItem'>, userId: str
       !value.draft.every((h: ProblemHold) => h && validIds.has(h.holdId) && ['start','finish','hold','foot-only'].includes(h.role))) return null
     const editing = value.editing
     if (editing !== null && (!editing || typeof editing.id !== 'string' || !Number.isSafeInteger(editing.revision) || editing.revision < 1)) return null
-    return { userId, name: value.name, grade: value.grade, setter: value.setter, draft: value.draft, editing }
+    const upgrade=value.upgrade
+    if(upgrade!==undefined&&(!upgrade||typeof upgrade.sourceId!=='string'||upgrade.sourceId.length>100||!Number.isSafeInteger(upgrade.sourceRevision)||upgrade.sourceRevision<1||typeof upgrade.name!=='string'||upgrade.name.length>120||typeof upgrade.targetWallVersionId!=='string'))return null
+    return { userId, name: value.name, grade: value.grade, setter: value.setter, draft: value.draft, editing,...(upgrade?{upgrade}:{}) }
   } catch { return null }
 }

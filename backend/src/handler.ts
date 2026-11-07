@@ -2,10 +2,10 @@ import { logSend, listSends, rate, addComment, community, myActivity, changeComm
 import { requireIdentity, requireEditor } from './auth'
 import { randomUUID } from 'node:crypto'
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda'
-import { createProblem, getProfile, updateProfile, listProblems, requireProblem, updateProblem } from './db'
+import { createProblem, getProfile, updateProfile, listProblems, requireProblem, updateProblem, upgradeDraft, createUpgrade, migrateWallPage } from './db'
 import type { Problem } from './model'
 import { parseProfile, parseCreateProblem, parseUpdateProblem } from './validation'
-import { ApiError, requireWallVersion } from './walls'
+import { ApiError, requireWallVersion, latestWall } from './walls'
 
 const headers = {
   'content-type': 'application/json; charset=utf-8',
@@ -98,6 +98,37 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
       return response(405, { error: 'method not allowed', requestId })
     }
 
+    const publishPath=pathMatch(path,/^\/v1\/admin\/gyms\/([^/]+)\/walls\/([^/]+)\/versions\/([^/]+)\/publish$/)
+    if(publishPath) {
+      const identity=requireIdentity(event)
+      if(!identity.isAdmin)throw new ApiError(403,'Only gym administrators can publish a wall')
+      if(method!=='POST')return response(405,{error:'method not allowed'})
+      const input=event.body?parseJsonBody(event):{}
+      if(!input||typeof input!=='object'||Array.isArray(input))throw new ApiError(400,'Invalid publish request')
+      const {cursor,dryRun}=input as {cursor?:unknown;dryRun?:unknown}
+      if(cursor!==undefined&&typeof cursor!=='string'||dryRun!==undefined&&typeof dryRun!=='boolean')throw new ApiError(400,'Invalid migration options')
+      return response(200,await migrateWallPage(publishPath[0],publishPath[1],publishPath[2],cursor as string|undefined,dryRun===true))
+    }
+    const allProblemsPath=pathMatch(path,/^\/v1\/gyms\/([^/]+)\/walls\/([^/]+)\/problems$/)
+    if(allProblemsPath) {
+      if(method!=='GET')return response(405,{error:'method not allowed'})
+      latestWall(allProblemsPath[0],allProblemsPath[1])
+      return response(200,await listProblems(allProblemsPath[0],allProblemsPath[1],undefined,event.queryStringParameters?.cursor))
+    }
+    const upgradePath=pathMatch(path,/^\/v1\/problems\/([^/]+)\/upgrade$/)
+    if(upgradePath) {
+      const identity=requireIdentity(event),source=await requireProblem(upgradePath[0])
+      if(!source.ownerId||source.ownerId!==identity.userId)throw new ApiError(403,'Only the original creator can upgrade this route')
+      if(!source.outdated)throw new ApiError(409,'This route already supports the latest wall')
+      if(method==='GET')return response(200,await upgradeDraft(source))
+      if(method!=='POST')return response(405,{error:'method not allowed'})
+      const body=parseJsonBody(event) as Record<string,unknown>
+      if(!body||!Number.isSafeInteger(body.sourceRevision))throw new ApiError(400,'sourceRevision is required')
+      if(body.sourceRevision!==source.revision)throw new ApiError(409,'The source route changed; reopen Upgrade')
+      if(body.automaticName!==undefined&&typeof body.automaticName!=='boolean')throw new ApiError(400,'Invalid automaticName')
+      const input=parseCreateProblem(body,latestWall(source.gymId,source.wallId))
+      return response(201,await createUpgrade(source,input,body.automaticName!==false,randomUUID))
+    }
     const wallProblemPath = pathMatch(
       path,
       /^\/v1\/gyms\/([^/]+)\/walls\/([^/]+)\/versions\/([^/]+)\/problems$/,
@@ -137,8 +168,12 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
         const identity = requireIdentity(event)
         const existing = await requireProblem(problemId)
         requireEditor(identity, existing)
-        const wall = requireWallVersion(existing.gymId, existing.wallId, existing.wallVersionId)
-        const patch = parseUpdateProblem(parseJsonBody(event), wall)
+        const body=parseJsonBody(event) as Record<string,unknown>
+        const target=body?.editWallVersionId
+        if(target!==undefined&&(typeof target!=='string'||target!==latestWall(existing.gymId,existing.wallId).wallVersionId))throw new ApiError(400,'Invalid edit wall version')
+        if(target!==undefined&&existing.outdated)throw new ApiError(409,'Upgrade this outdated route to create a new route')
+        const wall = requireWallVersion(existing.gymId, existing.wallId, typeof target==='string'?target:existing.wallVersionId)
+        const patch = parseUpdateProblem(body, wall)
         return response(200, await updateProblem(existing, patch))
       }
       return response(405, { error: 'method not allowed', requestId })
