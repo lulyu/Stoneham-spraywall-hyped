@@ -16,9 +16,9 @@ export class ProblemStoreError extends Error {
   constructor(status: number, message: string) { super(message); this.status = status }
 }
 
-export function readLocalProblems(storage: Pick<Storage, 'getItem'>, validIds: Set<string>): Problem[] {
+export function readLocalProblems(storage: Pick<Storage, 'getItem'>, validIds: Set<string>, storageKey=STORAGE_KEY): Problem[] {
   try {
-    const raw: unknown = JSON.parse(storage.getItem(STORAGE_KEY) || '[]')
+    const raw: unknown = JSON.parse(storage.getItem(storageKey) || '[]')
     if (!Array.isArray(raw)) return []
     return raw.filter((p): p is Problem => p && typeof p === 'object' &&
       typeof p.id === 'string' && typeof p.name === 'string' &&
@@ -32,10 +32,10 @@ export function readLocalProblems(storage: Pick<Storage, 'getItem'>, validIds: S
   } catch { return [] }
 }
 
-export function createLocalProblemStore(storage: Pick<Storage, 'getItem' | 'setItem'>, validIds: Set<string>): ProblemStore {
-  const list = () => readLocalProblems(storage, validIds)
+export function createLocalProblemStore(storage: Pick<Storage, 'getItem' | 'setItem'>, validIds: Set<string>, storageKey=STORAGE_KEY, wallVersionId?:string): ProblemStore {
+  const list = () => readLocalProblems(storage, validIds, storageKey)
   const persist = (items: Problem[]) => {
-    try { storage.setItem(STORAGE_KEY, JSON.stringify(items)) }
+    try { storage.setItem(storageKey, JSON.stringify(items)) }
     catch { throw new Error('Could not save on this device. Free storage or enable browser storage, then try again.') }
   }
   return {
@@ -47,7 +47,7 @@ export function createLocalProblemStore(storage: Pick<Storage, 'getItem' | 'setI
       return p
     },
     async create(input) {
-      const p: Problem = { ...input, id: typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : 'problem-' + Date.now() + '-' + Math.random().toString(36).slice(2), createdAt: new Date().toISOString(), revision: 1 }
+      const p: Problem = { ...input, ...(wallVersionId?{wallVersionId}:{}), id: typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : 'problem-' + Date.now() + '-' + Math.random().toString(36).slice(2), createdAt: new Date().toISOString(), revision: 1 }
       persist([p, ...list()])
       return p
     },
@@ -63,9 +63,9 @@ export function createLocalProblemStore(storage: Pick<Storage, 'getItem' | 'setI
   }
 }
 
-export function createApiProblemStore(baseUrl: string, fetcher: typeof fetch = fetch, token: () => Promise<string | undefined> = async () => undefined): ProblemStore {
+export function createApiProblemStore(baseUrl: string, fetcher: typeof fetch = fetch, token: () => Promise<string | undefined> = async () => undefined, wallVersionId='2026-10-v4'): ProblemStore {
   const base = baseUrl.replace(/\/+$/, '')
-  const collection = '/v1/gyms/stoneham-crg/walls/spray-wall-1/versions/2026-10-v4/problems'
+  const collection = '/v1/gyms/stoneham-crg/walls/spray-wall-1/versions/'+encodeURIComponent(wallVersionId)+'/problems'
   async function request<T>(method: string, path: string, payload?: unknown): Promise<T> {
     const bearer = await token()
     let response: Response
@@ -90,6 +90,7 @@ export function createApiProblemStore(baseUrl: string, fetcher: typeof fetch = f
     get(id) { return request('GET', '/v1/problems/' + encodeURIComponent(id)) },
     create(input) { return request('POST', collection, input) },
     async update(existing, input) {
+      if((existing.wallVersionId??'2026-10-v4')!==wallVersionId)throw new Error('Open this route on its original wall before editing it.')
       if (!Number.isSafeInteger(existing.revision) || existing.revision! < 1) {
         throw new Error('Reload this problem before editing; its revision is missing.')
       }

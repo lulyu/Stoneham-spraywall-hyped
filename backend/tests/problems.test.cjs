@@ -156,3 +156,16 @@ test('creator is assigned server-side, never from submitted ownership', async ()
   assert.equal(created.statusCode, 201)
   assert.equal(body(created).ownerId, 'owner')
 })
+
+test('reviewed candidate validates its own hold map and writes a separate wall partition',async()=>{
+  const candidate=require('../../src/data/walls/2026-11-v7/holds.json')
+  const input={name:'Candidate route',grade:'V2',setter:'Tester',holds:[{holdId:candidate[0].id,role:'start'},{holdId:candidate[1].id,role:'finish'}]}
+  const created=await request('POST',base.replace('2026-10-v4','2026-11-v7'),input)
+  assert.equal(created.statusCode,201)
+  assert.equal(body(created).wallVersionId,'2026-11-v7')
+  assert(writes[0].Item.gsi1pk.endsWith('#VERSION#2026-11-v7'))
+  const candidateOnly=candidate.find(h=>!holds.some(old=>old.id===h.id))
+  const invalid=await request('POST',base,{...input,holds:[{holdId:candidateOnly.id,role:'start'},{holdId:holds[0].id,role:'finish'}]})
+  assert.equal(invalid.statusCode,400)
+  assert.equal(writes.length,1)
+})

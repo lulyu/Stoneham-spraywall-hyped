@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import sam2Experiment from './data/experiments/top_left_sam2_polygons.json'
-import { polygonCandidates as holds } from './data/polygons'
+import { DEFAULT_WALL_VERSION, wallVersions, findWallVersion, wallVersionUrl } from './wallVersions'
 import { emitSessionEvent, onSessionEvent } from './sessionEvents.ts'
 import { DRAFT_RECOVERY_KEY, readRecoveryDraft, storeRecoveryDraft } from './draftRecovery.ts'
 import { initializeAuth, accountDetails, accessToken, signIn, signOut, authConfigured } from './auth'
@@ -12,7 +12,12 @@ import { createApiProblemStore, createLocalProblemStore, readLocalProblems, Prob
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { HoldRole, Problem, ProblemHold, PolygonHoldCandidate, Point } from './types'
 
-const wallImage = `${import.meta.env.BASE_URL}wall/stoneham-spraywall-canonical.jpg`
+const selectedWall=findWallVersion(new URLSearchParams(window.location.search).get('wallVersion')??DEFAULT_WALL_VERSION)
+  ??findWallVersion(DEFAULT_WALL_VERSION)!
+const holds=selectedWall.holds
+const wallImage = `${import.meta.env.BASE_URL}${selectedWall.image}`
+const localStorageKey=selectedWall.id===DEFAULT_WALL_VERSION?STORAGE_KEY:STORAGE_KEY+':wall:'+selectedWall.id
+const recoveryKey=selectedWall.id===DEFAULT_WALL_VERSION?DRAFT_RECOVERY_KEY:DRAFT_RECOVERY_KEY+':wall:'+selectedWall.id
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim() ?? ''
 const browserStorage = {
   getItem: (key: string) => window.localStorage.getItem(key),
@@ -20,11 +25,11 @@ const browserStorage = {
 }
 const validHoldIds = new Set(holds.map((hold) => hold.id))
 const problemStore = apiBaseUrl
-  ? createApiProblemStore(apiBaseUrl, fetch, accessToken)
-  : createLocalProblemStore(browserStorage, validHoldIds)
-const importKey = STORAGE_KEY + ':imported:' + apiBaseUrl
+  ? createApiProblemStore(apiBaseUrl, fetch, accessToken, selectedWall.id)
+  : createLocalProblemStore(browserStorage, validHoldIds,localStorageKey,selectedWall.id)
+const importKey = localStorageKey + ':imported:' + apiBaseUrl
 function pendingLocalProblems() {
-  const local = readLocalProblems(browserStorage, validHoldIds)
+  const local = readLocalProblems(browserStorage, validHoldIds,localStorageKey)
   try {
     const imported = JSON.parse(browserStorage.getItem(importKey) || '{}')
     return local.filter((problem) => !imported[problem.id])
@@ -374,6 +379,10 @@ function App() {
   }, [routesOpen, mode, showProfile])
 
   const selectProblem = (problem: Problem | null) => {
+    if(problem && (problem.wallVersionId??DEFAULT_WALL_VERSION)!==selectedWall.id) {
+      window.location.assign(wallVersionUrl(window.location.href,problem.wallVersionId??DEFAULT_WALL_VERSION,problem.id).href)
+      return
+    }
     setActiveProblem(problem)
     shareSequence.current++
     setShareMessage(''); setManualShareLink('')
@@ -387,6 +396,7 @@ function App() {
     if (!activeProblem) return
     const sequence = ++shareSequence.current
     const url = new URL(window.location.pathname, window.location.origin)
+    if(selectedWall.id!==DEFAULT_WALL_VERSION)url.searchParams.set('wallVersion',selectedWall.id)
     url.searchParams.set('route', activeProblem.id)
     setShareMessage(''); setManualShareLink('')
     try {
@@ -400,12 +410,12 @@ function App() {
     }
   }
 
-  const clearRecovery = () => { try { window.sessionStorage.removeItem(DRAFT_RECOVERY_KEY) } catch { /* Browser storage can be unavailable. */ } }
+  const clearRecovery = () => { try { window.sessionStorage.removeItem(recoveryKey) } catch { /* Browser storage can be unavailable. */ } }
   const signInWithRecovery = async () => {
     try {
       if (mode === 'set' && draftUserId.current) storeRecoveryDraft(window.sessionStorage, {
         userId: draftUserId.current, name, grade, setter, draft, editing,
-      })
+      },recoveryKey)
       await signIn()
     } catch (e) { setAuthError(e instanceof Error ? e.message : 'Could not preserve your draft and sign in. Please retry.') }
   }
@@ -419,6 +429,8 @@ function App() {
       try {
         await initializeAuth()
         if (!current()) return
+        const returnedWall=findWallVersion(new URLSearchParams(window.location.search).get('wallVersion')??DEFAULT_WALL_VERSION)??findWallVersion(DEFAULT_WALL_VERSION)!
+        if(returnedWall.id!==selectedWall.id){window.location.replace(window.location.href);return}
         setInitialRouteId(new URLSearchParams(window.location.search).get('route'))
         const token = await accessToken()
         if (!current()) return
@@ -438,7 +450,7 @@ function App() {
         if (!current()) return
         setEmail(details.email); setProfile(nextProfile); setIdentity(value)
         setNeedsSignIn(false); setAuthError(warning)
-        const recovery = readRecoveryDraft(window.sessionStorage, value.userId, validHoldIds)
+        const recovery = readRecoveryDraft(window.sessionStorage, value.userId, validHoldIds,recoveryKey)
         if (recovery) {
           draftUserId.current = value.userId
           setDraft(recovery.draft); setName(recovery.name); setGrade(recovery.grade); setSetter(recovery.setter)
@@ -513,6 +525,7 @@ function App() {
     try {
       const fresh = await problemStore.get(problem.id)
       if (sequence !== selectionSequence.current) return
+      if((fresh.wallVersionId??DEFAULT_WALL_VERSION)!==selectedWall.id){selectProblem(fresh);return}
       setProblems((prev) => prev.map((item) => item.id === fresh.id ? fresh : item))
       selectProblem(fresh)
       setRoutesOpen(false)
@@ -679,6 +692,12 @@ function App() {
           </div>
         </details>}
       </header>
+      <section className="wall-version-picker" aria-label="Wall version">
+        <label>Wall <select aria-label="Wall version" value={selectedWall.id} disabled={busy || mode==='set'} onChange={event=>window.location.assign(wallVersionUrl(window.location.href,event.target.value).href)}>
+          {wallVersions.map(wall=><option key={wall.id} value={wall.id}>{wall.label}</option>)}
+        </select></label>
+        {selectedWall.candidate && <p className="muted">Reviewed candidate · 797 holds. Routes on the original wall stay with that version.</p>}
+      </section>
       {!showProfile && <nav className="home-actions" aria-label="Wall actions">
         {mode === 'browse' ? <>
           <button className="primary" disabled={busy || (problemStore.shared && !identity && !authConfigured)} onClick={startSetting}>{problemStore.shared && !identity ? (needsSignIn ? 'Sign in again' : 'Login to set') : '＋ Set'}</button>

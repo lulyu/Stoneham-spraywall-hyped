@@ -12,6 +12,10 @@ button, input, select { font: inherit; }
 button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
 .app-shell { max-width: 980px; margin: 0 auto; min-height: 100vh; padding-bottom: env(safe-area-inset-bottom); }
+.wall-version-picker { padding: 0 18px 14px; }
+.wall-version-picker label { display: grid; gap: 6px; font-size: 13px; color: #aeb5a6; }
+.wall-version-picker select { max-width: 100%; }
+.wall-version-picker p { margin: 8px 0 0; font-size: 13px; }
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 18px 18px 12px; }
 .topbar h1, .section-heading h2 { margin: 0; font-size: 24px; letter-spacing: -0.04em; }
 .eyebrow { font-size: 10px; font-weight: 800; letter-spacing: .18em; color: #9ea792; margin-bottom: 2px; }

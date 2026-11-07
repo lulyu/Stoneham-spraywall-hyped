@@ -1,12 +1,12 @@
 import type { Problem, ProblemHold } from './types'
 export const DRAFT_RECOVERY_KEY = 'stoneham-spraywall:reauth-draft:v1'
 export type RecoveryDraft = { userId: string; name: string; grade: string; setter: string; draft: ProblemHold[]; editing: Problem | null }
-export function storeRecoveryDraft(storage: Pick<Storage, 'setItem'>, draft: RecoveryDraft) {
-  storage.setItem(DRAFT_RECOVERY_KEY, JSON.stringify({ ...draft, storedAt: Date.now() }))
+export function storeRecoveryDraft(storage: Pick<Storage, 'setItem'>, draft: RecoveryDraft, key=DRAFT_RECOVERY_KEY) {
+  storage.setItem(key, JSON.stringify({ ...draft, storedAt: Date.now() }))
 }
-export function readRecoveryDraft(storage: Pick<Storage, 'getItem'>, userId: string, validIds: Set<string>): RecoveryDraft | null {
+export function readRecoveryDraft(storage: Pick<Storage, 'getItem'>, userId: string, validIds: Set<string>, key=DRAFT_RECOVERY_KEY): RecoveryDraft | null {
   try {
-    const value = JSON.parse(storage.getItem(DRAFT_RECOVERY_KEY) || 'null')
+    const value = JSON.parse(storage.getItem(key) || 'null')
     if (!value || value.userId !== userId || !Number.isFinite(value.storedAt) ||
       Date.now() - value.storedAt > 86400000 || value.storedAt > Date.now() + 60000 ||
       typeof value.name !== 'string' || value.name.length > 120 ||

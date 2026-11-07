@@ -28,6 +28,9 @@ export type ProblemHold = {
 
 export type Problem = {
   id: string
+  wallVersionId?: string
+  gymId?: string
+  wallId?: string
   name: string
   grade: string
   setter: string
