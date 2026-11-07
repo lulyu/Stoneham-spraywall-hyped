@@ -1,0 +1,194 @@
+{
+  "session": {
+    "scanId": "stoneham-drive-highres-20261106",
+    "gymId": "stoneham-crg",
+    "wallId": "spray-wall-1",
+    "referenceVersion": "2026-10-v4",
+    "candidateVersion": "2026-11-v6-highres-candidate",
+    "referenceImageSha256": "0dddcf36d5e9df223bea360cb9a6a03c7871d40be20f7d73a976c14d1a2a7693",
+    "referenceHoldsSha256": "8296a7b5683441bedcea9e1e32dc2d6099bcc9e788200c577869dd87a9ba09fc",
+    "inputManifestSha256": "c8370e94bfab4d284fca8042d917393cdcf556f1cc4a1ddc92b559661df485af",
+    "sourceContents": [
+      {
+        "id": "IMG20261105175524",
+        "hashes": {
+          "image": "346fc36b582266b488e088fe67a43040571bac424fc2525f5e88411a7af8f943"
+        }
+      },
+      {
+        "id": "IMG20261105175533",
+        "hashes": {
+          "image": "98aa54cfc3c9dd68ac21340dbbd1c958970e976d32c4c4c7d7624b857c2a13ed"
+        }
+      },
+      {
+        "id": "IMG20261105175541",
+        "hashes": {
+          "image": "c9f4d38c9c2351bde35f6ecf712662283a2f2d9250569d76ef873591e005a03e"
+        }
+      },
+      {
+        "id": "IMG20261105175549",
+        "hashes": {
+          "image": "a943fd27d29813c640922a94e129bc4f7e70d09cf2e599cabd9957cc226f0745"
+        }
+      }
+    ],
+    "registeredImageSha256": "faa6a776187c230b5d5e0eb1df224a1cebfee061c35b9d9cbba6b3daf8d5373e",
+    "coordinateFrame": {
+      "size": [
+        7292,
+        5514
+      ],
+      "orientation": "EXIF-prepared canonical reference"
+    },
+    "sessionId": "ef871dc8c75c77aa082dc2e753c9fa6893e17c787b9528271ce0a6174732090a"
+  },
+  "input_manifest": "private-inputs/drive-highres-20261106/scan.json",
+  "sources": [
+    {
+      "id": "IMG20261105175524",
+      "source_code": 1,
+      "input": {
+        "id": "IMG20261105175524",
+        "image": "raw/IMG20261105175524.jpg"
+      },
+      "status": "registered-for-inspection",
+      "input_hashes": {
+        "image": "346fc36b582266b488e088fe67a43040571bac424fc2525f5e88411a7af8f943"
+      },
+      "exposure_gain_rgb": [
+        1.0764331210191083,
+        1.091503267973856,
+        1.118881118881119
+      ],
+      "registration": {
+        "source_to_reference": [
+          [
+            0.547015442212581,
+            -0.03238753324577967,
+            51.56149984232314
+          ],
+          [
+            -0.0023178831828498995,
+            0.517913327015031,
+            -152.50259471480985
+          ],
+          [
+            -6.544379640799527e-06,
+            -1.590219219434717e-05,
+            1.0
+          ]
+        ]
+      }
+    },
+    {
+      "id": "IMG20261105175533",
+      "source_code": 2,
+      "input": {
+        "id": "IMG20261105175533",
+        "image": "raw/IMG20261105175533.jpg"
+      },
+      "status": "registered-for-inspection",
+      "input_hashes": {
+        "image": "98aa54cfc3c9dd68ac21340dbbd1c958970e976d32c4c4c7d7624b857c2a13ed"
+      },
+      "exposure_gain_rgb": [
+        1.0632911392405062,
+        1.0844155844155845,
+        1.1172413793103448
+      ],
+      "registration": {
+        "source_to_reference": [
+          [
+            0.5863212772056404,
+            -0.07883819384284808,
+            1082.9557258708446
+          ],
+          [
+            0.005293257934508735,
+            0.5290972981095671,
+            -270.08866951769903
+          ],
+          [
+            8.656440699123722e-07,
+            -2.635336912680155e-05,
+            1.0
+          ]
+        ]
+      }
+    },
+    {
+      "id": "IMG20261105175541",
+      "source_code": 3,
+      "input": {
+        "id": "IMG20261105175541",
+        "image": "raw/IMG20261105175541.jpg"
+      },
+      "status": "registered-for-inspection",
+      "input_hashes": {
+        "image": "c9f4d38c9c2351bde35f6ecf712662283a2f2d9250569d76ef873591e005a03e"
+      },
+      "exposure_gain_rgb": [
+        1.064102564102564,
+        1.0580645161290323,
+        1.0533333333333332
+      ],
+      "registration": {
+        "source_to_reference": [
+          [
+            0.6066813609185738,
+            -0.13697753065712026,
+            3580.690200387315
+          ],
+          [
+            0.006158383976832548,
+            0.5372587053949772,
+            -316.53838777424454
+          ],
+          [
+            3.6734836110681777e-06,
+            -2.433941590170019e-05,
+            1.0
+          ]
+        ]
+      }
+    },
+    {
+      "id": "IMG20261105175549",
+      "source_code": 4,
+      "input": {
+        "id": "IMG20261105175549",
+        "image": "raw/IMG20261105175549.jpg"
+      },
+      "status": "registered-for-inspection",
+      "input_hashes": {
+        "image": "a943fd27d29813c640922a94e129bc4f7e70d09cf2e599cabd9957cc226f0745"
+      },
+      "exposure_gain_rgb": [
+        1.0346820809248556,
+        1.0235294117647058,
+        1.037037037037037
+      ],
+      "registration": {
+        "source_to_reference": [
+          [
+            0.49104548145552657,
+            0.004102263122423509,
+            2574.567213160482
+          ],
+          [
+            0.006744817457293007,
+            0.42404616725762695,
+            196.41580108859048
+          ],
+          [
+            1.3648258293296035e-05,
+            -3.303876340146527e-06,
+            1.0
+          ]
+        ]
+      }
+    }
+  ]
+}

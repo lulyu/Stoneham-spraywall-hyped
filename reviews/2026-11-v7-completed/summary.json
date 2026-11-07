@@ -1,0 +1,10 @@
+{
+  "checkpointSha256": "f0e9bd4a9c0d58b6460e64e0a05dc0eae35948bcde0e67cd7b0b4569f20052c7",
+  "sessionId": "87c78fea4c1eaa399015d81df4c76f107be90585f6cb640381884e08d9c75184",
+  "imageSha256": "6fb57bee42af9b5b51283d79502968466cf7d25eaf0f5a6a64b3c92c22e4e72b",
+  "revision": 805,
+  "historyEvents": 805,
+  "confirmedHoldCount": 797,
+  "pendingCount": 0,
+  "partialCoverageCount": 27
+}

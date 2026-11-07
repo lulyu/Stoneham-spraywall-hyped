@@ -14,6 +14,15 @@ export type Problem = {
   gymId: string
   wallId: string
   wallVersionId: string
+  supportedWallVersionIds?: string[]
+  outdated?: boolean
+  compatibilityWallVersionId?: string
+  compatibilityCheckedAt?: string
+  missingHoldIds?: string[]
+  upgradedFromId?: string
+  upgradeRootId?: string
+  upgradeBaseName?: string
+  upgradeNumber?: number
   name: string
   grade: Grade
   setter: string

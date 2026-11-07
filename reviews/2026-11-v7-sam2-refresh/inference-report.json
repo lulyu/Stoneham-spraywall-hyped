@@ -1,0 +1,51 @@
+{
+  "wallVersionId": "2026-11-v7-seam-trial",
+  "referenceVersion": "2026-11-v6-highres",
+  "sourceSessionId": "da6af5151ad5e85deb4ada406b48b740c67d48c60e0eaf15f7326e42b6ba44db",
+  "imageSize": [
+    7292,
+    5514
+  ],
+  "hashes": {
+    "image": "6fb57bee42af9b5b51283d79502968466cf7d25eaf0f5a6a64b3c92c22e4e72b",
+    "coverage": "e67a01071a1b5e225bf577ac4dc63f618f57e9be349ae1a924b53fb4c75cafc0",
+    "uncertainty": "8da6d0218b4ae8e45f48fc9d09610963531fc87bdf870e3bcbf6bf30f2abfd39",
+    "oldHolds": "d8c8d3b13584ca8317b142474fc44d1733fb84dc0ff4635d90a849903d6268f0"
+  },
+  "versionManifestSha256": "83fc81d5b4bc432fd8e07be5beef2cab9e5b8f9bd89f7f2da1e7dabf865eb261",
+  "checkpointSha256": "6d1aa6f30de5c92224f8172114de081d104bbd23dd9dc5c58996f0cad5dc4d38",
+  "model": "SAM2.1 Small",
+  "device": "cpu",
+  "cudaAvailable": false,
+  "python": "3.12.14",
+  "torch": "2.5.1+cpu",
+  "opencv": "4.11.0",
+  "numpy": "2.5.4",
+  "seed": 0,
+  "threads": 4,
+  "minScore": 0.75,
+  "oldHoldCount": 797,
+  "promptCount": 797,
+  "masksBeforeDedup": 797,
+  "proposalCount": 795,
+  "recommendations": {
+    "alignment-needs-review": 218,
+    "partial-observation": 26,
+    "possible-merge-or-duplicate-prompt": 4,
+    "possible-unchanged": 538,
+    "suggested-refinement": 11
+  },
+  "elapsedSeconds": 234.5,
+  "codeCommit": "ac18107ac12690fc88a0c82be64ce7228cb778b9",
+  "scriptSha256": "aeab33b3f2e6777066490e2cdc524b4a3a8a16a40ba8e7cac5e36013d8defd19",
+  "reviewRequired": true,
+  "acceptedHoldCount": 0,
+  "limitations": [
+    "Point and box prompts assume rough old placement, not continued hold identity.",
+    "Partial/reference-filled locations were explicitly prompted; actual observation evidence remains recorded and bulk approval still excludes these regions.",
+    "No automatic removed classification or approval; SAM2 score is not identity evidence.",
+    "No search for entirely new holds away from old prompts in this first pass.",
+    "No automatic publication or old-route migration."
+  ],
+  "includePartialObservationPrompts": true
+}

@@ -76,3 +76,26 @@ test('route list preserves and encodes the continuation cursor', async () => {
   assert.deepEqual(await store.list('cursor/+?='), { items: [], nextCursor: 'next-page' })
   assert.equal(new URL(seen).searchParams.get('cursor'), 'cursor/+?=')
 })
+
+test('candidate routes use their own API partition and cannot update original-wall routes',async()=>{
+  const requests=[]
+  const store=createApiProblemStore('https://example.test',async(url,options)=>{
+    requests.push({url,options});return Response.json({items:[]})
+  },async()=>undefined,'2026-11-v7')
+  await store.list();await store.create(input)
+  assert(requests.every(r=>r.url.endsWith('/versions/2026-11-v7/problems')))
+  await assert.rejects(store.update({...input,id:'old',revision:1,wallVersionId:'2026-10-v4'},input),/original wall/)
+  assert.equal(requests.length,2)
+})
+
+test('overlapping hold IDs do not import old local routes into a candidate wall',async()=>{
+  const rows=new Map(),storage={getItem:key=>rows.get(key)||null,setItem:(key,value)=>rows.set(key,value)}
+  const old=createLocalProblemStore(storage,new Set(input.holds.map(h=>h.holdId)))
+  const candidate=createLocalProblemStore(storage,new Set(input.holds.map(h=>h.holdId)),'stoneham-spraywall:problems:v3:wall:2026-11-v7','2026-11-v7')
+  const original=await old.create(input)
+  assert.equal((await candidate.list()).items.length,0)
+  const fresh=await candidate.create({...input,name:'New wall route'})
+  assert.equal(fresh.wallVersionId,'2026-11-v7')
+  assert.deepEqual((await old.list()).items.map(p=>p.id),[original.id])
+  assert.equal((await candidate.list()).items.length,1)
+})

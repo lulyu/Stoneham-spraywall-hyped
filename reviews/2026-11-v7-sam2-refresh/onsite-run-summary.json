@@ -1,0 +1,15 @@
+{
+  "sessionId": "87c78fea4c1eaa399015d81df4c76f107be90585f6cb640381884e08d9c75184",
+  "prompts": 797,
+  "proposals": 795,
+  "elapsedSeconds": 252.1,
+  "threads": 2,
+  "accepted": 0,
+  "invalid": 0,
+  "proposalGeometrySha256": "0c31a26149f925af59f908fa6e8857da9f769b57933e53229f3c752f107a72df",
+  "proposalsSha256": "2c2ddece13d38e35cba6842556d1f01b021268d073a1464645b02b7fe3844f46",
+  "executionLocation": "existing Vercel Sandbox; recomputed on already-present image and geometry",
+  "imageSha256": "6fb57bee42af9b5b51283d79502968466cf7d25eaf0f5a6a64b3c92c22e4e72b",
+  "publishable": false,
+  "reviewPurpose": "fresh SAM2 suggestions, explicit human review required"
+}

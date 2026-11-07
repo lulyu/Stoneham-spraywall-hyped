@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { Point, PolygonHoldCandidate } from './types'
 import './annotator.css'
 import { annotationWallColors } from './annotationWallColors'
+import { bulkProposalActions } from './wallProposals'
 import { confirmed, stable } from './wallReview'
 import type { ReviewController } from './AnnotationWorkspace'
+import { sam2Request, Sam2RequestError } from './sam2Api'
 
 const WIDTH = 7292
 const HEIGHT = 5514
@@ -20,15 +22,7 @@ type Saved = { holds: PolygonHoldCandidate[]; dismissed_suggestions?: string[] }
 type Tool = 'positive' | 'negative' | 'box' | 'pan' | 'select' | 'polygon' | 'vertex'
 
 async function request<T>(path: string, body?: unknown): Promise<T> {
-  const response = await fetch(`${API}/${path}`, body === undefined ? undefined : {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-  })
-  if (!response.headers.get('content-type')?.includes('application/json')) {
-    throw new Error('SAM2 service unavailable. Open this page using the Python annotation server.')
-  }
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.error || `Request failed (${response.status})`)
-  return result as T
+  return sam2Request<T>(`${API}/${path}`,body)
 }
 
 function points(polygon: Point[]) {
@@ -46,7 +40,14 @@ function inside([x, y]: Point, polygon: Point[]) {
 
 export default function Annotator({ review }: { review?: ReviewController }) {
   const [status, setStatus] = useState<Status>({ state: 'loading', device: 'checking' })
+  const [serviceAttempt,setServiceAttempt]=useState(0)
+  const connectionError=useRef('')
   const [error, setError] = useState('')
+  const reviewerInput=useRef<HTMLInputElement>(null)
+  const requireReviewer=()=>{
+    if(!review || review.reviewer.trim())return true
+    setError('Enter your reviewer name to confirm holds.');reviewerInput.current?.focus();return false
+  }
   const [prompts, setPrompts] = useState<Prompt[]>([])
   const [box, setBox] = useState<Box | null>(null)
   const [boxStart, setBoxStart] = useState<Point | null>(null)
@@ -66,6 +67,12 @@ export default function Annotator({ review }: { review?: ReviewController }) {
   const [replaceExisting, setReplaceExisting] = useState(false)
   const [tool, setTool] = useState<Tool>('positive')
   const [busy, setBusy] = useState(false)
+  const [autoPredict,setAutoPredict]=useState(()=>!review?.assets.proposals && review?.data.session.reviewPurpose!=='final-image-recheck')
+  const [autoHold,setAutoHold]=useState<PolygonHoldCandidate|null>(null)
+  const [threshold,setThreshold]=useState(.95)
+  const [batchNotice,setBatchNotice]=useState('')
+  const predictionId=useRef(0)
+  useEffect(()=>()=>{predictionId.current++},[])
   const [timing, setTiming] = useState<number | null>(null)
   const viewport = useRef<HTMLDivElement>(null)
   const [view, setView] = useState({ scale: .15, x: 0, y: 0 })
@@ -83,6 +90,16 @@ export default function Annotator({ review }: { review?: ReviewController }) {
   const imageReady = !!review || status.state === 'ready'
   const visibleEntries = review?.data.entries.filter(entry => showRemoved || !['removed', 'dismissed'].includes(entry.status))
   const coverHolds = review ? review.data.entries.filter(confirmed).map(entry => entry.hold) : saved.holds
+  const modelByOld = useMemo(() => {
+    const map = new Map<string, NonNullable<ReviewController['assets']['proposals']>['proposals']>()
+    for (const proposal of review?.assets.proposals?.proposals ?? []) for (const id of proposal.oldHoldIds) map.set(id, [...(map.get(id) ?? []), proposal])
+    return map
+  }, [review?.assets.proposals])
+  const selectedProposals = modelByOld.get(selectedId) ?? []
+  const pendingModel = useMemo(() => {
+    const pendingIds = new Set(review?.data.entries.filter(e => e.status === 'inherited-unreviewed').map(e => e.hold.id))
+    return review?.assets.proposals?.proposals.filter(p => p.oldHoldIds.some(id => pendingIds.has(id))) ?? []
+  }, [review?.data, review?.assets.proposals])
   const preview = candidates[candidateIndex]
   const pendingSuggestions = suggestions.filter((hold) => !saved.dismissed_suggestions?.includes(hold.id) &&
     !saved.holds.some((accepted) => accepted.id === hold.id || (inside(hold.center, accepted.polygon) && inside(accepted.center, hold.polygon))))
@@ -96,9 +113,18 @@ export default function Annotator({ review }: { review?: ReviewController }) {
         const next = await request<Status>('status')
         if (!alive) return
         setStatus(next)
+        if(next.state==='ready'){
+          const previousConnectionError=connectionError.current
+          setError(previous=>previous===previousConnectionError?'':previous)
+          connectionError.current=''
+        }
         if (next.state === 'loading') timer = setTimeout(poll, 1500)
       } catch (problem) {
-        if (alive) setStatus({ state: 'error', device: 'unavailable', error: String(problem) })
+        if (alive) {
+          const message=problem instanceof Error?problem.message:String(problem)
+          connectionError.current=message
+          setStatus({ state: 'error', device: 'unavailable', error: message })
+        }
       }
     }
     void poll()
@@ -110,7 +136,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
       if (alive) { setSaved(data); setSavedLoaded(true) }
     }).catch((problem) => { if (alive) setError(`Could not load saved holds: ${String(problem)}`) })
     return () => { alive = false; clearTimeout(timer) }
-  }, [review?.assets])
+  }, [review?.assets,serviceAttempt])
 
   useEffect(() => {
     if (!coverConfirmed || !imageReady) return
@@ -148,15 +174,6 @@ export default function Annotator({ review }: { review?: ReviewController }) {
     return () => observer.disconnect()
   }, [])
 
-  const zoom = (factor: number) => {
-    const element = viewport.current
-    if (!element) return
-    const x = element.clientWidth / 2, y = element.clientHeight / 2
-    setView((previous) => {
-      const scale = Math.min(2, Math.max(.02, previous.scale * factor))
-      return { scale, x: x - (x - previous.x) * scale / previous.scale, y: y - (y - previous.y) * scale / previous.scale }
-    })
-  }
   const wallPoint = (event: ReactPointerEvent<HTMLDivElement>): Point => {
     const rect = event.currentTarget.getBoundingClientRect()
     return [Math.max(0, Math.min(CROP_WIDTH - 1, (event.clientX - rect.left - view.x) / view.scale)) / WIDTH,
@@ -188,28 +205,42 @@ export default function Annotator({ review }: { review?: ReviewController }) {
       else setBoxStart(end)
     } else if (!started.moved && tool === 'select') {
       const accepted = (review ? visibleEntries!.map(entry => entry.hold) : saved.holds).filter((hold) => inside(end, hold.polygon))
-      const automatic = showSuggestions ? pendingSuggestions.filter((hold) => inside(end, hold.polygon)) : []
+      const automatic = showSuggestions ? (review ? pendingModel : pendingSuggestions).filter((hold) => inside(end, hold.polygon)) : []
       const nearest = <T extends { center: Point }>(list: T[]) => list.sort((a, b) => Math.hypot(a.center[0] - end[0], a.center[1] - end[1]) - Math.hypot(b.center[0] - end[0], b.center[1] - end[1]))[0]
       if (accepted.length) editHold(nearest(accepted))
-      else if (automatic.length) reviewSuggestion(nearest(automatic))
+      else if (automatic.length) {
+        const chosen = nearest(automatic)
+        if (review && 'oldHoldIds' in chosen) {
+          const old = review.data.entries.find(e => (chosen.oldHoldIds as string[]).includes(e.hold.id) && e.status === 'inherited-unreviewed')
+          if (old) { editHold(old.hold); setCandidates([chosen]); setTool('vertex') }
+        } else reviewSuggestion(chosen)
+      }
     } else if (!started.moved && tool !== 'pan') {
       if (prompts.length >= 64) { setError('Maximum 64 prompts per hold. Undo or start a new hold.'); return }
       setPrompts((previous) => [...previous, { point: end, label: tool === 'positive' ? 1 : 0 }])
       invalidate()
     }
   }
-  const clear = () => { setPrompts([]); setBox(null); setBoxStart(null); invalidate(); setError(''); setEditingOriginal(null); setSelectedId(''); setSuggestionId(''); setManualPoints([]) }
-  const predict = async () => {
+  const clear = () => { predictionId.current++; setAutoHold(null); setBusy(false); setPrompts([]); setBox(null); setBoxStart(null); invalidate(); setError(''); setEditingOriginal(null); setSelectedId(''); setSuggestionId(''); setManualPoints([]) }
+  const predict = async (input?:{points:Prompt[];box:Box|null}) => {
+    const id=++predictionId.current
     setBusy(true); setError('')
     try {
-      const result = await request<{ candidates: Candidate[]; elapsed_seconds: number }>('predict', { points: prompts, box, ...(review ? { sessionId: review.data.session.sessionId, image_sha256: review.data.session.registeredImageSha256 } : {}) })
+      const result = await request<{ candidates: Candidate[]; elapsed_seconds: number }>('predict', { points: input?.points ?? prompts, box: input ? input.box : box, ...(review ? { sessionId: review.data.session.sessionId, image_sha256: review.data.session.registeredImageSha256 } : {}) })
+      if(id!==predictionId.current)return
       setCandidates(result.candidates); setCandidateIndex(0); setTiming(result.elapsed_seconds)
       if (!result.candidates.length) setError('No usable outline. Add a positive point or tighten the box and try again.')
-    } catch (problem) { setError(String(problem)) }
-    finally { setBusy(false) }
+    } catch (problem) {
+      if(id===predictionId.current){
+        const message=problem instanceof Error?problem.message:String(problem)
+        setError(message)
+        if(problem instanceof Sam2RequestError && (problem.status===0 || problem.status===410 || problem.code.startsWith('SANDBOX_'))){connectionError.current=message;setStatus({state:'error',device:'unavailable',error:message})}
+      }
+    }
+    finally { if(id===predictionId.current)setBusy(false) }
   }
   const accept = async () => {
-    if (!preview) return
+    if (!preview || !requireReviewer()) return
     setBusy(true); setError('')
     try {
       if (review) {
@@ -223,7 +254,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
     finally { setBusy(false) }
   }
   const remove = async () => {
-    if (!selectedId) return
+    if (!selectedId || !requireReviewer()) return
     setBusy(true); setError('')
     try {
       if (review) { await review.commit({ type: 'remove', id: selectedId }); setSelectedId(''); clear(); return }
@@ -242,6 +273,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
     if (review) element.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
   const prepareOutline = (hold: PolygonHoldCandidate) => {
+    predictionId.current++;setAutoHold(null)
     setPrompts([]); setBoxStart(null); setError(''); setTiming(null)
     const xs = hold.polygon.map(([x]) => x), ys = hold.polygon.map(([, y]) => y)
     setBox([Math.max(0, Math.min(...xs) - .003), Math.max(0, Math.min(...ys) - .003), Math.min(1, Math.max(...xs) + .003), Math.min(1, Math.max(...ys) + .003)])
@@ -275,13 +307,22 @@ export default function Annotator({ review }: { review?: ReviewController }) {
   const canEdit = !review || comparison === 'new'
   const canPredict = canEdit && serviceMatches && status.state === 'ready' && !busy && (box !== null || prompts.some((prompt) => prompt.label === 1))
 
+  useEffect(()=> {
+    if(!autoPredict){setAutoHold(null);return}
+    if(!autoHold || !serviceMatches || status.state!=='ready' || !canEdit)return
+    const xs=autoHold.polygon.map(p=>p[0]),ys=autoHold.polygon.map(p=>p[1])
+    const bounds:Box=[Math.max(0,Math.min(...xs)-.003),Math.max(0,Math.min(...ys)-.003),Math.min(1,Math.max(...xs)+.003),Math.min(1,Math.max(...ys)+.003)]
+    setAutoHold(null)
+    void predict({points:[],box:bounds})
+  },[autoHold,autoPredict,serviceMatches,status.state,canEdit])
+
   const reviewDecision = async (type: 'confirm' | 'reset') => {
     if (!review || !selectedId) return
     setBusy(true); setError('')
     try { await review.commit({ type, id: selectedId }); clear() } catch (problem) { setError(String(problem)) } finally { setBusy(false) }
   }
   const replacement = async () => {
-    if (!review || !preview || !editingOriginal) return
+    if (!review || !preview || !editingOriginal || !requireReviewer()) return
     setBusy(true); setError('')
     try { await review.commit({ type: 'add', replaces: editingOriginal.id, hold: { ...preview, id: `scan-${crypto.randomUUID()}` } }); clear() }
     catch (problem) { setError(String(problem)) } finally { setBusy(false) }
@@ -297,20 +338,36 @@ export default function Annotator({ review }: { review?: ReviewController }) {
     const queue = covered.length ? covered : pending
     if (!queue.length) return
     const index = queue.findIndex(entry => entry.hold.id === selectedId)
-    setComparison('new'); editHold(queue[(index + 1) % queue.length].hold)
+    const entry=queue[(index + 1) % queue.length]
+    setComparison('new');editHold(entry.hold)
+    const suggestions=modelByOld.get(entry.hold.id)??[]
+    if(review?.assets.proposals){setCandidates(suggestions.length?suggestions:[entry.hold]);setCandidateIndex(0)}
+    if(autoPredict && entry.coverageFraction>=.99)setAutoHold(entry.hold)
   }
+  const bulkActions=useMemo(()=>review?.assets.proposals && Number.isFinite(threshold) && threshold>=0 && threshold<=1 ? bulkProposalActions(review.data,review.assets.proposals,threshold) : [],[review?.data,review?.assets.proposals,threshold])
+  const confirmBatch=async()=>{
+    if(!review || !bulkActions.length || !requireReviewer())return
+    setBusy(true);setError('');setBatchNotice('')
+    try{await review.commitMany(bulkActions);clear();setBatchNotice(`${bulkActions.length} SAM2 outlines confirmed. Other entries remain pending.`)}
+    catch(problem){setError(`Batch not saved: ${String(problem)}`)}finally{setBusy(false)}
+  }
+  const canChangeSelected=Boolean(!busy && canEdit && selectedEntry && !['removed','dismissed'].includes(selectedEntry.status) && selectedEntry.coverageFraction>=.99)
+  const canReplace=Boolean(canChangeSelected && preview && editingOriginal && selectedEntry?.oldHoldId===selectedEntry?.hold.id)
   return (
-    <main className="annotation-shell">
+    <main className={`annotation-shell ${review?.assets.proposals ? 'has-model-proposals' : ''}`}>
       <header className="annotation-header">
         <div><div className="eyebrow">STONEHAM · FULL WALL</div><h1>{review ? 'Review & annotate' : 'Hold annotator'}</h1></div>
         <a href={BASE}>Back to wall</a>
       </header>
-      <p className="annotation-status" role="status">{review && (!serviceMatches || status.state === 'error') ? 'Manual editing ready · SAM2 needs a matching local rescan server.' : status.state === 'ready' ? `SAM2.1 Small ready · ${status.device.toUpperCase()}` : status.state === 'loading' ? 'Loading SAM2 and preparing wall tiles…' : status.error}</p>
+      <p className="annotation-status" role="status">{review && (!serviceMatches || status.state === 'error') ? `Manual editing ready · ${status.error || 'SAM2 needs a matching scan server.'}` : status.state === 'ready' ? `SAM2.1 Small ready · ${status.device.toUpperCase()}` : status.state === 'loading' ? 'Loading SAM2 and preparing wall tiles…' : status.error}</p>
+      <button className="small" disabled={busy} onClick={()=>setServiceAttempt(n=>n+1)}>Check SAM2 connection</button>
       {review && <section className="review-panel" aria-label="Scan review">
         <p className="review-badge">DRAFT · {review.data.session.candidateVersion} · revision {review.data.reviewRevision}</p>
+        {Number(review.data.session.referenceFilledFraction)>0 && <p className="annotation-hint">{((1-Number(review.data.session.referenceFilledFraction))*100).toFixed(2)}% new photos · {(Number(review.data.session.referenceFilledFraction)*100).toFixed(2)}% v1 edge fill. V1-filled areas can be confirmed manually; their coverage/source labels stay recorded.</p>}
+        <label>Reviewer name<input ref={reviewerInput} aria-label="Reviewer name" value={review.reviewer} maxLength={100} placeholder="Enter your name to enable confirmation" onChange={event => {review.setReviewer(event.target.value);if(error==='Enter your reviewer name to confirm holds.')setError('')}} /></label>
         <details><summary>Session, reviewer & backups</summary>
         <p className="annotation-hint">{review.assets.inputKind} · QA: {review.assets.qaStatus}. Decisions are local working notes, not publication approval.</p>
-        <label>Reviewer name<input aria-label="Reviewer name" value={review.reviewer} maxLength={100} placeholder="Name for review history" onChange={event => review.setReviewer(event.target.value)} /></label>
+
 
         <div className="annotation-actions">
 
@@ -320,9 +377,8 @@ export default function Annotator({ review }: { review?: ReviewController }) {
         <p className="annotation-hint">Saved on this browser after every decision. Reopen the same scan to resume. Export a backup before clearing browser data.</p>
         </details>
         <div className="review-counts"><span>{pending.length} pending</span><span>{review.data.entries.filter(confirmed).length} confirmed</span><span>{review.data.entries.filter(e => e.status === 'removed').length} removed</span></div>
-        <button disabled={busy || !pending.length} onClick={nextPending}>Next unreviewed hold</button>
         <fieldset className="annotation-tools"><legend>Compare wall</legend>
-          {(['new', 'old', 'overlay'] as const).map(value => <button key={value} aria-pressed={comparison === value} onClick={() => setComparison(value)}>{ { new: 'New scan', old: 'Old wall', overlay: 'Overlay' }[value]}</button>)}
+          {(['new', 'old', 'overlay'] as const).map(value => <button key={value} disabled={busy} aria-pressed={comparison === value} onClick={() => setComparison(value)}>{ { new: 'New scan', old: 'Old wall', overlay: 'Overlay' }[value]}</button>)}
         </fieldset>
         {comparison === 'overlay' && <label>New scan opacity<input aria-label="New scan opacity" type="range" min="0" max="1" step=".05" value={opacity} onChange={event => setOpacity(Number(event.target.value))} /></label>}
         {comparison !== 'new' && <p className="annotation-hint">Comparison view · switch to New scan to edit or confirm.</p>}
@@ -332,12 +388,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
         <p className="annotation-hint">Orange = pending · cyan = confirmed · red dashed = removed · green = new. QA seams are not hold-change detections.</p>
         <div className="review-links">{review.assets.sources && <a href={review.assets.sources} target="_blank" rel="noreferrer">Photo source map ↗</a>}{review.assets.qa && <a href={review.assets.qa} target="_blank" rel="noreferrer">Full QA preview ↗</a>}</div></details>
       </section>}
-      <fieldset disabled={busy} className="annotation-tools">
-        <legend>Prompt tool</legend>
-        {(['positive', 'negative', 'box', 'pan', 'select', ...(review ? ['polygon', 'vertex'] : [])] as Tool[]).map((value) => <button key={value} type="button" disabled={!canEdit && value !== 'pan'} aria-pressed={tool === value}
-          onClick={() => { setTool(value); setBoxStart(null); if (value !== 'polygon') setManualPoints([]); else invalidate() }}>{({ positive: '＋ Hold', negative: '− Exclude', box: 'Box', pan: 'Pan', select: 'Select', polygon: 'Draw polygon', vertex: 'Move vertex' })[value]}</button>)}
-      </fieldset>
-      <div className="annotation-zoom"><button onClick={() => zoom(1.5)}>Zoom in</button><button onClick={() => zoom(1 / 1.5)}>Zoom out</button><button onClick={fit}>Fit wall</button></div>
+      <div className="annotation-zoom"><button onClick={fit}>Fit wall</button></div>
       <button className="annotation-coverage-toggle" type="button" aria-pressed={coverConfirmed}
         disabled={!imageReady || (!review && !savedLoaded)} onClick={() => setCoverConfirmed((value) => !value)}>
         {coverConfirmed ? 'Show original holds' : 'Cover confirmed holds'}
@@ -391,7 +442,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
           {!review && saved.holds.map((hold) => <polygon key={hold.id} className={`annotation-saved ${coverConfirmed ? 'annotation-covered' : ''} ${selectedId === hold.id ? 'annotation-selected' : ''}`} points={points(hold.polygon)} style={coverConfirmed ? { fill: wallColors[hold.id] ?? 'rgb(170, 168, 162)', stroke: 'none' } : undefined} />)}
           {review && visibleEntries!.map(entry => <polygon key={entry.hold.id} className={`annotation-saved review-${entry.status} ${selectedId === entry.hold.id ? 'annotation-selected' : ''} ${coverConfirmed && confirmed(entry) ? 'annotation-covered' : ''}`} points={points(entry.hold.polygon)} style={{ strokeWidth: (selectedId === entry.hold.id ? 3 : 1.5) / view.scale, ...(['removed','dismissed'].includes(entry.status) ? { strokeDasharray: `${6/view.scale} ${4/view.scale}` } : {}), ...(coverConfirmed && confirmed(entry) ? { fill: wallColors[entry.hold.id] ?? 'rgb(170,168,162)', stroke: 'none' } : {}) }} />)}
           {manualPoints.length > 0 && <polyline className="annotation-preview" points={points(manualPoints)} />}
-          {showSuggestions && !coverConfirmed && pendingSuggestions.map((hold) => <polygon key={hold.id} className="annotation-suggestion" points={points(hold.polygon)} />)}
+          {showSuggestions && !coverConfirmed && (review ? pendingModel : pendingSuggestions).map((hold) => <polygon key={hold.id} className="annotation-suggestion" points={points(hold.polygon)} />)}
           {preview && <polygon className="annotation-preview" points={points(preview.polygon)} style={review ? { strokeWidth: 3/view.scale } : undefined} />}
           {review && tool === 'vertex' && preview && preview.polygon.map((point,index) => <circle key={index} className="annotation-vertex" cx={point[0]*WIDTH} cy={point[1]*HEIGHT} r={8/view.scale} />)}
           {box && <rect className="annotation-box" x={box[0] * WIDTH} y={box[1] * HEIGHT} width={(box[2] - box[0]) * WIDTH} height={(box[3] - box[1]) * HEIGHT} />}
@@ -402,30 +453,73 @@ export default function Annotator({ review }: { review?: ReviewController }) {
           {boxStart && <circle className="annotation-box-start" cx={boxStart[0] * WIDTH} cy={boxStart[1] * HEIGHT} r={7 / view.scale} />}
         </svg>
       </div>
+      {review && <section className="review-quick-actions" aria-label="Quick hold review">
+        <div className="review-quick-buttons">
+          <button disabled={busy || !pending.length} onClick={nextPending}>Next pending hold</button>
+          <button className="primary" disabled={busy || !canEdit || !preview || !!(selectedEntry && (['removed','dismissed'].includes(selectedEntry.status)))} onClick={()=>void accept()}>Confirm</button>
+          <button disabled={!canChangeSelected} onClick={()=>void remove()}>Mark removed</button>
+          <button disabled={!canReplace} title="Replace the selected old hold with this outline and a fresh ID" onClick={()=>void replacement()}>Mark replaced</button>
+          <button disabled={!canPredict} onClick={()=>void predict()}>Generate mask</button>
+        </div>
+        <p className="annotation-hint" role="status">{busy ? 'SAM2 is running…' : !preview ? review.assets.proposals ? 'Next pending hold loads its SAM2 suggestion.' : 'Next pending hold loads your saved outline.' : !canEdit ? 'Switch to New scan to confirm.' : !review.reviewer.trim() ? 'Enter your reviewer name above to confirm. Tap Confirm to jump there.' : `Outline ready${preview.score===undefined?'':` · score ${preview.score.toFixed(2)}`}`}</p>
+        {error&&<p className="annotation-error" role="alert">{error}</p>}
+      </section>}
+      {review && <h2 className="review-edit-heading">Edit outline & rerun SAM2</h2>}
+      <fieldset disabled={busy} className="annotation-tools">
+        <legend>Prompt tool</legend>
+        {(['positive', 'negative', 'box', 'pan', 'select', ...(review ? ['polygon', 'vertex'] : [])] as Tool[]).map((value) => <button key={value} type="button" disabled={!canEdit && value !== 'pan'} aria-pressed={tool === value}
+          onClick={() => { setTool(value); setBoxStart(null); if (value !== 'polygon') setManualPoints([]); else invalidate() }}>{({ positive: '＋ Hold', negative: '− Exclude', box: 'Box', pan: 'Pan', select: 'Select', polygon: 'Draw polygon', vertex: 'Move vertex' })[value]}</button>)}
+      </fieldset>
       <p className="annotation-hint">{tool === 'polygon' ? 'Tap around the outline, then Finish polygon. Up to 16 vertices.' : tool === 'vertex' ? 'Drag the round handles, then explicitly confirm the correction.' : tool === 'box' ? 'Drag a box, or tap its two opposite corners.' : tool === 'pan' ? 'Drag to move the wall.' : tool === 'select' ? 'Tap a blue hold to edit it, or an orange suggestion to review.' : tool === 'positive' ? 'Tap inside the hold. Add more points to refine it.' : 'Tap unwanted areas to exclude them.'} Pinch to zoom.</p>
-      {review && <div className="annotation-actions"><button disabled={busy || !pending.length} onClick={nextPending}>Next pending hold</button><button disabled={busy || !manualPoints.length} onClick={() => setManualPoints(p => p.slice(0,-1))}>Undo vertex</button><button disabled={busy || manualPoints.length < 3 || !canEdit} onClick={finishPolygon}>Finish polygon</button></div>}
+      {review && <div className="annotation-actions"><button disabled={busy || !manualPoints.length} onClick={() => setManualPoints(p => p.slice(0,-1))}>Undo vertex</button><button disabled={busy || manualPoints.length < 3 || !canEdit} onClick={finishPolygon}>Finish polygon</button></div>}
       <div className="annotation-actions">
         <button disabled={busy || (!prompts.length && !box && !boxStart)} onClick={() => { if (boxStart) setBoxStart(null); else if (prompts.length) setPrompts((p) => p.slice(0, -1)); else setBox(null); invalidate() }}>Undo prompt</button>
         <button disabled={busy} onClick={clear}>New hold / Clear</button>
-        <button className="primary" disabled={!canPredict} onClick={() => void predict()}>{busy ? 'Working…' : 'Generate mask'}</button>
+        {!review && <button className="primary" disabled={!canPredict} onClick={() => void predict()}>{busy ? 'Working…' : 'Generate mask'}</button>}
       </div>
       <p className="annotation-hint">{prompts.filter((p) => p.label === 1).length} positive · {prompts.filter((p) => p.label === 0).length} negative · {box ? 'box set' : 'no box'}{timing !== null && ` · ${timing.toFixed(2)}s`}</p>
       {candidates.length > 0 && <div className="annotation-actions"><label>Outline candidate<select value={candidateIndex} disabled={busy} onChange={(event) => setCandidateIndex(Number(event.target.value))}>
         {candidates.map((candidate, index) => <option key={index} value={index}>Option {index + 1} · {candidate.score === undefined ? 'saved outline' : `score ${candidate.score.toFixed(2)}`}</option>)}
       </select></label><button className="primary" disabled={busy || !canEdit || (!review && !savedLoaded) || !!(selectedEntry && ['removed', 'dismissed'].includes(selectedEntry.status))} onClick={() => void accept()}>{review ? editingOriginal ? 'Confirm corrected outline' : 'Confirm new hold' : editingOriginal ? 'Save changes' : 'Accept hold'}</button></div>}
+      {review && <section className="annotation-library" aria-label="Batch review tools"><h2>Batch confirmation & automation</h2>
+        <label className="annotation-inline"><input type="checkbox" checked={autoPredict} disabled={busy} onChange={event=>setAutoPredict(event.target.checked)} />Auto-run SAM2 on next hold</label>
+        <p className="annotation-hint">Next pending hold loads its saved SAM2 suggestion immediately. Enable auto-run here if you also want a fresh prediction.</p>
+        {review.assets.proposals && <section aria-label="Bulk confirmation">
+          <label>Minimum SAM2 score<input aria-label="Minimum SAM2 score" type="number" min="0" max="1" step="0.01" value={Number.isFinite(threshold)?threshold:''} disabled={busy} onChange={event=>setThreshold(event.target.value===''?NaN:Number(event.target.value))} /></label>
+          {busy ? <p className="review-required">Wait for the current operation to finish.</p> : !canEdit ? <p className="review-required">Switch to New scan to confirm.</p> : !bulkActions.length ? <p className="review-required">No pending suggestions qualify at this threshold.</p> : null}
+          <button disabled={busy || !canEdit || !bulkActions.length} onClick={()=>void confirmBatch()}>Confirm eligible SAM2 outlines ({bulkActions.length})</button>
+          {!review.reviewer.trim()&&<p className="review-required" role="status">Enter your reviewer name above. You can tap this button to jump to the name field.</p>}
+          <p className="annotation-hint">Uses saved SAM2 scores. Skips reviewed entries, coverage gaps, shared masks and alignment/change warnings. Confirms the proposed outline while keeping its old ID.</p>
+
+          {batchNotice&&<p role="status">{batchNotice}</p>}
+        </section>}
+      </section>}
+      {review?.assets.proposals && <section className="annotation-library" aria-label="SAM2 proposals">
+        <h2>SAM2 suggestions ({review.assets.proposals.proposals.length})</h2>
+        <label className="annotation-inline"><input type="checkbox" checked={showSuggestions} onChange={event => setShowSuggestions(event.target.checked)} />Show SAM2 suggestions</label>
+        <p>Cyan dashed outlines are inherited; orange outlines are SAM2 suggestions. Select an inherited hold, load its suggestion, then inspect and confirm a correction or replacement.</p>
+      </section>}
       {review && selectedEntry && <section className="review-decision">
         <p>{selectedEntry.hold.id} · {selectedEntry.status} · observed {(selectedEntry.coverageFraction*100).toFixed(1)}%</p>
         <p className="annotation-hint">{selectedEntry.reasonCodes.join(' · ')}</p>
+        {review.assets.proposals && <div className="model-proposal-controls">
+          <p>Model recommendation: {review.assets.proposals.recommendations[selectedEntry.hold.id] ?? 'Not an inherited hold'}.</p>
+          {selectedProposals.length ? selectedProposals.map(proposal => <div key={proposal.id}>
+            <p>Score {proposal.score.toFixed(2)}{proposal.oldHoldIds.length > 1 ? ` · shared by ${proposal.oldHoldIds.length} old holds; inspect for merging` : ''}</p>
+            <button disabled={busy || !canEdit || ['removed','dismissed'].includes(selectedEntry.status)} onClick={() => { editHold(selectedEntry.hold); setCandidates([proposal]); setTool('vertex') }}>Load SAM2 suggestion</button>
+          </div>) : <p>No saved suggestion. Use points / a box and Generate mask, or draw an outline.</p>}
+          <button disabled={busy || !canEdit} onClick={() => editHold(selectedEntry.hold)}>Restore saved outline</button>
+        </div>}
+
         <div className="annotation-actions">
           <button className="primary" disabled={busy || !canEdit || selectedEntry.status !== 'inherited-unreviewed' || (!!preview && stable(preview.polygon) !== stable(selectedEntry.hold.polygon))} onClick={() => void reviewDecision('confirm')}>Confirm unchanged</button>
-          <button disabled={busy || !canEdit || ['removed','dismissed'].includes(selectedEntry.status)} onClick={() => void remove()}>Mark removed</button>
           <button disabled={busy || !canEdit} onClick={() => void reviewDecision('reset')}>Reset decision</button>
         </div>
-        {preview && selectedEntry.oldHoldId === selectedEntry.hold.id && <details><summary>Different / moved hold?</summary><p>Replacing removes the old hold and assigns a new ID to this outline. Existing routes stay on their old wall version.</p><button disabled={busy || !canEdit || selectedEntry.status === 'removed'} onClick={() => void replacement()}>Confirm replacement with new ID</button></details>}
+        {preview && selectedEntry.oldHoldId === selectedEntry.hold.id && <details><summary>Different / moved hold?</summary><p>Replacing removes the old hold and assigns a new ID to this outline. Existing routes stay on their old wall version.</p><p>Use Mark replaced beside Confirm above to record this replacement.</p></details>}
       </section>}
       {editingOriginal && <p className="annotation-hint">Editing {editingOriginal.id}. Save changes keeps its ID; Clear cancels this edit.</p>}
       {suggestionId && <button disabled={busy} onClick={() => void skipSuggestion()}>Skip this suggestion</button>}
-      {error && <p className="annotation-error" role="alert">{error}</p>}
+      {!review && error && <p className="annotation-error" role="alert">{error}</p>}
       {!review && <section className="annotation-library">
         <h2>Auto suggestions ({pendingSuggestions.length})</h2>
         <p>Orange = unreviewed. Blue = accepted. Model scores do not guarantee accuracy.</p>
@@ -438,7 +532,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
       <section className="annotation-library">
         <h2>{review ? 'Review entries' : 'Accepted holds'} ({saved.holds.length})</h2>
         <p>{review ? 'Choose any entry to inspect, correct, remove or reset its decision.' : 'Saved on this running server. Export a copy to your phone.'}</p>
-        <div className="annotation-actions"><label>Saved hold<select aria-label="Saved hold" value={selectedId} onChange={(event) => setSelectedId(event.target.value)}><option value="">Choose a hold</option>
+        <div className="annotation-actions"><label>Saved hold<select aria-label="Saved hold" disabled={busy} value={selectedId} onChange={(event) => setSelectedId(event.target.value)}><option value="">Choose a hold</option>
           {saved.holds.map((hold, index) => <option key={hold.id} value={hold.id}>{index + 1}. {hold.id}</option>)}</select></label>
           <button disabled={busy || !selectedId} onClick={() => { const hold = saved.holds.find((h) => h.id === selectedId); if (hold) editHold(hold) }}>Edit selected</button>
           {!review && <button disabled={busy || !selectedId} onClick={() => void remove()}>Delete selected</button>}

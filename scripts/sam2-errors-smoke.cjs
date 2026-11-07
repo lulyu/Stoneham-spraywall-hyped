@@ -1,0 +1,42 @@
+const {readReviewState,waitForReviewRevision}=require('./review-test-storage.cjs')
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright')
+const fs=require('node:fs'),assert=require('node:assert/strict')
+const base=process.env.APP_URL||'http://127.0.0.1:8791'
+async function main(){
+ const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox'],proxy:process.env.BROWSER_PROXY?{server:process.env.BROWSER_PROXY}:undefined})
+ try{
+  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true}),page=await context.newPage(),errors=[]
+  page.on('pageerror',e=>errors.push(e.message))
+  if(process.env.BROWSER_FETCH_PROXY==='1')await page.route('https://**/*',async r=>{try{await r.fulfill({response:await r.fetch()})}catch{await r.abort('failed').catch(()=>{})}})
+  if(process.env.AUTH_KEY_FILE)await page.goto(base+'/auth?key='+encodeURIComponent(fs.readFileSync(process.env.AUTH_KEY_FILE,'utf8').trim()))
+  await page.goto(base+'/?review=1');await page.getByRole('button',{name:'Open local server scan',exact:true}).click()
+  await page.getByRole('heading',{name:'Review & annotate',exact:true}).waitFor({timeout:90000})
+  await page.getByRole('button',{name:'Next pending hold',exact:true}).click()
+  await page.getByRole('button',{name:'＋ Hold',exact:true}).click()
+  await page.locator('.annotation-viewport').scrollIntoViewIfNeeded()
+  const box=await page.locator('.annotation-preview').boundingBox();assert(box)
+  await page.mouse.click(box.x+box.width*.5,box.y+box.height*.5)
+  const pointCount=await page.locator('.annotation-positive').count();assert.equal(pointCount,1)
+  const current=()=>readReviewState(page)
+  if(process.env.EXPECTED_VERSION)assert.equal((await current()).session.candidateVersion,process.env.EXPECTED_VERSION)
+  await page.waitForFunction(()=>document.querySelector('.annotation-status').textContent.startsWith('SAM2.1 Small ready'))
+  let mode='nested'
+  await page.route('**/api/sam2/predict',r=>mode==='real'?r.fallback():mode==='nested'?r.fulfill({status:500,json:{error:{code:'PREDICT_FAILED',message:'Temporary segmentation failure'}}}):r.fulfill({status:410,contentType:'text/plain',headers:{'x-vercel-error':'SANDBOX_STOPPED'},body:'This sandbox was stopped\nSANDBOX_STOPPED'}))
+  const generate=page.getByRole('button',{name:'Generate mask',exact:true})
+  await generate.click();await page.getByRole('alert').filter({hasText:'Temporary segmentation failure'}).waitFor()
+  assert(!await page.locator('body').innerText().then(t=>t.includes('[object Object]')))
+  assert.equal(await page.locator('.annotation-positive').count(),pointCount);assert.equal((await current()).reviewRevision,0)
+  mode='stopped';await generate.click();await page.getByRole('alert').filter({hasText:'temporary SAM2 server has stopped'}).waitFor()
+  assert(await generate.isDisabled());assert.equal(await page.locator('.annotation-positive').count(),pointCount)
+  await page.getByRole('button',{name:'Check SAM2 connection',exact:true}).click()
+  await page.waitForFunction(()=>document.querySelector('.annotation-status').textContent.startsWith('SAM2.1 Small ready'))
+  assert(!await generate.isDisabled());assert.equal(await page.getByRole('alert').count(),0)
+  mode='real';const prediction=page.waitForResponse(r=>r.url().endsWith('/api/sam2/predict'),{timeout:120000})
+  await generate.click();assert.equal((await prediction).status(),200)
+  await page.locator('.annotation-preview').waitFor()
+  assert.equal(await page.locator('.annotation-positive').count(),pointCount);assert.equal((await current()).reviewRevision,0)
+  assert.deepEqual(errors,[])
+  console.log('PASS: readable nested errors, plaintext SANDBOX_STOPPED, preserved points/selection/progress, connection check without reload, successful real SAM2 retry, no page errors.')
+ }finally{for(const c of browser.contexts())for(const p of c.pages())await p.unrouteAll({behavior:'ignoreErrors'}).catch(()=>{});await browser.close()}
+}
+main().catch(e=>{console.error(String(e.stack||e).replace(/([?&]key=)[A-Za-z0-9_-]+/g,'$1[redacted]'));process.exitCode=1})

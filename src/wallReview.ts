@@ -20,8 +20,8 @@ export type WallReview = {
 }
 export type ReviewAction =
   | { type: 'confirm' | 'remove' | 'reset'; id: string }
-  | { type: 'refine'; id: string; hold: PolygonHoldCandidate }
-  | { type: 'add'; hold: PolygonHoldCandidate; replaces?: string }
+  | { type: 'refine'; id: string; hold: PolygonHoldCandidate; coverageFraction?: number }
+  | { type: 'add'; hold: PolygonHoldCandidate; replaces?: string; coverageFraction?: number }
 
 function check(value: unknown, message: string): asserts value { if (!value) throw new Error(message) }
 function object(value: unknown): Record<string, any> { // JSON boundary, validated below.
@@ -85,6 +85,8 @@ export function initializeReview(manifest: unknown, prelabels: unknown, queue: u
 export function applyReview(current: WallReview, action: ReviewAction, reviewer: string, time=new Date().toISOString()): WallReview {
   check(text(reviewer), 'Enter your reviewer name before confirming a decision.')
   const next=structuredClone(current), revision=current.reviewRevision+1
+  const measurement=(value:number|undefined,fallback:number)=>{const fraction=value??fallback;check(finite(fraction)&&fraction>=0&&fraction<=1,'Invalid coverage measurement.');return fraction}
+  const manualReasons=(reasons:string[],fraction:number)=>fraction<.99?[...new Set([...reasons,'manual-confirmation-with-partial-coverage'])]:reasons
   const record=(before: ReviewEntry|null, after: ReviewEntry, name: string) => {
     const index=next.entries.findIndex(e=>e.hold.id===after.hold.id)
     if (index<0) next.entries.push(after); else next.entries[index]=after
@@ -101,23 +103,26 @@ export function applyReview(current: WallReview, action: ReviewAction, reviewer:
       check(old.observed && old.coverageFraction>=.99, 'Unobserved regions cannot be confirmed as removed.')
       record(old,{...old,status:'removed',reviewer:reviewer.trim(),decisionTime:time},'replace-old')
     }
-    record(null,{hold,oldHoldId:old?.oldHoldId??null,status:'new',observed:true,coverageFraction:1,reasonCodes:old?['human-confirmed-replacement']:['human-added'],reviewer:reviewer.trim(),decisionTime:time},old?'replacement':'add')
+    const fraction=measurement(action.coverageFraction,1)
+    record(null,{hold,oldHoldId:old?.oldHoldId??null,status:'new',observed:fraction>0,coverageFraction:fraction,reasonCodes:manualReasons(old?['human-confirmed-replacement']:['human-added'],fraction),reviewer:reviewer.trim(),decisionTime:time},old?'replacement':'add')
   } else {
     check(entry, 'Hold is missing. Reload the workspace.')
-    if (action.type!=='reset') check(entry.observed && entry.coverageFraction>=.99, 'This region lacks observation coverage. Inspect or recapture it; do not approve absence from a gap.')
+    if (action.type==='remove') check(entry.observed && entry.coverageFraction>=.99, 'This region lacks observation coverage. Inspect or recapture it; do not approve absence from a gap.')
     check(entry.status!=='removed' && entry.status!=='dismissed' || action.type==='reset', 'Restore this entry before editing it.')
     let after:ReviewEntry
     if (action.type==='reset') {
       check(!next.entries.some(e=>e.status==='new' && e.oldHoldId===entry.hold.id), 'Undo/dismiss the replacement first, then restore the old hold.')
-      const original=current.history.find(event=>event.id===entry.hold.id)?.before?.hold ?? entry.hold
-      after={...entry,hold:structuredClone(original),status:entry.oldHoldId===entry.hold.id?'inherited-unreviewed':'dismissed',reviewer:reviewer.trim(),decisionTime:time}
+      const originalEntry=current.history.find(event=>event.id===entry.hold.id)?.before
+      const original=originalEntry?.hold ?? entry.hold
+      after={...entry,hold:structuredClone(original),observed:originalEntry?.observed??entry.observed,coverageFraction:originalEntry?.coverageFraction??entry.coverageFraction,reasonCodes:originalEntry?.reasonCodes??entry.reasonCodes,status:entry.oldHoldId===entry.hold.id?'inherited-unreviewed':'dismissed',reviewer:reviewer.trim(),decisionTime:time}
     } else if (action.type==='refine') {
       check(action.hold.id===entry.hold.id,'Refinement must preserve the ID; use Replace for a different hold.')
-      after={...entry,hold:validateHold(action.hold),status:entry.status==='new'?'new':'verified-refined',reviewer:reviewer.trim(),decisionTime:time}
+      const fraction=measurement(action.coverageFraction,entry.coverageFraction)
+      after={...entry,hold:validateHold(action.hold),observed:fraction>0,coverageFraction:fraction,reasonCodes:manualReasons(entry.reasonCodes,fraction),status:entry.status==='new'?'new':'verified-refined',reviewer:reviewer.trim(),decisionTime:time}
     } else if (action.type==='remove') after={...entry,status:entry.oldHoldId===entry.hold.id?'removed':'dismissed',reviewer:reviewer.trim(),decisionTime:time}
     else {
       check(entry.oldHoldId===entry.hold.id && entry.status==='inherited-unreviewed','Only an unedited inherited outline can be confirmed unchanged.')
-      after={...entry,status:'verified-unchanged',reviewer:reviewer.trim(),decisionTime:time}
+      after={...entry,reasonCodes:manualReasons(entry.reasonCodes,entry.coverageFraction),status:'verified-unchanged',reviewer:reviewer.trim(),decisionTime:time}
     }
     record(entry,after,action.type)
   }
@@ -138,9 +143,9 @@ export function validateProgress(value: unknown, baseline: WallReview): WallRevi
     if(event.action==='replace-old') {
       const added=v.history[cursor+1]
       check(added?.action==='replacement' && added.revision===event.revision, 'Replacement must be atomic.')
-      action={type:'add',hold:added.after.hold,replaces:event.id}
-    } else if(event.action==='add') action={type:'add',hold:after.hold}
-    else { check(['confirm','remove','reset','refine'].includes(event.action), 'Unknown review action.'); action=event.action==='refine'?{type:'refine',id:event.id,hold:after.hold}:{type:event.action,id:event.id} }
+      action={type:'add',hold:added.after.hold,replaces:event.id,coverageFraction:added.after.coverageFraction}
+    } else if(event.action==='add') action={type:'add',hold:after.hold,coverageFraction:after.coverageFraction}
+    else { check(['confirm','remove','reset','refine'].includes(event.action), 'Unknown review action.'); action=event.action==='refine'?{type:'refine',id:event.id,hold:after.hold,coverageFraction:after.coverageFraction}:{type:event.action,id:event.id} }
     const next=applyReview(replay,action,event.reviewer,event.time), count=next.history.length-replay.history.length
     check(stable(next.history.slice(-count))===stable(v.history.slice(cursor,cursor+count)), 'Decision history was changed or does not match its geometry.')
     replay=next;cursor+=count

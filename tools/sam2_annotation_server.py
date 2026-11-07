@@ -98,7 +98,7 @@ def prediction_region(prompts, box):
 class Annotator:
     def __init__(self, checkpoint: Path, storage: Path, threads: int, seed: Path | None = None, rescan=None, review_only=False):
         self.rescan = rescan
-        self.image_path = rescan.file('wall_registered.png') if rescan else ROOT / 'public/wall/stoneham-spraywall-canonical.jpg'
+        self.image_path = rescan.file(rescan.image_name) if rescan else ROOT / 'public/wall/stoneham-spraywall-canonical.jpg'
         self.storage = storage
         self.lock = threading.Lock()
         self.model_lock = threading.Lock()
@@ -304,7 +304,7 @@ class Handler(SimpleHTTPRequestHandler):
         if path in ('/api/sam2/crop.jpg', '/api/sam2/image.jpg'):
             if self.annotator.crop_bytes is None:
                 return self.json(503, dict(error='Crop is loading; wait for SAM2 status.'))
-            self.send_response(200); self.send_header('Content-Type', 'image/png' if self.annotator.rescan else 'image/jpeg')
+            self.send_response(200); self.send_header('Content-Type', 'image/png' if self.annotator.image_path.suffix == '.png' else 'image/jpeg')
             self.send_header('Content-Length', str(len(self.annotator.crop_bytes)))
             self.end_headers(); return self.wfile.write(self.annotator.crop_bytes)
         if path.startswith('/api/'):

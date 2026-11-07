@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import sam2Experiment from './data/experiments/top_left_sam2_polygons.json'
-import { polygonCandidates as holds } from './data/polygons'
+import { DEFAULT_WALL_VERSION, wallVersions, findWallVersion, wallVersionUrl } from './wallVersions'
 import { emitSessionEvent, onSessionEvent } from './sessionEvents.ts'
 import { DRAFT_RECOVERY_KEY, readRecoveryDraft, storeRecoveryDraft } from './draftRecovery.ts'
 import { initializeAuth, accountDetails, accessToken, signIn, signOut, authConfigured } from './auth'
@@ -8,11 +8,18 @@ import Profile from './Profile'
 import Community from './Community'
 import PublicProfileLink from './PublicProfileLink'
 import { profileRequest, type UserProfile } from './profile'
-import { createApiProblemStore, createLocalProblemStore, readLocalProblems, ProblemStoreError, STORAGE_KEY } from './problemStore'
+import { createApiProblemStore, readLocalProblems, ProblemStoreError } from './problemStore'
+import { createLocalWallStore, localWallKey } from './localWallStore'
+import { latestWall, routeCompatibility, displayWall, routeFits } from './routeLifecycle'
+import type { UpgradeDraft } from './problemStore'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { HoldRole, Problem, ProblemHold, PolygonHoldCandidate, Point } from './types'
 
-const wallImage = `${import.meta.env.BASE_URL}wall/stoneham-spraywall-canonical.jpg`
+const selectedWall=findWallVersion(new URLSearchParams(window.location.search).get('wallVersion')??DEFAULT_WALL_VERSION)
+  ??findWallVersion(DEFAULT_WALL_VERSION)!
+const holds=latestWall.holds
+const localStorageKey=localWallKey(DEFAULT_WALL_VERSION)
+const recoveryKey=DRAFT_RECOVERY_KEY+':wall:'+DEFAULT_WALL_VERSION
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim() ?? ''
 const browserStorage = {
   getItem: (key: string) => window.localStorage.getItem(key),
@@ -20,15 +27,18 @@ const browserStorage = {
 }
 const validHoldIds = new Set(holds.map((hold) => hold.id))
 const problemStore = apiBaseUrl
-  ? createApiProblemStore(apiBaseUrl, fetch, accessToken)
-  : createLocalProblemStore(browserStorage, validHoldIds)
-const importKey = STORAGE_KEY + ':imported:' + apiBaseUrl
+  ? createApiProblemStore(apiBaseUrl, fetch, accessToken, DEFAULT_WALL_VERSION,true)
+  : createLocalWallStore(browserStorage)
+const importKey = localStorageKey + ':imported:' + apiBaseUrl
 function pendingLocalProblems() {
-  const local = readLocalProblems(browserStorage, validHoldIds)
-  try {
-    const imported = JSON.parse(browserStorage.getItem(importKey) || '{}')
-    return local.filter((problem) => !imported[problem.id])
-  } catch { return local }
+  const allIds=new Set(wallVersions.flatMap(wall=>wall.holds.map(h=>h.id)))
+  const local = wallVersions.flatMap(wall=>readLocalProblems(browserStorage,allIds,localWallKey(wall.id))).map(routeCompatibility)
+  const imported:Record<string,string>={}
+  for(const wall of wallVersions) {
+    try{Object.assign(imported,JSON.parse(browserStorage.getItem(localWallKey(wall.id)+':imported:'+apiBaseUrl)||'{}'))}catch{/* Preserve other versions' import records. */}
+  }
+  const seen=new Set<string>()
+  return local.filter(problem=>{if(imported[problem.id]||seen.has(problem.id))return false;seen.add(problem.id);return true})
 }
 const WALL_WIDTH = 1536
 const WALL_HEIGHT = WALL_WIDTH * 5514 / 7292
@@ -81,7 +91,7 @@ function polygonArea(hold: PolygonHoldCandidate) {
   return Math.abs(sum / 2)
 }
 
-function nearestHold(point: Point) {
+function nearestHold(point: Point,holds:PolygonHoldCandidate[]) {
   const nx = point[0] / WALL_WIDTH
   const ny = point[1] / WALL_HEIGHT
   const containing = holds
@@ -99,6 +109,7 @@ function nearestHold(point: Point) {
 }
 
 function WallViewer({
+  wall,
   mode,
   draft,
   activeProblem,
@@ -108,6 +119,7 @@ function WallViewer({
   showCropFocus,
   highlightedHoldId,
 }: {
+  wall:typeof latestWall
   mode: 'browse' | 'set'
   draft: ProblemHold[]
   activeProblem: Problem | null
@@ -117,6 +129,8 @@ function WallViewer({
   showCropFocus: boolean
   highlightedHoldId: string | null
 }) {
+  const holds=wall.holds
+  const wallImage=`${import.meta.env.BASE_URL}${wall.image}`
   const selectionGradientId = useId()
   const routeMaskId = useId()
   const [motionAllowed, setMotionAllowed] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
@@ -133,7 +147,7 @@ function WallViewer({
 
   const shownHolds = mode === 'set' ? draft : activeProblem?.holds ?? []
   const shownMap = useMemo(() => new Map(shownHolds.map((h) => [h.holdId, h.role])), [shownHolds])
-  const selectedHolds = useMemo(() => holds.filter((hold) => shownMap.has(hold.id)), [shownMap])
+  const selectedHolds = useMemo(() => holds.filter((hold) => shownMap.has(hold.id)), [shownMap,holds])
   const routeHolds = mode === 'browse' ? selectedHolds : []
 
   const fit = () => {
@@ -206,7 +220,7 @@ function WallViewer({
             (e.clientX - rect.left - view.x) / view.scale,
             (e.clientY - rect.top - view.y) / view.scale,
           ]
-          const hold = mode === 'set' ? nearestHold(wallPoint) : undefined
+          const hold = mode === 'set' ? nearestHold(wallPoint,holds) : undefined
           tap.current = { id: e.pointerId, x: e.clientX, y: e.clientY, holdId: hold?.id, moved: false }
         } else if (tap.current) tap.current.moved = true
         e.currentTarget.setPointerCapture(e.pointerId)
@@ -331,6 +345,9 @@ function App() {
   const draftUserId = useRef<string | null>(null)
   const canWrite = !problemStore.shared || Boolean(identity)
   const [mode, setMode] = useState<'browse' | 'set'>('browse')
+  const [viewWall,setViewWall]=useState(selectedWall)
+  const [upgrade,setUpgrade]=useState<UpgradeDraft|null>(null)
+  const [draftNotes,setDraftNotes]=useState<string|undefined>()
   const [problems, setProblems] = useState<Problem[]>([])
   const [nextCursor, setNextCursor] = useState<string | undefined>()
   const [loadingMore, setLoadingMore] = useState(false)
@@ -364,7 +381,7 @@ function App() {
   const [showPolygonLabels, setShowPolygonLabels] = useState(false)
   const [debugDataset, setDebugDataset] = useState<'current' | 'sam2'>('current')
   const experimentHolds = sam2Holds
-  const debugHolds = debugDataset === 'current' ? holds : experimentHolds
+  const debugHolds = debugDataset === 'current' ? viewWall.holds : experimentHolds
 
   useEffect(() => {
     const dialog = routesDialog.current
@@ -374,7 +391,9 @@ function App() {
   }, [routesOpen, mode, showProfile])
 
   const selectProblem = (problem: Problem | null) => {
-    setActiveProblem(problem)
+    const evaluated=problem?routeCompatibility(problem):null
+    setViewWall(evaluated?displayWall(evaluated,selectedWall):selectedWall)
+    setActiveProblem(evaluated)
     shareSequence.current++
     setShareMessage(''); setManualShareLink('')
     const url = new URL(window.location.href)
@@ -387,6 +406,7 @@ function App() {
     if (!activeProblem) return
     const sequence = ++shareSequence.current
     const url = new URL(window.location.pathname, window.location.origin)
+    if(selectedWall.id!==DEFAULT_WALL_VERSION)url.searchParams.set('wallVersion',selectedWall.id)
     url.searchParams.set('route', activeProblem.id)
     setShareMessage(''); setManualShareLink('')
     try {
@@ -400,12 +420,12 @@ function App() {
     }
   }
 
-  const clearRecovery = () => { try { window.sessionStorage.removeItem(DRAFT_RECOVERY_KEY) } catch { /* Browser storage can be unavailable. */ } }
+  const clearRecovery = () => { try { window.sessionStorage.removeItem(recoveryKey) } catch { /* Browser storage can be unavailable. */ } }
   const signInWithRecovery = async () => {
     try {
       if (mode === 'set' && draftUserId.current) storeRecoveryDraft(window.sessionStorage, {
-        userId: draftUserId.current, name, grade, setter, draft, editing,
-      })
+        userId: draftUserId.current, name, grade, setter, draft, editing, upgrade:upgrade??undefined,
+      },recoveryKey)
       await signIn()
     } catch (e) { setAuthError(e instanceof Error ? e.message : 'Could not preserve your draft and sign in. Please retry.') }
   }
@@ -419,6 +439,8 @@ function App() {
       try {
         await initializeAuth()
         if (!current()) return
+        const returnedWall=findWallVersion(new URLSearchParams(window.location.search).get('wallVersion')??DEFAULT_WALL_VERSION)??findWallVersion(DEFAULT_WALL_VERSION)!
+        if(returnedWall.id!==selectedWall.id){window.location.replace(window.location.href);return}
         setInitialRouteId(new URLSearchParams(window.location.search).get('route'))
         const token = await accessToken()
         if (!current()) return
@@ -438,11 +460,11 @@ function App() {
         if (!current()) return
         setEmail(details.email); setProfile(nextProfile); setIdentity(value)
         setNeedsSignIn(false); setAuthError(warning)
-        const recovery = readRecoveryDraft(window.sessionStorage, value.userId, validHoldIds)
+        const recovery = readRecoveryDraft(window.sessionStorage, value.userId, validHoldIds,recoveryKey)
         if (recovery) {
           draftUserId.current = value.userId
           setDraft(recovery.draft); setName(recovery.name); setGrade(recovery.grade); setSetter(recovery.setter)
-          setEditing(recovery.editing); setMode('set'); setConflict(false)
+          setEditing(recovery.editing);setUpgrade(recovery.upgrade??null);setDraftNotes(recovery.editing?.notes??recovery.upgrade?.notes);setViewWall(latestWall); setMode('set'); setConflict(false)
           setProfileNotice('Draft restored. You can save it now.')
         }
         clearRecovery()
@@ -470,7 +492,7 @@ function App() {
     setListError('')
     try {
       const page = await problemStore.list()
-      if (sequence === listSequence.current) { setProblems(page.items); setNextCursor(page.nextCursor) }
+      if (sequence === listSequence.current) { setProblems(page.items.map(routeCompatibility)); setNextCursor(page.nextCursor) }
     } catch (error) {
       if (sequence === listSequence.current) setListError(error instanceof Error ? error.message : 'Could not load problems.')
     } finally {
@@ -493,7 +515,7 @@ function App() {
       if (sequence === listSequence.current) {
         setProblems((previous) => {
           const ids = new Set(previous.map((p) => p.id))
-          return [...previous, ...page.items.filter((p) => { if (ids.has(p.id)) return false; ids.add(p.id); return true })]
+          return [...previous, ...page.items.map(routeCompatibility).filter((p) => { if (ids.has(p.id)) return false; ids.add(p.id); return true })]
         })
         setNextCursor(page.nextCursor)
       }
@@ -517,6 +539,8 @@ function App() {
       selectProblem(fresh)
       setRoutesOpen(false)
       if (edit) {
+        if(routeCompatibility(fresh).outdated)throw new Error('Use Upgrade to create a new route on the latest wall.')
+        setUpgrade(null);setDraftNotes(fresh.notes);setViewWall(latestWall)
         draftUserId.current = identity?.userId ?? null
         setEditing(fresh)
         setDraft(fresh.holds)
@@ -550,6 +574,22 @@ function App() {
     return () => { live = false }
   }, [initialRouteId, linkAttempt])
 
+  const startUpgrade=async(source:Problem)=> {
+    if(!problemStore.getUpgradeDraft)return
+    const sequence=++selectionSequence.current
+    setOpeningId(source.id);setListError('');setStorageError('')
+    try {
+      const seed=await problemStore.getUpgradeDraft(source.id)
+      if(sequence!==selectionSequence.current)return
+      draftUserId.current=identity?.userId??null
+      clearRecovery();setUpgrade(seed);setEditing(null);setDraftNotes(seed.notes)
+      setDraft(seed.holds);setName(seed.name);setGrade(seed.grade);setSetter(seed.setter)
+      setHighlightedHoldId(null);setConflict(false);setRoutesOpen(false);setShowProfile(false)
+      setViewWall(latestWall);setMode('set')
+    }catch(error){if(sequence===selectionSequence.current){setStorageError(error instanceof Error?error.message:'Could not start Upgrade');setProfileNotice(error instanceof Error?error.message:'Could not start Upgrade')}}
+    finally{if(sequence===selectionSequence.current)setOpeningId(null)}
+  }
+
   const startSetting = () => {
     if (!canWrite) { void signInWithRecovery(); return }
     draftUserId.current = identity?.userId ?? null
@@ -561,6 +601,7 @@ function App() {
     setLinkLoading(false); setLinkError('')
     setOpeningId(null)
     setEditing(null)
+    setUpgrade(null);setDraftNotes(undefined);setViewWall(latestWall)
     setConflict(false)
     setDraft([])
     setHighlightedHoldId(null)
@@ -597,14 +638,14 @@ function App() {
     listSequence.current++
     setLoading(false)
     setLoadingMore(false)
-    const input = { name: name.trim(), grade, setter: setter.trim() || 'Anonymous', holds: draft, ...(editing?.notes !== undefined ? { notes: editing.notes } : {}) }
+    const input = { name: name.trim(), grade, setter: setter.trim() || 'Anonymous', holds: draft, ...(draftNotes !== undefined ? { notes: draftNotes } : {}) }
     try {
-      const problem = editing ? await problemStore.update(editing, input) : await problemStore.create(input)
+      const problem = upgrade&&problemStore.upgrade ? await problemStore.upgrade(upgrade,input,name.trim()===upgrade.name) : editing ? await problemStore.update(editing, input) : await problemStore.create(input)
       setProblems((prev) => [problem, ...prev.filter((p) => p.id !== problem.id)])
       clearRecovery()
       selectProblem(problem)
       setHighlightedHoldId(null)
-      setEditing(null)
+      setEditing(null);setUpgrade(null)
       setMode('browse')
     } catch (error) {
       if (error instanceof ProblemStoreError && error.status === 409) {
@@ -631,6 +672,7 @@ function App() {
           skipped.push(problem.name)
           continue
         }
+        if(!routeFits(problem,latestWall)){skipped.push(problem.name+' (old wall only)');continue}
         const { name, grade, setter, holds, notes } = problem
         const saved = await problemStore.create({ name, grade, setter, holds, notes })
         mapping[problem.id] = saved.id
@@ -679,11 +721,12 @@ function App() {
           </div>
         </details>}
       </header>
+      {selectedWall.id!==DEFAULT_WALL_VERSION && <p className="wall-history-notice">Wall history · {selectedWall.label} · <a href={wallVersionUrl(window.location.href,DEFAULT_WALL_VERSION).href}>Back to current wall</a></p>}
       {!showProfile && <nav className="home-actions" aria-label="Wall actions">
         {mode === 'browse' ? <>
           <button className="primary" disabled={busy || (problemStore.shared && !identity && !authConfigured)} onClick={startSetting}>{problemStore.shared && !identity ? (needsSignIn ? 'Sign in again' : 'Login to set') : '＋ Set'}</button>
           <button className="primary" aria-haspopup="dialog" aria-expanded={routesOpen} aria-controls="routes-drawer" onClick={() => setRoutesOpen(true)}>Explore routes <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10" /></svg></button>
-        </> : <button className="ghost small" disabled={busy} onClick={() => { clearRecovery(); setMode('browse'); setHighlightedHoldId(null) }}>Cancel</button>}
+        </> : <button className="ghost small" disabled={busy} onClick={() => { clearRecovery();setUpgrade(null);setViewWall(activeProblem?displayWall(activeProblem,selectedWall):selectedWall); setMode('browse'); setHighlightedHoldId(null) }}>Cancel</button>}
         {mode === 'set' && problemStore.shared && !identity && <button className="primary small" disabled={!authConfigured} onClick={() => void signInWithRecovery()}>{needsSignIn ? 'Sign in again' : 'Login to set'}</button>}
       </nav>}
       {authError && <p role="alert" className="error-message auth-notice">{authError}</p>}
@@ -697,12 +740,13 @@ function App() {
       {linkLoading && <p className="link-notice" role="status">Opening shared route…</p>}
       {linkError && <div className="link-notice" role="alert"><p>{linkError}</p><button className="ghost small" onClick={() => setLinkAttempt((previous) => previous + 1)}>Retry shared route</button><button className="ghost small" onClick={() => { setLinkError(''); selectProblem(null) }}>Dismiss</button></div>}
       <section className="wall-card">
-        <WallViewer mode={mode} draft={draft} activeProblem={activeProblem} onHoldTap={tapHold}
+        <WallViewer key={viewWall.id} wall={viewWall} mode={mode} draft={draft} activeProblem={activeProblem} onHoldTap={tapHold}
           debugPolygons={identity?.isAdmin && showAllPolygons ? debugHolds : []} showPolygonLabels={Boolean(identity?.isAdmin && showPolygonLabels)} showCropFocus={Boolean(identity?.isAdmin && showAllPolygons) && debugDataset === 'sam2'} highlightedHoldId={highlightedHoldId} />
       </section>
 
       {mode === 'set' ? (
         <section className="editor-sheet">
+          {upgrade&&<div className="upgrade-notice"><strong>Upgrade route</strong><p>{upgrade.removedHoldIds.length} unavailable hold{upgrade.removedHoldIds.length===1?'':'s'} left out. Review the remaining holds before saving a new route.</p></div>}
           <fieldset className="editor-fields" aria-label="Problem editor" disabled={busy}>
           <div className="role-row" role="group" aria-label="Hold role">
             {holdRoles.map((role) => (
@@ -736,10 +780,10 @@ function App() {
           </div>
           {!validDraft && <p className="muted">Add a name, at least one Start and one Finish.</p>}
           {storageError && <p className="error-message" role="alert">{storageError}</p>}
-          {conflict && <button className="ghost" onClick={() => { setEditing(null); setConflict(false); setStorageError(''); setName((previous) => previous.slice(0, 112) + ' (copy)') }}>Keep draft as new problem</button>}
+          {conflict && <button className="ghost" onClick={() => { setEditing(null);setUpgrade(null); setConflict(false); setStorageError(''); setName((previous) => previous.slice(0, 112) + ' (copy)') }}>Keep draft as new problem</button>}
           <div className="editor-actions">
             <button className="ghost" onClick={() => { setDraft([]); setHighlightedHoldId(null) }}>Clear</button>
-            <button className="primary" disabled={!validDraft || busy || conflict || !canWrite} onClick={() => void saveProblem()}>{busy ? 'Saving…' : editing ? 'Save changes' : 'Save problem'}</button>
+            <button className="primary" disabled={!validDraft || busy || conflict || !canWrite} onClick={() => void saveProblem()}>{busy ? 'Saving…' : upgrade ? 'Save upgraded route' : editing ? 'Save changes' : 'Save problem'}</button>
           </div>
           </fieldset>
         </section>
@@ -749,10 +793,11 @@ function App() {
           <div className="active-route-heading">
             <div><div className="route-attribution"><span className="muted">{activeProblem.grade} · {activeProblem.setter}</span>
               {problemStore.shared && activeProblem.ownerId && <span className="added-by"><span aria-hidden="true">∆ </span>added by <PublicProfileLink key={activeProblem.id} baseUrl={apiBaseUrl} path={'/v1/problems/' + encodeURIComponent(activeProblem.id) + '/creator-profile'} /></span>}
-            </div><h2>{activeProblem.name}</h2></div>
+            </div><h2>{activeProblem.name}</h2>{activeProblem.outdated&&<p className="route-old-wall">Route only available on old version wall</p>}</div>
             <button className="ghost small" aria-label="Clear selected route" onClick={() => { selectionSequence.current++; selectProblem(null); setLinkError(''); setLinkLoading(false) }}>✕</button>
           </div>
-            {activeProblem && (!problemStore.shared || identity?.isAdmin || (identity && activeProblem.ownerId === identity.userId)) && <button className="ghost small" disabled={busy || openingId !== null} onClick={() => void openProblem(activeProblem, true)}>Edit problem</button>}
+            {activeProblem && !activeProblem.outdated && (!problemStore.shared || identity?.isAdmin || (identity && activeProblem.ownerId === identity.userId)) && <button className="ghost small" disabled={busy || openingId !== null} onClick={() => void openProblem(activeProblem, true)}>Edit problem</button>}
+          {activeProblem.outdated && (!problemStore.shared || identity?.userId===activeProblem.ownerId) && <button className="primary upgrade-route-button" disabled={busy || openingId!==null} onClick={()=>void startUpgrade(activeProblem)}>Upgrade</button>}
           {problemStore.shared && <button className="ghost share-route-button" aria-label="Copy route link" title="Share route" onClick={() => void copyRouteLink()}>
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 10.5 6.8-4m-6.8 7 6.8 4" /></svg>
           </button>}
@@ -796,7 +841,7 @@ function App() {
               {problems.map((problem) => (
                 <button
                   key={problem.id}
-                  className={`problem-card ${activeProblem?.id === problem.id ? 'active' : ''}`}
+                  className={`problem-card ${problem.outdated?'outdated':''} ${activeProblem?.id === problem.id ? 'active' : ''}`}
                   disabled={busy}
                   onClick={() => void openProblem(problem)}
                 >
@@ -816,6 +861,10 @@ function App() {
         </>
       )}
       </>}
+      <footer className="wall-history"><details><summary>Browse wall history</summary><nav aria-label="Wall history">
+        {wallVersions.filter(wall=>wall.id!==DEFAULT_WALL_VERSION).map(wall=><a key={wall.id} href={wallVersionUrl(window.location.href,wall.id).href}>{wall.label}</a>)}
+        {selectedWall.id!==DEFAULT_WALL_VERSION&&<a href={wallVersionUrl(window.location.href,DEFAULT_WALL_VERSION).href}>Current wall</a>}
+      </nav></details></footer>
     </main>
   )
 }

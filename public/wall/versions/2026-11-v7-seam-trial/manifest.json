@@ -1,0 +1,49 @@
+{
+  "format": "stoneham-seam-trial-assets-v1",
+  "wallId": "spray-wall-1",
+  "wallVersionId": "2026-11-v7-seam-trial",
+  "status": "experimental",
+  "publishable": false,
+  "imageSize": [
+    7292,
+    5514
+  ],
+  "assets": {
+    "wall.jpg": {
+      "sha256": "6fb57bee42af9b5b51283d79502968466cf7d25eaf0f5a6a64b3c92c22e4e72b",
+      "bytes": 10978456
+    },
+    "coverage.png": {
+      "sha256": "e67a01071a1b5e225bf577ac4dc63f618f57e9be349ae1a924b53fb4c75cafc0",
+      "bytes": 52016
+    },
+    "source-index.png": {
+      "sha256": "8b8d17b95f84b82d1a22025ee30e76919924cadeefdf5a8708a51e6f564d8581",
+      "bytes": 95089
+    },
+    "uncertainty.png": {
+      "sha256": "8da6d0218b4ae8e45f48fc9d09610963531fc87bdf870e3bcbf6bf30f2abfd39",
+      "bytes": 58126
+    },
+    "preview.jpg": {
+      "sha256": "6924a4adb5a95b9f62bae1f86c08fb437a3d2535d5979903c810cc805a2332b4",
+      "bytes": 1073041
+    },
+    "detail-comparison.jpg": {
+      "sha256": "38af99c90de5166b2ece8f64d6593eb7312264c6e28d8846a296a112d8e8a8ef",
+      "bytes": 433324
+    },
+    "report.json": {
+      "sha256": "714248fed9a19f9f8a866818d6d11fa326a10a25b5e961b078174d87d70b2a36",
+      "bytes": 3157
+    },
+    "recipe.json": {
+      "sha256": "91ac6d38758fca517e235148e615e4a4c587d10d79d455b6a02a001f66e007f5",
+      "bytes": 5183
+    }
+  },
+  "reviewedImageSha256": "d77c50fc3856998546edcb56645d71183f8942294c4c2653154d3d7c6facc396",
+  "reviewedGeometrySha256": "76d98300985e3e1f48767caac6678e695a8688f3c7f09e099ff2d35f0a648077",
+  "coverageUnchanged": true,
+  "note": "Image-only experiment. Completed v6 approvals remain attached to the v6 image; this trial is not wired into the reviewer or production catalog."
+}

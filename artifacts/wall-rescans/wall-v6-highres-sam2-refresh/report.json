@@ -1,0 +1,53 @@
+{
+  "wallVersionId": "2026-11-v6-highres",
+  "referenceVersion": "2026-10-v4",
+  "sourceSessionId": "ef871dc8c75c77aa082dc2e753c9fa6893e17c787b9528271ce0a6174732090a",
+  "imageSize": [
+    7292,
+    5514
+  ],
+  "hashes": {
+    "image": "d77c50fc3856998546edcb56645d71183f8942294c4c2653154d3d7c6facc396",
+    "coverage": "e67a01071a1b5e225bf577ac4dc63f618f57e9be349ae1a924b53fb4c75cafc0",
+    "uncertainty": "d00f507d77e243cdd7007508a660c7fb3ec12e8d1875ec94444f7febc2ea77f6",
+    "oldHolds": "8296a7b5683441bedcea9e1e32dc2d6099bcc9e788200c577869dd87a9ba09fc"
+  },
+  "versionManifestSha256": "02981961bd2c3e71322df1aabe021f41ed1f596b546bb020f590752cba705bc6",
+  "checkpointSha256": "6d1aa6f30de5c92224f8172114de081d104bbd23dd9dc5c58996f0cad5dc4d38",
+  "model": "SAM2.1 Small",
+  "device": "cpu",
+  "cudaAvailable": false,
+  "python": "3.12.14",
+  "torch": "2.5.1+cpu",
+  "opencv": "4.11.0",
+  "numpy": "2.5.4",
+  "seed": 0,
+  "threads": 4,
+  "minScore": 0.75,
+  "oldHoldCount": 677,
+  "promptCount": 651,
+  "masksBeforeDedup": 642,
+  "proposalCount": 640,
+  "recommendations": {
+    "alignment-needs-review": 169,
+    "no-usable-mask": 9,
+    "not-observed": 21,
+    "partial-observation": 5,
+    "possible-change-or-prompt-error": 3,
+    "possible-merge-or-duplicate-prompt": 4,
+    "possible-unchanged": 382,
+    "suggested-refinement": 84
+  },
+  "elapsedSeconds": 202.61,
+  "codeCommit": "de703967a5f5d1d32e6fb2c2ff33d50063b1a940",
+  "scriptSha256": "8cd4b0e35c41eeeed4d275515cdfa4c17e40a61f3f917b408e0fa95180f6b896",
+  "reviewRequired": true,
+  "acceptedHoldCount": 0,
+  "limitations": [
+    "Point and box prompts assume rough old placement, not continued hold identity.",
+    "Reference-filled/partially observed old locations are skipped.",
+    "No automatic removed classification or approval; SAM2 score is not identity evidence.",
+    "No search for entirely new holds away from old prompts in this first pass.",
+    "No automatic publication or old-route migration."
+  ]
+}

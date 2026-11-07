@@ -1,0 +1,98 @@
+{
+  "validator": "src/wallReview.ts:validateHold",
+  "validatorSha256": "ef849bc90182805ef70de87795067d368e1b0d1f65cb13917fade0219e6a1304",
+  "rawResultSha256": "7df83cb112494c276e938a88b9a1d8ba9e5ad593ac7597bf6a674dbca7046585",
+  "rejectedProposalCount": 1,
+  "affectedOldHoldCount": 2,
+  "note": "Invalid contours are excluded; all associated inherited holds remain pending for manual correction.",
+  "rejected": [
+    {
+      "proposal": {
+        "kind": "hold",
+        "center": [
+          0.760675965157849,
+          0.38637765434741933
+        ],
+        "polygon": [
+          [
+            0.757542512342293,
+            0.313746826260428
+          ],
+          [
+            0.743828853538124,
+            0.32027566195139645
+          ],
+          [
+            0.7312122874382886,
+            0.3387740297424737
+          ],
+          [
+            0.7209270433351618,
+            0.36634022488211826
+          ],
+          [
+            0.7168129456939112,
+            0.3995284729778745
+          ],
+          [
+            0.730115194733955,
+            0.4269133115705477
+          ],
+          [
+            0.7639879319802523,
+            0.435981138919115
+          ],
+          [
+            0.8008776741634668,
+            0.4162132752992383
+          ],
+          [
+            0.8117114646187603,
+            0.3868335146898803
+          ],
+          [
+            0.8063631376851343,
+            0.35763511062749365
+          ],
+          [
+            0.7938837081733406,
+            0.3565469713456656
+          ],
+          [
+            0.7889467910038398,
+            0.3670656510700036
+          ],
+          [
+            0.7452002194185409,
+            0.3248095756256801
+          ],
+          [
+            0.7563082830499177,
+            0.314290895901342
+          ],
+          [
+            0.7715304443225453,
+            0.32372143634385203
+          ]
+        ],
+        "evidence": {
+          "modelScore": 0.9803100228309631,
+          "oldMaskIoU": 0.916271344051967,
+          "areaRatio": 1.0836871741702905,
+          "centerDriftPixels": 16.568975354877047,
+          "observedFraction": 1,
+          "uncertaintyFraction": 0
+        },
+        "selectionQuality": 0.8534359408428086,
+        "id": "sam2-v5-99012a2be38148",
+        "oldHoldIds": [
+          "manual-7185dac719d2",
+          "manual-fe6f9e6d46f2"
+        ],
+        "status": "needs-review"
+      },
+      "reason": "Polygon edges cross. Move or undo a vertex."
+    }
+  ],
+  "deliveredProposalCount": 639
+}

@@ -1,0 +1,8 @@
+{
+  "sessionId": "5ed1b0ef65a53acd9128c77ae518ecce921afafc995f953965e64dbea8c2b82d",
+  "publishable": false,
+  "status": "needs-review",
+  "qaFailures": [
+    "existing-parallax-and-partial-photo-coverage-require-review"
+  ]
+}

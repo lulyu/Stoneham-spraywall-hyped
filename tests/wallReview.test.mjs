@@ -44,11 +44,26 @@ test('overlapping replacement survives; old identity is removed and new ID is ma
  assert.equal(reset.entries[1].status,'dismissed');assert.equal(reset.entries[0].status,'inherited-unreviewed')
  assert.deepEqual(validateProgress(reset,baseline()),reset)
 })
-test('coverage gaps cannot become unchanged/refined/removed decisions',()=>{
+test('explicit manual confirmation permits partial coverage and preserves measured evidence/history',()=>{
  for(const fraction of [0,.5,.98]) {
-  for(const type of ['confirm','remove','refine'])assert.throws(()=>decide(baseline(fraction),{type,id:hold.id,hold}),/coverage/)
+  const base=baseline(fraction)
+  for(const type of ['confirm','refine']) {
+   const next=decide(base,{type,id:hold.id,hold,coverageFraction:fraction})
+   assert.equal(next.entries[0].coverageFraction,fraction)
+   assert.equal(next.entries[0].observed,fraction>0)
+   assert(next.entries[0].reasonCodes.includes('manual-confirmation-with-partial-coverage'))
+   assert.deepEqual(validateProgress(next,base),next)
+   const reset=decide(next,{type:'reset',id:hold.id})
+   assert.deepEqual(reset.entries[0].reasonCodes,base.entries[0].reasonCodes)
+  }
+  assert.throws(()=>decide(base,{type:'remove',id:hold.id}),/coverage/)
  }
- assert.equal(baseline(0).entries.length,1)
+ const refined=decide(baseline(0),{type:'refine',id:hold.id,hold,coverageFraction:1})
+ const reset=decide(refined,{type:'reset',id:hold.id});assert.equal(reset.entries[0].coverageFraction,0)
+ assert.deepEqual(validateProgress(reset,baseline(0)),reset)
+ const added=decide(baseline(),{type:'add',hold:{...hold,id:'new-gap'},coverageFraction:0})
+ assert.equal(added.entries.at(-1).observed,false);assert.equal(added.entries.at(-1).coverageFraction,0)
+ assert.deepEqual(validateProgress(added,baseline()),added)
  assert.throws(()=>applyReview(baseline(),{type:'confirm',id:hold.id},''),/reviewer name/)
 })
 test('stale tab, disappeared storage and quota failures never report a successful save',()=>{

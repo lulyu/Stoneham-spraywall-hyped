@@ -72,7 +72,8 @@ individual files is the fallback.
    Overlapping old and replacement geometry is allowed; it is not deduplicated
    against unreviewed/removed old outlines.
 6. **New hold / Clear** followed by drawing or SAM2 creates a separate new hold.
-   There is no score-based bulk approval in review mode.
+   V5 review bundles also support an explicit score-threshold bulk confirmation
+   of eligible SAM2 contours; see [v5 review controls](wall-v5-review-server.md#bulk-confirmation).
 7. **Reset decision** returns inherited geometry to its original unreviewed state;
    a new hold becomes dismissed. For replacement reversal, reset/dismiss the new
    replacement first, then reset the old entry. This avoids two active identities
@@ -81,10 +82,13 @@ individual files is the fallback.
    entries using estimated nearby wall colors. Pending, removed and dismissed
    entries do not disappear into this coverage display.
 
-Inherited gaps remain unreviewed, not removed. Old entries with <99% observation
-coverage cannot be confirmed/refined/removed. New/refined outlines are also checked
-against the loaded coverage mask (native-resolution local raster for ordinary
-holds; capped at 1024px for unusually large regions). Approximate coverage is a
+Inherited gaps start unreviewed. The user can explicitly confirm or refine them
+manually, including outlines in v1-filled areas. New/refined outlines retain
+measured coverage and a manual partial-coverage reason when applicable; masks
+remain unchanged. Removing/replacing old entries and batch confirmation retain
+their existing coverage requirements. Coverage is measured against the loaded
+mask (native-resolution local raster for ordinary holds; capped at 1024px for
+unusually large regions). Approximate coverage is a
 conservative editing aid, not a publication gate. Alignment uncertainty is visible
 and must be inspected manually; this stage does not claim to resolve parallax.
 

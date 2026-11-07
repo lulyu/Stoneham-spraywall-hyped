@@ -24,7 +24,7 @@ async function main(){
   assert.equal(await page.getByRole('button',{name:/Accept all/}).count(),0)
   await page.getByText('Session, reviewer & backups',{exact:true}).click()
   await page.getByRole('textbox',{name:'Reviewer name',exact:true}).fill('Mobile QA')
-  await page.getByRole('button',{name:'Next unreviewed hold',exact:true}).click()
+  await page.getByRole('button',{name:'Next pending hold',exact:true}).click()
   await page.getByRole('button',{name:'Confirm unchanged',exact:true}).click();await revision(1)
   const first=(await state()).entries[0]
   assert.equal(first.status,'verified-unchanged')
@@ -51,7 +51,7 @@ async function main(){
   await page.getByRole('button',{name:'New scan',exact:true}).click()
   // Replacing at exactly the same location preserves both identities and tombstones the old one.
   await page.getByText('Different / moved hold?',{exact:true}).click()
-  await page.getByRole('button',{name:'Confirm replacement with new ID',exact:true}).click();await revision(3)
+  await page.getByRole('button',{name:'Mark replaced',exact:true}).click();await revision(3)
   const replaced=await state();assert.equal(replaced.entries[0].status,'removed')
   const added=replaced.entries.at(-1);assert.equal(added.status,'new');assert.notEqual(added.hold.id,first.hold.id);assert.equal(added.oldHoldId,first.hold.id)
   // Capture a complete checkpoint; it must be usable without trusting its status flags.
@@ -63,9 +63,9 @@ async function main(){
   const other=await context.newPage();await open(other)
   await other.getByText('Session, reviewer & backups',{exact:true}).click()
   await other.getByRole('textbox',{name:'Reviewer name',exact:true}).fill('Second tab')
-  await other.getByRole('button',{name:'Next unreviewed hold',exact:true}).click();await other.getByRole('button',{name:'Confirm unchanged',exact:true}).click()
+  await other.getByRole('button',{name:'Next pending hold',exact:true}).click();await other.getByRole('button',{name:'Confirm unchanged',exact:true}).click()
   await revision(4)
-  await page.getByRole('button',{name:'Next unreviewed hold',exact:true}).click();await page.getByRole('button',{name:'Confirm unchanged',exact:true}).click()
+  await page.getByRole('button',{name:'Next pending hold',exact:true}).click();await page.getByRole('button',{name:'Confirm unchanged',exact:true}).click()
   await page.getByRole('alert').filter({hasText:'Another tab changed'}).waitFor()
   assert.equal((await state()).reviewRevision,4)
   await other.close()
