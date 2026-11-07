@@ -1,3 +1,4 @@
+const {readReviewState,waitForReviewRevision}=require('./review-test-storage.cjs')
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright')
 const fs=require('node:fs'),assert=require('node:assert/strict')
 const base=process.env.APP_URL||'http://127.0.0.1:8791'
@@ -8,7 +9,7 @@ async function main(){
   if(process.env.BROWSER_FETCH_PROXY==='1')await page.route('https://**/*',async r=>{try{await r.fulfill({response:await r.fetch()})}catch{await r.abort('failed').catch(()=>{})}})
   if(process.env.AUTH_KEY_FILE)await page.goto(base+'/auth?key='+encodeURIComponent(fs.readFileSync(process.env.AUTH_KEY_FILE,'utf8').trim()))
   const open=async()=>{await page.goto(base+'/?review=1');await page.getByRole('button',{name:'Open local server scan',exact:true}).click();await page.getByRole('heading',{name:'Review & annotate',exact:true}).waitFor({timeout:90000})}
-  const state=()=>page.evaluate(()=>JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.startsWith('stoneham-wall-review-v1:')))))
+  const state=()=>readReviewState(page)
   await open()
   if(process.env.EXPECTED_VERSION)assert.equal((await state()).session.candidateVersion,process.env.EXPECTED_VERSION)
   const baseState=await state(),gap=baseState.entries.find(e=>e.coverageFraction===0),partial=baseState.entries.find(e=>e.coverageFraction>0&&e.coverageFraction<.99)
@@ -18,13 +19,13 @@ async function main(){
   const select=async id=>{await page.getByRole('combobox',{name:'Saved hold',exact:true}).selectOption(id);await page.getByRole('button',{name:'Edit selected',exact:true}).click()}
   await select(gap.hold.id)
   const confirm=page.getByRole('button',{name:'Confirm',exact:true});assert(!await confirm.isDisabled())
-  await confirm.click();await page.waitForFunction(()=>JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.startsWith('stoneham-wall-review-v1:')))).reviewRevision===1)
+  await confirm.click();await waitForReviewRevision(page,1)
   const saved=(await state()).entries.find(e=>e.hold.id===gap.hold.id)
   assert.equal(saved.status,'verified-refined');assert.equal(saved.coverageFraction,0);assert.equal(saved.observed,false)
   assert(saved.reasonCodes.includes('manual-confirmation-with-partial-coverage'))
   assert.equal(await bulk.innerText(),bulkBefore)
   await select(partial.hold.id);await page.getByRole('button',{name:'Confirm unchanged',exact:true}).click()
-  await page.waitForFunction(()=>JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.startsWith('stoneham-wall-review-v1:')))).reviewRevision===2)
+  await waitForReviewRevision(page,2)
   assert.equal((await state()).entries.find(e=>e.hold.id===partial.hold.id).status,'verified-unchanged')
   assert.equal(await page.getByRole('alert').count(),0)
   await page.getByText('Session, reviewer & backups',{exact:true}).click()

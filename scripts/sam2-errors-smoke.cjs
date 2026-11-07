@@ -1,3 +1,4 @@
+const {readReviewState,waitForReviewRevision}=require('./review-test-storage.cjs')
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright')
 const fs=require('node:fs'),assert=require('node:assert/strict')
 const base=process.env.APP_URL||'http://127.0.0.1:8791'
@@ -16,7 +17,7 @@ async function main(){
   const box=await page.locator('.annotation-preview').boundingBox();assert(box)
   await page.mouse.click(box.x+box.width*.5,box.y+box.height*.5)
   const pointCount=await page.locator('.annotation-positive').count();assert.equal(pointCount,1)
-  const current=()=>page.evaluate(()=>JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.startsWith('stoneham-wall-review-v1:')))))
+  const current=()=>readReviewState(page)
   if(process.env.EXPECTED_VERSION)assert.equal((await current()).session.candidateVersion,process.env.EXPECTED_VERSION)
   await page.waitForFunction(()=>document.querySelector('.annotation-status').textContent.startsWith('SAM2.1 Small ready'))
   let mode='nested'

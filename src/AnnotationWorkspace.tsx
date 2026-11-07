@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Annotator from './Annotator'
-import { applyReview, reviewKey, saveReview, validateProgress, resumeReview } from './wallReview'
+import { applyReview, reviewKey, validateProgress, resumeReview } from './wallReview'
+import { loadStoredReview, saveStoredReview } from './reviewStorage'
 import type { ReviewAction, WallReview } from './wallReview'
 import { loadReviewFiles, loadServerReview } from './wallReviewFiles'
 import type { ReviewAssets } from './wallReviewFiles'
@@ -29,14 +30,7 @@ export default function AnnotationWorkspace() {
       if(id!==loadId.current){next.dispose();return}
       if(!navigator.locks) throw new Error('Safe saving requires Web Locks. Open this tool in a current HTTPS browser.')
       const loaded=next
-      const restored=await navigator.locks.request(reviewKey(loaded.baseline.session),()=>{
-        const raw=localStorage.getItem(reviewKey(loaded.baseline.session))
-        const restored=raw?validateProgress(JSON.parse(raw),loaded.baseline):loaded.initial
-        if(raw && loaded.initial.reviewRevision>0) throw new Error('This folder includes a checkpoint and this browser already has progress. Open the original folder, then use Resume progress explicitly.')
-        // Initialize atomically before showing editable data. A storage failure cannot masquerade as a save.
-        if(!raw)saveReview(localStorage,loaded.baseline,restored)
-        return restored
-      })
+      const restored=await navigator.locks.request(reviewKey(loaded.baseline.session),()=>loadStoredReview(loaded.baseline,loaded.initial))
       if(id!==loadId.current){next.dispose();return}
       active.current?.dispose();active.current=next;setAssets(next);setData(restored);setReviewer(name=>name || restored.history.at(-1)?.reviewer || '');setEpoch(e=>e+1)
     } catch(problem) {next?.dispose();setError(String(problem))}
@@ -59,9 +53,9 @@ export default function AnnotationWorkspace() {
     }
     // Serialize same-origin tabs using a browser lock; the stored state is also compared in saveReview.
     if(!navigator.locks)throw new Error('This browser needs Web Locks for safe saving. Use a current HTTPS browser.')
-    await navigator.locks.request(reviewKey(data.session),()=>{
+    await navigator.locks.request(reviewKey(data.session),async()=>{
       if(generation!==loadId.current)throw new Error('The scan workspace changed. Reopen the correct scan before saving.')
-      saveReview(localStorage,data,next)
+      await saveStoredReview(data,next)
     })
     setData(next)
   }
@@ -72,9 +66,9 @@ export default function AnnotationWorkspace() {
     const generation=loadId.current
     const next=resumeReview(JSON.parse(await file.text()),data,assets.baseline)
     if(!navigator.locks)throw new Error('Use a current HTTPS browser with Web Locks.')
-    await navigator.locks.request(reviewKey(data.session),()=>{
+    await navigator.locks.request(reviewKey(data.session),async()=>{
       if(generation!==loadId.current)throw new Error('The scan workspace changed. Reopen it before resuming progress.')
-      saveReview(localStorage,data,next)
+      await saveStoredReview(data,next)
     });setData(next);setEpoch(e=>e+1)
   }
   return <>

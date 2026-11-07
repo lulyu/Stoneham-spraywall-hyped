@@ -1,3 +1,4 @@
+const {readReviewState,waitForReviewRevision}=require('./review-test-storage.cjs')
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE_PATH || 'playwright')
 const fs = require('node:fs'), assert = require('node:assert/strict')
 const base = process.env.APP_URL || 'http://127.0.0.1:8792'
@@ -14,7 +15,7 @@ async function main() {
       await page.getByRole('button',{name:'Open local server scan',exact:true}).click()
       await page.getByRole('heading',{name:'Review & annotate',exact:true}).waitFor({timeout:90000})
     }
-    const state = () => page.evaluate(() => JSON.parse(localStorage.getItem(Object.keys(localStorage).find(key => key.startsWith('stoneham-wall-review-v1:')))))
+    const state = () => readReviewState(page)
     await page.goto(base+'/?annotate=1&review=1');await open()
     const initial = await state()
     assert.equal(initial.session.candidateVersion,'2026-11-v7-seam-trial')
@@ -29,7 +30,7 @@ async function main() {
     assert.equal(predictions.length,0,'Final recheck must initially preserve the hand-reviewed outline')
     const id = await page.getByRole('combobox',{name:'Saved hold',exact:true}).inputValue()
     await page.getByRole('button',{name:'Confirm',exact:true}).click()
-    await page.waitForFunction(() => JSON.parse(localStorage.getItem(Object.keys(localStorage).find(key => key.startsWith('stoneham-wall-review-v1:')))).reviewRevision===1)
+    await waitForReviewRevision(page,1)
     assert.deepEqual((await state()).entries.find(entry => entry.hold.id===id).hold,snapshot.holds.find(hold => hold.id===id))
     await page.reload();await open();assert.equal((await state()).reviewRevision,1)
     await page.getByText('Session, reviewer & backups',{exact:true}).click()
