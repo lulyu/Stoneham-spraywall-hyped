@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-11-03T08:49:33.769289+00:00",
+  "recordedAt": "2026-11-07T16:24:08.905474+00:00",
   "accountId": "010257981603",
   "region": "us-east-1",
   "manager": "cloudformation",
@@ -9,17 +9,17 @@
   "tableName": "stoneham-spraywall-prod",
   "functionName": "stoneham-spraywall-prod-api",
   "artifactBucket": "stoneham-spraywall-artifacts-artifacts-lyfxingppoxw",
-  "artifactKey": "backend/213b59c5a4128eca5161677b99555ee6cd60c478.zip",
-  "sourceCommit": "213b59c5a4128eca5161677b99555ee6cd60c478",
-  "lambdaCodeSha256": "DsRsQ+ehc/ia8Bp9gnfsgc0eaWn4uTj5ji5fxQR3POs=",
+  "artifactKey": "backend/reviewed-v7-6a995dffce734091.zip",
+  "sourceCommit": "158cd2a84cd0612ec690827389929d7121784ed7",
+  "lambdaCodeSha256": "apld/85zQJGIvnvrzIes2HOj7y6CLEdZaHCC1K4spLo=",
   "stackStatus": "UPDATE_COMPLETE",
   "pointInTimeRecovery": "ENABLED",
   "userPoolId": "us-east-1_fvraMpcpi",
   "userClientId": "537q15f8r1ppgtpucjoa5pad1r",
   "authAuthority": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_fvraMpcpi",
   "authDomain": "https://stoneham-spraywall-prod-010257981603.auth.us-east-1.amazoncognito.com",
-  "frontendCommit": "213b59c5a4128eca5161677b99555ee6cd60c478",
-  "frontendDeploymentId": "dpl_FTZS8232vfnNimM9F9NhwT2VQgXs",
+  "frontendCommit": "158cd2a84cd0612ec690827389929d7121784ed7",
+  "frontendDeploymentId": "dpl_23dJkh6knKRcKDiSWkPfV62ozEsP",
   "authVerification": {
     "anonymousWrites": "401",
     "forgedTokenWrites": "401",
@@ -55,5 +55,22 @@
     "pagination": "125 routes across 3 pages in backend and mobile fixtures; live schema and invalid cursor checks passed",
     "sessionRecovery": "deployed frontend mobile fixtures verified 401 UI invalidation, silent-renew failure and same-account draft restoration",
     "requiredChecks": "not enforced: GitHub 403 for protection settings; private repository plan/admin rights restriction"
+  },
+  "reviewedWallCandidate": {
+    "wallVersionId": "2026-11-v7",
+    "status": "reviewed-candidate",
+    "holdCount": 797,
+    "sourceCheckpointSha256": "f0e9bd4a9c0d58b6460e64e0a05dc0eae35948bcde0e67cd7b0b4569f20052c7",
+    "imageSha256": "6fb57bee42af9b5b51283d79502968466cf7d25eaf0f5a6a64b3c92c22e4e72b",
+    "url": "https://stoneham-spraywall-project.vercel.app/?wallVersion=2026-11-v7",
+    "defaultWallVersionId": "2026-10-v4",
+    "routeMigration": "not-implemented",
+    "apiReads": {
+      "2026-10-v4": 200,
+      "2026-11-v7": 200
+    },
+    "anonymousCandidateWrite": 401,
+    "productionMobileCheck": "passed without route writes",
+    "backendResourceReplacements": false
   }
 }

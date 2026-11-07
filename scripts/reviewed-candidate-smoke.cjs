@@ -5,7 +5,10 @@ async function main(){
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox'],proxy:process.env.BROWSER_PROXY?{server:process.env.BROWSER_PROXY}:undefined})
  try{
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true}),page=await context.newPage(),errors=[]
-  if(process.env.BROWSER_FETCH_PROXY==='1')await context.route('https://**/*',async route=>route.fulfill({response:await route.fetch()}))
+  if(process.env.BROWSER_FETCH_PROXY==='1')await context.route('https://**/*',async route=>{try{await route.fulfill({response:await route.fetch()})}catch{await route.abort('failed').catch(()=>{})}})
+  const writes=[],versionReads=[]
+  page.on('request',request=>{if(request.method()==='POST'&&request.url().includes('/v1/'))writes.push(request.url())})
+  page.on('response',response=>{if(response.request().method()==='GET'&&response.url().includes('/versions/'))versionReads.push({url:response.url(),status:response.status()})})
   page.on('pageerror',e=>errors.push(e.message))
   await page.goto(base)
   assert.equal(await page.getByRole('combobox',{name:'Wall version',exact:true}).inputValue(),'2026-10-v4')
@@ -20,6 +23,9 @@ async function main(){
   await page.keyboard.press('Escape')
   if(process.env.READ_ONLY==='1'){
    assert(await page.getByRole('button',{name:'Login to set',exact:true}).isVisible())
+   assert(!await page.getByRole('button',{name:'Login to set',exact:true}).isDisabled())
+   assert(versionReads.some(r=>r.url.includes('/versions/2026-11-v7/problems')&&r.status===200))
+   assert.deepEqual(writes,[])
   }else{
    await page.getByRole('button',{name:'＋ Set',exact:true}).click()
    assert.equal(await page.locator('.hold-hit-polygon').count(),797)
@@ -43,7 +49,7 @@ async function main(){
   await page.getByRole('button',{name:'Explore routes',exact:true}).click()
   if(process.env.READ_ONLY!=='1')await page.getByText('Original route',{exact:true}).waitFor()
   assert.deepEqual(errors,[])
-  console.log('PASS: version switch, reviewed v7 image, separate route lists/storage, preserved v4 routes, candidate save/reload, 797 polygons and mobile layout.')
- }finally{await browser.close()}
+  console.log(process.env.READ_ONLY==='1'?'PASS: production wall switching, reviewed image, separate candidate API read, login availability and mobile layout; no route writes.':'PASS: version switch, reviewed v7 image, separate route lists/storage, preserved v4 routes, candidate save/reload, 797 polygons and mobile layout.')
+ }finally{for(const context of browser.contexts())await context.unrouteAll({behavior:'ignoreErrors'});await browser.close()}
 }
 main().catch(e=>{console.error(e);process.exitCode=1})

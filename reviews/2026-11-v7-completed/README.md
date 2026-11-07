@@ -34,3 +34,19 @@ and API stores, rejected cross-version updates, backend candidate-only hold
 validation, mobile switching and candidate route save/reload. The backend code
 release only registers the candidate; no data migration or schema change is
 performed.
+
+## Production release
+
+Published from commit `158cd2a84cd0612ec690827389929d7121784ed7` to
+https://stoneham-spraywall-project.vercel.app/?wallVersion=2026-11-v7
+with production deployment `dpl_23dJkh6knKRcKDiSWkPfV62ozEsP` (READY).
+The CloudFormation update completed without replacing resources. Public API
+reads return 200 for both versions, and anonymous candidate writes return 401.
+The old wall still had its three existing routes and the new partition was
+empty at release; no route records were migrated or created during live tests.
+The production mobile test verified version switching, the reviewed image,
+candidate API reads, login availability and responsive layout. Local tests
+also verified creation/reload with 797 selectable polygons and preserved old
+browser routes. `main-site-mobile.png` captures the production candidate page.
+Current deployment identifiers and code hash are recorded in
+`infra/cloudformation/production.json`.
