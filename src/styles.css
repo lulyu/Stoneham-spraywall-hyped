@@ -138,7 +138,8 @@ button:disabled { cursor: default; opacity: .45; }
 .rating-star svg { filter: drop-shadow(0 1px 2px #0004); }
 .comments-list article { border-top: 1px solid #34382e; padding: 12px 0; }
 .comments-list p { white-space: pre-wrap; margin-bottom: 0; }
-.send-history { border-top: 1px solid #34382e; margin-top: 28px; padding-top: 12px; display: grid; gap: 10px; }
+.send-history, .my-routes { border-top: 1px solid #34382e; margin-top: 28px; padding-top: 12px; display: grid; gap: 10px; }
+.my-routes h3, .my-routes > p { margin: 0; }
 
 .load-more { width: 100%; margin-top: 12px; }
 

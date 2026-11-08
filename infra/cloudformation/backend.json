@@ -738,6 +738,25 @@
           "stoneham-api/write"
         ]
       }
+    },
+    "ListOwnedProblemsRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "GET /v1/me/problems",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "JwtAuthorizer"
+        },
+        "AuthorizationScopes": [
+          "stoneham-api/write"
+        ]
+      }
     }
   },
   "Outputs": {

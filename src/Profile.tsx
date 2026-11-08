@@ -1,10 +1,11 @@
 import SendHistory from './SendHistory'
+import MyRoutes from './MyRoutes'
 import { useId, useState } from 'react'
 import { accessToken } from './auth'
 import { profileRequest, type UserProfile } from './profile'
 
-export default function Profile({ baseUrl, initial, email, onSave, onClose, onOpenSend }: {
-  baseUrl: string; initial: UserProfile; email: string
+export default function Profile({ baseUrl, initial, email, userId, onSave, onClose, onOpenSend }: {
+  baseUrl: string; initial: UserProfile; email: string; userId?: string
   onSave: (profile: UserProfile) => void; onClose: () => void; onOpenSend: (id: string) => Promise<void>
 }) {
   const bioId = useId()
@@ -34,6 +35,7 @@ export default function Profile({ baseUrl, initial, email, onSave, onClose, onOp
         <button className="primary" disabled={busy || !displayName.trim()}>{busy ? 'Saving…' : 'Save profile'}</button>
       </fieldset>
     </form>
+    {userId && <MyRoutes key={userId} baseUrl={baseUrl} onOpen={onOpenSend} />}
     <SendHistory baseUrl={baseUrl} onOpen={onOpenSend} />
   </section>
 }

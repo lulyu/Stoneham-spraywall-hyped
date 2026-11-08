@@ -59,6 +59,8 @@ test('publish scans every page, includes foot-only holds, and preserves route id
  assert.deepEqual(outdated.supportedWallVersionIds,['2026-10-v4']);assert.equal(outdated.outdated,true)
  assert.deepEqual(outdated.missingHoldIds,[missing.id]);assert.deepEqual(outdated.holds,[...validHolds,{holdId:missing.id,role:'foot-only'}])
  assert.deepEqual(rows.get('PROBLEM#outdated|COMMENT#1'),comment)
+ assert.equal(rows.get('PROBLEM#valid|OWNER').gsi1pk,'USER#alice#ROUTES')
+ assert.equal(rows.get('PROBLEM#outdated|OWNER').gsi1pk,'USER#alice#ROUTES')
  const all=json(await request('GET','/v1/gyms/stoneham-crg/walls/spray-wall-1/problems')).items
  assert.deepEqual(new Set(all.map(p=>p.id)),new Set(['valid','outdated']))
  const latest=json(await request('GET','/v1/gyms/stoneham-crg/walls/spray-wall-1/versions/2026-11-v7/problems')).items

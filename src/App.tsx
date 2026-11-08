@@ -731,7 +731,7 @@ function App() {
       </nav>}
       {authError && <p role="alert" className="error-message auth-notice">{authError}</p>}
       {profileNotice && <p className="profile-notice" role="status">{profileNotice}</p>}
-      {showProfile && (identity || needsSignIn) ? <Profile baseUrl={apiBaseUrl} initial={profile} email={email}
+      {showProfile && (identity || needsSignIn) ? <Profile baseUrl={apiBaseUrl} initial={profile} email={email} userId={identity?.userId}
         onClose={() => setShowProfile(false)} onOpenSend={async (id) => {
           const problem = await problemStore.get(id)
           setProblems((previous) => [problem, ...previous.filter((p) => p.id !== id)])
