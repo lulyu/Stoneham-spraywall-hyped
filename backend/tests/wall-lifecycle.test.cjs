@@ -90,6 +90,7 @@ test('Upgrade is author-only, seeds surviving holds, creates V2/V3 with new IDs,
  assert.equal(json(one).name,'Original V2');assert.equal(json(two).name,'Original V3')
  assert.notEqual(json(one).id,json(two).id);assert.notEqual(json(one).id,original.id)
  assert.equal(json(one).wallVersionId,'2026-11-v7');assert.equal(json(one).upgradedFromId,original.id)
+ assert.equal(rows.get('PROBLEM#'+json(one).id+'|OWNER').gsi1pk,'USER#alice#ROUTES')
  assert.deepEqual(rows.get('PROBLEM#outdated|META'),original)
  assert.equal(rows.get('PROBLEM#outdated|COMMENT#1').text,'Keep history')
 })

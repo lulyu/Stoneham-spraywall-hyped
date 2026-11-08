@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-11-08T22:09:24.606289+00:00",
+  "recordedAt": "2026-11-08T23:14:29.076773+00:00",
   "accountId": "010257981603",
   "region": "us-east-1",
   "manager": "cloudformation",
@@ -9,17 +9,17 @@
   "tableName": "stoneham-spraywall-prod",
   "functionName": "stoneham-spraywall-prod-api",
   "artifactBucket": "stoneham-spraywall-artifacts-artifacts-lyfxingppoxw",
-  "artifactKey": "backend/creator-name-c378201640d52f19.zip",
-  "sourceCommit": "2d502cdb1de76f0f9ee705e36a38790aae0cb42e",
-  "lambdaCodeSha256": "w3ggFkDVLxlK4pvbDGjRk9g5NyZbLB/QhmLVPFsdda8=",
+  "artifactKey": "backend/my-routes-2072115c8c17bede.zip",
+  "sourceCommit": "245c8c82a607c34aa634bd7496b0ca24eafe0ee0",
+  "lambdaCodeSha256": "IHIRXIwXvt7Tz0AchmR68/CsRG41nFVWPDzt8x8s+HU=",
   "stackStatus": "UPDATE_COMPLETE",
   "pointInTimeRecovery": "ENABLED",
   "userPoolId": "us-east-1_fvraMpcpi",
   "userClientId": "537q15f8r1ppgtpucjoa5pad1r",
   "authAuthority": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_fvraMpcpi",
   "authDomain": "https://stoneham-spraywall-prod-010257981603.auth.us-east-1.amazoncognito.com",
-  "frontendCommit": "42908cc8bf6c9cd0e0cfc9e02be9879716e103a5",
-  "frontendDeploymentId": "dpl_HSyFSVknuTtZQ94wxh69PZuN3RFb",
+  "frontendCommit": "245c8c82a607c34aa634bd7496b0ca24eafe0ee0",
+  "frontendDeploymentId": "dpl_F5HsKpi1W5rvjkPiNRNvCib3FY5w",
   "authVerification": {
     "anonymousWrites": "401",
     "forgedTokenWrites": "401",
@@ -98,5 +98,22 @@
     "customNamesAndConcurrentEdits": "protected by conditional update and regression tests",
     "routeContent": "unchanged",
     "cloudFormationResourceReplacements": false
+  },
+  "profileRoutesVerification": {
+    "pageSize": 5,
+    "sort": "createdAt descending",
+    "backfill": {
+      "processed": 7,
+      "changedCompatibilityOrContent": 0,
+      "conflicts": 0
+    },
+    "verifiedCreatorAccounts": 1,
+    "verifiedCreatorRoutes": 5,
+    "allCanonicalRoutes": "all 7 unchanged after index backfill",
+    "anonymousMyRoutes": "401",
+    "backendPagination": "5/5/2; account-bound cursor and exact creator ownership verified",
+    "browserFixture": "5/5/2, failure retries, account isolation, current/historical route opening, mobile widths",
+    "newIAMActions": [],
+    "resourceReplacements": false
   }
 }
