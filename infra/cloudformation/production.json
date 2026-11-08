@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-11-07T18:09:22.239619+00:00",
+  "recordedAt": "2026-11-08T22:09:24.606289+00:00",
   "accountId": "010257981603",
   "region": "us-east-1",
   "manager": "cloudformation",
@@ -9,17 +9,17 @@
   "tableName": "stoneham-spraywall-prod",
   "functionName": "stoneham-spraywall-prod-api",
   "artifactBucket": "stoneham-spraywall-artifacts-artifacts-lyfxingppoxw",
-  "artifactKey": "backend/wall-lifecycle-54b0580266b5bf7e.zip",
-  "sourceCommit": "a216fa995dec90d00bf043680ea45c851917f01f",
-  "lambdaCodeSha256": "VLBYAma1v37aFU8IbP0GfJTaWB6EEzR5ADJRo+h1ako=",
+  "artifactKey": "backend/creator-name-c378201640d52f19.zip",
+  "sourceCommit": "2d502cdb1de76f0f9ee705e36a38790aae0cb42e",
+  "lambdaCodeSha256": "w3ggFkDVLxlK4pvbDGjRk9g5NyZbLB/QhmLVPFsdda8=",
   "stackStatus": "UPDATE_COMPLETE",
   "pointInTimeRecovery": "ENABLED",
   "userPoolId": "us-east-1_fvraMpcpi",
   "userClientId": "537q15f8r1ppgtpucjoa5pad1r",
   "authAuthority": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_fvraMpcpi",
   "authDomain": "https://stoneham-spraywall-prod-010257981603.auth.us-east-1.amazoncognito.com",
-  "frontendCommit": "a216fa995dec90d00bf043680ea45c851917f01f",
-  "frontendDeploymentId": "dpl_GczLBuN6H177QfBEVP5QM6aAtipK",
+  "frontendCommit": "42908cc8bf6c9cd0e0cfc9e02be9879716e103a5",
+  "frontendDeploymentId": "dpl_HSyFSVknuTtZQ94wxh69PZuN3RFb",
   "authVerification": {
     "anonymousWrites": "401",
     "forgedTokenWrites": "401",
@@ -89,5 +89,14 @@
     "anonymousUpgradeAndPublication": "401",
     "productionReadOnlyCheck": "passed: latest image, all 3 real routes, history navigation and no version dropdown",
     "productionUpgradeUITest": "passed with isolated authenticated API fixtures: author-only, mapped holds, V2/V3, source untouched, missing Start validation and mobile layout"
+  },
+  "creatorNameVerification": {
+    "checkedCreatorOwnedRoutes": 5,
+    "exactAccountNames": "all matched their creator subject, persisted and returned through public API",
+    "mobileUI": "creator link and public profile dialog matched API",
+    "publicFields": "displayName and bio only; no email or account usernames",
+    "customNamesAndConcurrentEdits": "protected by conditional update and regression tests",
+    "routeContent": "unchanged",
+    "cloudFormationResourceReplacements": false
   }
 }
