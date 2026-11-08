@@ -18,3 +18,13 @@ test('publication exposes upgrade/publish behind verified JWTs and scopes migrat
   const walls=JSON.parse(readFileSync('backend/walls.json'))
   assert.deepEqual(walls.filter(w=>w.active).map(w=>w.wallVersionId),['2026-11-v7'])
 })
+
+test('creator-name lookup is scoped to the configured Cognito user pool',()=>{
+  const {Resources}=JSON.parse(readFileSync('infra/cloudformation/backend.json'))
+  assert.deepEqual(Resources.Function.Properties.Environment.Variables.COGNITO_USER_POOL_ID,{Ref:'UserPool'})
+  const statements=Resources.Role.Properties.Policies.flatMap(policy=>policy.PolicyDocument.Statement)
+  const accounts=statements.filter(statement=>statement.Action.some(action=>action.startsWith('cognito-idp:')))
+  assert.equal(accounts.length,1)
+  assert.deepEqual(accounts[0].Action,['cognito-idp:ListUsers'])
+  assert.deepEqual(accounts[0].Resource,{'Fn::GetAtt':['UserPool','Arn']})
+})

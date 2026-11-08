@@ -3,6 +3,7 @@ import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, QueryCom
 import type { Problem, UserProfile, ProblemItem, UpdateProblemInput } from './model'
 import { ApiError, latestWall } from './walls'
 import { compatibility, upgradeName } from './wallLifecycle'
+import { accountDisplayName } from './accountName'
 
 export const tableName = process.env.DYNAMODB_TABLE
 if (!tableName) throw new Error('DYNAMODB_TABLE is required')
@@ -193,7 +194,26 @@ const publicProfile = (item: Record<string, unknown> = {}): UserProfile => ({
 })
 export async function getProfile(userId: string): Promise<UserProfile> {
   const result = await client.send(new GetCommand({ TableName: tableName, Key: profileKey(userId), ConsistentRead: true }))
-  return publicProfile(result.Item)
+  const profile = publicProfile(result.Item)
+  if (profile.displayName) return profile
+  const name = await accountDisplayName(userId)
+  if (!name) return profile
+  try {
+    const initialized = await client.send(new UpdateCommand({
+      TableName: tableName, Key: profileKey(userId),
+      ConditionExpression: 'attribute_not_exists(#name) OR #name = :empty',
+      UpdateExpression: 'SET #name = :name, #entity = :entity, #updated = :updated',
+      ExpressionAttributeNames: { '#name': 'displayName', '#entity': 'entityType', '#updated': 'updatedAt' },
+      ExpressionAttributeValues: { ':name': name, ':empty': '', ':entity': 'profile', ':updated': new Date().toISOString() },
+      ReturnValues: 'ALL_NEW',
+    }))
+    return publicProfile(initialized.Attributes)
+  } catch (error) {
+    if ((error as { name?: string }).name !== 'ConditionalCheckFailedException') throw error
+    // A concurrent profile edit wins over the account's initial display name.
+    const latest = await client.send(new GetCommand({ TableName: tableName, Key: profileKey(userId), ConsistentRead: true }))
+    return publicProfile(latest.Item)
+  }
 }
 export async function updateProfile(userId: string, patch: Partial<UserProfile>): Promise<UserProfile> {
   const names: Record<string, string> = { '#entity': 'entityType', '#updated': 'updatedAt' }
