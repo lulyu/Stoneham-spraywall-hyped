@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs'
 
 test('publication exposes upgrade/publish behind verified JWTs and scopes migration access to the existing table',()=>{
   const template=JSON.parse(readFileSync('infra/cloudformation/backend.json'))
-  for(const name of ['UpgradeDraftRoute','UpgradeSaveRoute','PublishWallRoute']) {
+  for(const name of ['UpgradeDraftRoute','UpgradeSaveRoute','PublishWallRoute','ListOwnedProblemsRoute']) {
     const p=template.Resources[name].Properties
     assert.equal(p.AuthorizationType,'JWT');assert.deepEqual(p.AuthorizerId,{Ref:'JwtAuthorizer'})
     assert.deepEqual(p.AuthorizationScopes,['stoneham-api/write'])

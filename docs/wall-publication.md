@@ -54,6 +54,9 @@ stays at `PROBLEM#id / META`. Transactions save that item together with:
 - `PROBLEM#id / COMPAT#version`: compatibility pointers for supported versions
   other than the creation version. The original META item retains its old
   version index, so no route data is duplicated.
+- `PROBLEM#id / OWNER`: creator directory pointer, indexed under
+  `USER#ownerId#ROUTES` for the profile's five-item newest-first list. The same
+  publication sweep backfills this pointer on existing creator-owned routes.
 
 Directory/compatibility queries hydrate the canonical META record. Old pointers
 can remain after an edit, but the reader checks current compatibility before

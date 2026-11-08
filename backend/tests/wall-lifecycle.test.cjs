@@ -59,6 +59,8 @@ test('publish scans every page, includes foot-only holds, and preserves route id
  assert.deepEqual(outdated.supportedWallVersionIds,['2026-10-v4']);assert.equal(outdated.outdated,true)
  assert.deepEqual(outdated.missingHoldIds,[missing.id]);assert.deepEqual(outdated.holds,[...validHolds,{holdId:missing.id,role:'foot-only'}])
  assert.deepEqual(rows.get('PROBLEM#outdated|COMMENT#1'),comment)
+ assert.equal(rows.get('PROBLEM#valid|OWNER').gsi1pk,'USER#alice#ROUTES')
+ assert.equal(rows.get('PROBLEM#outdated|OWNER').gsi1pk,'USER#alice#ROUTES')
  const all=json(await request('GET','/v1/gyms/stoneham-crg/walls/spray-wall-1/problems')).items
  assert.deepEqual(new Set(all.map(p=>p.id)),new Set(['valid','outdated']))
  const latest=json(await request('GET','/v1/gyms/stoneham-crg/walls/spray-wall-1/versions/2026-11-v7/problems')).items
@@ -88,6 +90,7 @@ test('Upgrade is author-only, seeds surviving holds, creates V2/V3 with new IDs,
  assert.equal(json(one).name,'Original V2');assert.equal(json(two).name,'Original V3')
  assert.notEqual(json(one).id,json(two).id);assert.notEqual(json(one).id,original.id)
  assert.equal(json(one).wallVersionId,'2026-11-v7');assert.equal(json(one).upgradedFromId,original.id)
+ assert.equal(rows.get('PROBLEM#'+json(one).id+'|OWNER').gsi1pk,'USER#alice#ROUTES')
  assert.deepEqual(rows.get('PROBLEM#outdated|META'),original)
  assert.equal(rows.get('PROBLEM#outdated|COMMENT#1').text,'Keep history')
 })

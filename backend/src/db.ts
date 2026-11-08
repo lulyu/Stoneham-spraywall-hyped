@@ -38,6 +38,7 @@ function problemWrites(problem:Problem, condition:Record<string,unknown>) {
   return [
     {Put:{TableName:tableName,Item:item,...condition}},
     {Put:{TableName:tableName,Item:{...pointer,sk:'LIST',gsi1pk:wallPk(problem.gymId,problem.wallId)+'#ALL'}}},
+    ...(problem.ownerId?[{Put:{TableName:tableName,Item:{...pointer,sk:'OWNER',gsi1pk:`USER#${problem.ownerId}#ROUTES`}}}]:[]),
     ...(problem.supportedWallVersionIds??[]).filter(version=>version!==problem.wallVersionId).map(version=>({Put:{TableName:tableName,
       Item:{...pointer,sk:'COMPAT#'+version,gsi1pk:wallVersionPk(problem.gymId,problem.wallId,version)}}})),
   ]
@@ -97,6 +98,32 @@ export async function listProblems(gymId:string,wallId:string,wallVersionId:stri
     // Stale compatibility pointers are harmless: hydrate and verify current metadata.
     return !wallVersionId||(p.supportedWallVersionIds?p.supportedWallVersionIds.includes(wallVersionId):p.wallVersionId===wallVersionId)
   }),...(response.LastEvaluatedKey?{nextCursor:Buffer.from(JSON.stringify(response.LastEvaluatedKey)).toString('base64url')}:{})}
+}
+
+export async function listOwnedProblems(userId: string, cursor?: string): Promise<{items: Problem[]; nextCursor?: string}> {
+  const partition = `USER#${userId}#ROUTES`
+  let after: Record<string, string> | undefined
+  if (cursor) {
+    try {
+      if (cursor.length > 4096) throw new Error()
+      const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'))
+      if (!parsed || Object.keys(parsed).length !== 4 ||
+        !['pk','sk','gsi1pk','gsi1sk'].every(key => typeof parsed[key] === 'string') ||
+        parsed.gsi1pk !== partition || parsed.sk !== 'OWNER' ||
+        !parsed.pk.startsWith('PROBLEM#') || !parsed.gsi1sk.startsWith('PROBLEM#')) throw new Error()
+      after = parsed
+    } catch { throw new ApiError(400, 'invalid creator route cursor') }
+  }
+  const result = await client.send(new QueryCommand({
+    TableName: tableName, IndexName: 'gsi1', KeyConditionExpression: 'gsi1pk = :pk',
+    ExpressionAttributeValues: { ':pk': partition }, ScanIndexForward: false,
+    Limit: 5, ExclusiveStartKey: after,
+  }))
+  const records = await Promise.all((result.Items ?? []).map(item => getProblem(item.problemId)))
+  return {
+    items: records.filter((record): record is Problem => Boolean(record) && record!.ownerId === userId),
+    ...(result.LastEvaluatedKey ? {nextCursor: Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64url')} : {}),
+  }
 }
 
 export async function updateProblem(existing: Problem, patch: UpdateProblemInput): Promise<Problem> {

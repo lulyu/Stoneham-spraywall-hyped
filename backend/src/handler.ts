@@ -2,7 +2,7 @@ import { logSend, listSends, rate, addComment, community, myActivity, changeComm
 import { requireIdentity, requireEditor } from './auth'
 import { randomUUID } from 'node:crypto'
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda'
-import { createProblem, getProfile, updateProfile, listProblems, requireProblem, updateProblem, upgradeDraft, createUpgrade, migrateWallPage } from './db'
+import { createProblem, getProfile, updateProfile, listProblems, listOwnedProblems, requireProblem, updateProblem, upgradeDraft, createUpgrade, migrateWallPage } from './db'
 import type { Problem } from './model'
 import { parseProfile, parseCreateProblem, parseUpdateProblem } from './validation'
 import { ApiError, requireWallVersion, latestWall } from './walls'
@@ -60,6 +60,11 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
     if (path === '/v1/me/sends') {
       const identity = requireIdentity(event)
       if (method === 'GET') return response(200, await listSends(identity.userId, event.queryStringParameters?.cursor))
+      return response(405, { error: 'method not allowed', requestId })
+    }
+    if (path === '/v1/me/problems') {
+      const identity = requireIdentity(event)
+      if (method === 'GET') return response(200, await listOwnedProblems(identity.userId, event.queryStringParameters?.cursor))
       return response(405, { error: 'method not allowed', requestId })
     }
     const creatorProfilePath = pathMatch(path, /^\/v1\/problems\/([^/]+)\/creator-profile$/)
