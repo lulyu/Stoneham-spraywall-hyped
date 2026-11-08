@@ -1,5 +1,26 @@
 # Cognito authentication layer
 
+Creator attribution resolves the route's `ownerId` (the verified Cognito subject),
+independently of its editable Setter field. When that account has no saved public
+display name, profile reads look up the exact subject in the configured user pool
+and initialize the public name from its Google-mapped `name`, limited to 60
+characters. This also repairs existing route/comment profiles on first read.
+The conditional write only fills missing/empty names, retains the bio and yields
+to concurrent manual profile edits. Email and federated usernames are never
+copied into public profiles. Unknown/deleted accounts keep the existing fallback;
+legacy routes without an owner are not assigned to a guessed creator.
+
+The Lambda's additional permission is `cognito-idp:ListUsers` on this stack's
+user-pool ARN only. Its SDK action analysis can be reproduced with:
+
+```sh
+DISABLE_IAM_POLICY_AUTOPILOT_TELEMETRY=true uvx iam-policy-autopilot@latest generate-policies \
+  /workspace/Stoneham-spraywall-project/backend/src/accountName.ts \
+  /workspace/Stoneham-spraywall-project/backend/src/db.ts \
+  /workspace/Stoneham-spraywall-project/backend/src/community.ts \
+  --region us-east-1 --account 010257981603 --service-hints cognito-idp dynamodb --pretty
+```
+
 The Cognito layer is deployed to production. Google OAuth configuration was read
 by CloudFormation from Secrets Manager through a dynamic reference. No OAuth
 secret is stored in the repository or Vite environment.

@@ -150,6 +150,18 @@
                       "Arn"
                     ]
                   }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "cognito-idp:ListUsers"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "UserPool",
+                      "Arn"
+                    ]
+                  }
                 }
               ]
             }
@@ -187,7 +199,10 @@
             "DYNAMODB_TABLE": {
               "Ref": "Table"
             },
-            "APP_ENV": "prod"
+            "APP_ENV": "prod",
+            "COGNITO_USER_POOL_ID": {
+              "Ref": "UserPool"
+            }
           }
         }
       }
