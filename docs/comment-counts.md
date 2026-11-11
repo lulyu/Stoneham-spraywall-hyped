@@ -15,11 +15,19 @@ using consistent `Select: COUNT` queries and following every pagination key.
 Deleted records are excluded, including pages containing only tombstones. Totals
 are independent of the 20-comment display page and of the eventually consistent
 comment-list index. List enrichment runs at most eight count queries concurrently.
-The browser makes no per-card community requests. Counts are derived reads, so
+When server totals are present, the browser makes no per-card community requests.
+For older deployments without totals, badges load independently through all public
+comment pages, deduplicating IDs with at most four requests in flight. A failed
+count leaves its badge unavailable without blocking route browsing. Confirmed
+legacy add/delete replies adjust the known total once, including retries. Counts
+from the legacy comment index are eventually consistent; Refresh reloads them.
+This compatibility path lets the frontend ship independently of the backend.
+Counts are derived reads, so
 there are no stored counters, migration/backfill, or extra IAM actions.
 
 Backend regressions cover counts beyond a display page, empty filtered pages,
 soft deletion, duplicate create/delete retries, edits, and unchanged route META.
 `scripts/comment-counts-smoke.cjs` verifies badges, zero hiding, comment pagination,
 failure/retry behavior, immediate list updates and 320–980px layouts with isolated
-API fixtures. It does not write production data.
+API fixtures in both server-total and LEGACY_COMMENT_API=1 modes. It does not
+write production data.

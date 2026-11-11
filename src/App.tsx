@@ -6,6 +6,7 @@ import { DRAFT_RECOVERY_KEY, readRecoveryDraft, storeRecoveryDraft } from './dra
 import { initializeAuth, accountDetails, accessToken, signIn, signOut, authConfigured } from './auth'
 import Profile from './Profile'
 import Community from './Community'
+import { withMissingCommentCounts } from './commentCounts'
 import PublicProfileLink from './PublicProfileLink'
 import { profileRequest, type UserProfile } from './profile'
 import { createApiProblemStore, readLocalProblems, ProblemStoreError } from './problemStore'
@@ -382,6 +383,23 @@ function App() {
   const mutation = useRef(false)
   const listSequence = useRef(0)
   const selectionSequence = useRef(0)
+  const loadLegacyCommentCounts = (items: Problem[], sequence: number) => {
+    if (!problemStore.shared || !items.some(problem => problem.commentCount === undefined)) return
+    void withMissingCommentCounts(apiBaseUrl, items).then(enriched => {
+      if (sequence !== listSequence.current) return
+      const counts = new Map(enriched.filter(problem => problem.commentCount !== undefined).map(problem => [problem.id, problem.commentCount!]))
+      setProblems(previous => {
+        let changed = false
+        const next = previous.map(problem => {
+          const commentCount = counts.get(problem.id)
+          if (problem.commentCount !== undefined || commentCount === undefined) return problem
+          changed = true
+          return {...problem, commentCount}
+        })
+        return changed ? next : previous
+      })
+    })
+  }
   const [showAllPolygons, setShowAllPolygons] = useState(false)
   const [showPolygonLabels, setShowPolygonLabels] = useState(false)
   const [debugDataset, setDebugDataset] = useState<'current' | 'sam2'>('current')
@@ -497,7 +515,7 @@ function App() {
     setListError('')
     try {
       const page = await problemStore.list()
-      if (sequence === listSequence.current) { setProblems(page.items.map(routeCompatibility)); setNextCursor(page.nextCursor) }
+      if (sequence === listSequence.current) { setProblems(page.items.map(routeCompatibility)); setNextCursor(page.nextCursor); loadLegacyCommentCounts(page.items, sequence) }
     } catch (error) {
       if (sequence === listSequence.current) setListError(error instanceof Error ? error.message : 'Could not load problems.')
     } finally {
@@ -523,6 +541,7 @@ function App() {
           return [...previous, ...page.items.map(routeCompatibility).filter((p) => { if (ids.has(p.id)) return false; ids.add(p.id); return true })]
         })
         setNextCursor(page.nextCursor)
+        loadLegacyCommentCounts(page.items, sequence)
       }
     } catch (e) {
       if (sequence === listSequence.current) setListError(e instanceof Error ? e.message : 'Could not load more routes.')
@@ -540,7 +559,7 @@ function App() {
     try {
       const fresh = await problemStore.get(problem.id)
       if (sequence !== selectionSequence.current) return
-      setProblems((prev) => prev.map((item) => item.id === fresh.id ? fresh : item))
+      setProblems((prev) => prev.map((item) => item.id === fresh.id ? {...fresh, commentCount: fresh.commentCount ?? item.commentCount} : item))
       selectProblem(fresh)
       setRoutesOpen(false)
       if (edit) {
