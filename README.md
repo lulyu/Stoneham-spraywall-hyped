@@ -11,7 +11,8 @@ A mobile-first route-setting app for the Stoneham CRG spray wall.
 - Sign in with Google to save shared routes, edit your routes, and log sends,
   enjoyment ratings, and comments. Browsing does not require sign-in.
 - Explore all routes on the latest wall. Outdated routes remain clickable and
-  open on a compatible historical wall, with an old-wall notice.
+  open on a compatible historical wall, with an old-wall notice. Routes with
+  comments show a comment icon and total beside their name.
 - Upgrade your outdated route into a new draft with the surviving holds and a
   suggested V2/V3 name. Saving creates a new route; the original and its activity
   stay intact.

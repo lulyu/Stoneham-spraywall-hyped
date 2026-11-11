@@ -12,6 +12,7 @@ let queries = 0
 sdk.DynamoDBDocumentClient.from = () => ({ send: async command => {
  const p = command.input
  assert.equal(command.constructor.name,'QueryCommand')
+ if(p.Select==='COUNT')return {Count:0}
  queries++
  const start = p.ExclusiveStartKey ? rows.findIndex(r => r.pk===p.ExclusiveStartKey.pk)+1 : 0
  const items = rows.slice(start,start+p.Limit), last = items.at(-1)

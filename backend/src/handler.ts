@@ -2,7 +2,7 @@ import { logSend, listSends, rate, addComment, community, myActivity, changeComm
 import { requireIdentity, requireEditor } from './auth'
 import { randomUUID } from 'node:crypto'
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda'
-import { createProblem, getProfile, updateProfile, listProblems, listOwnedProblems, requireProblem, updateProblem, upgradeDraft, createUpgrade, migrateWallPage } from './db'
+import { createProblem, getProfile, updateProfile, listProblems, listOwnedProblems, requireProblem, updateProblem, upgradeDraft, createUpgrade, migrateWallPage, getCommentCount, withCommentCounts } from './db'
 import type { Problem } from './model'
 import { parseProfile, parseCreateProblem, parseUpdateProblem } from './validation'
 import { ApiError, requireWallVersion, latestWall } from './walls'
@@ -118,7 +118,8 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
     if(allProblemsPath) {
       if(method!=='GET')return response(405,{error:'method not allowed'})
       latestWall(allProblemsPath[0],allProblemsPath[1])
-      return response(200,await listProblems(allProblemsPath[0],allProblemsPath[1],undefined,event.queryStringParameters?.cursor))
+      const page = await listProblems(allProblemsPath[0],allProblemsPath[1],undefined,event.queryStringParameters?.cursor)
+      return response(200, {...page, items: await withCommentCounts(page.items)})
     }
     const upgradePath=pathMatch(path,/^\/v1\/problems\/([^/]+)\/upgrade$/)
     if(upgradePath) {
@@ -143,7 +144,8 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
       const wall = requireWallVersion(gymId, wallId, wallVersionId)
 
       if (method === 'GET') {
-        return response(200, await listProblems(gymId, wallId, wallVersionId, event.queryStringParameters?.cursor))
+        const page = await listProblems(gymId, wallId, wallVersionId, event.queryStringParameters?.cursor)
+        return response(200, {...page, items: await withCommentCounts(page.items)})
       }
       if (method === 'POST') {
         const identity = requireIdentity(event)
@@ -168,7 +170,7 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
     const problemPath = pathMatch(path, /^\/v1\/problems\/([^/]+)$/)
     if (problemPath) {
       const [problemId] = problemPath
-      if (method === 'GET') return response(200, await requireProblem(problemId))
+      if (method === 'GET') return response(200, {...await requireProblem(problemId), commentCount: await getCommentCount(problemId)})
       if (method === 'PATCH') {
         const identity = requireIdentity(event)
         const existing = await requireProblem(problemId)

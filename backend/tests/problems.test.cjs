@@ -12,7 +12,7 @@ sdk.DynamoDBDocumentClient.from = () => ({
     const input = command.input
     switch (command.constructor.name) {
       case 'GetCommand': return { Item: item }
-      case 'QueryCommand': return { Items: item ? [item] : [] }
+      case 'QueryCommand': return input.Select==='COUNT'?{Count:0}:{ Items: item ? [item] : [] }
       case 'TransactWriteCommand': {
         const primary=input.TransactItems.find(action=>action.Put?.Item?.sk==='META').Put
         writes.push(primary)

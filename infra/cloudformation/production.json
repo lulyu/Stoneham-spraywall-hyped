@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-11-08T23:14:29.076773+00:00",
+  "recordedAt": "2026-11-11T15:36:59.870Z",
   "accountId": "010257981603",
   "region": "us-east-1",
   "manager": "cloudformation",
@@ -18,8 +18,8 @@
   "userClientId": "537q15f8r1ppgtpucjoa5pad1r",
   "authAuthority": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_fvraMpcpi",
   "authDomain": "https://stoneham-spraywall-prod-010257981603.auth.us-east-1.amazoncognito.com",
-  "frontendCommit": "245c8c82a607c34aa634bd7496b0ca24eafe0ee0",
-  "frontendDeploymentId": "dpl_F5HsKpi1W5rvjkPiNRNvCib3FY5w",
+  "frontendCommit": "7930ca0f16395f8753b94f4f9bf5a23a0a48b273",
+  "frontendDeploymentId": "dpl_7bGFQ5pgAPunYK1MYjrY6PjbVnHL",
   "authVerification": {
     "anonymousWrites": "401",
     "forgedTokenWrites": "401",
@@ -115,5 +115,17 @@
     "browserFixture": "5/5/2, failure retries, account isolation, current/historical route opening, mobile widths",
     "newIAMActions": [],
     "resourceReplacements": false
+  },
+  "commentCountsVerification": {
+    "frontendMode": "Compatible with deployed legacy comment pages and future server totals",
+    "backendDeployment": "Unchanged; server-total enhancements in source are optional for this frontend release",
+    "productionRoutesChecked": 7,
+    "productionRoutesWithComments": 1,
+    "productionTotalComments": 1,
+    "productionBrowser": "Anonymous mobile Explore badges matched real public comment totals; no route or comment writes",
+    "mobileFixtures": "Both server-total and legacy-page modes passed: zero hiding, pagination, add/edit/delete, failures/retries and 320–980px wrapping",
+    "frontendTests": "46 passed; TypeScript and production build passed",
+    "legacyRequests": "Background reads bounded to 4; errors leave routes usable",
+    "counterMigrationRequired": false
   }
 }

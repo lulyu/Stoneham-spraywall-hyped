@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import sam2Experiment from './data/experiments/top_left_sam2_polygons.json'
 import { DEFAULT_WALL_VERSION, wallVersions, findWallVersion, wallVersionUrl } from './wallVersions'
 import { emitSessionEvent, onSessionEvent } from './sessionEvents.ts'
@@ -6,6 +6,7 @@ import { DRAFT_RECOVERY_KEY, readRecoveryDraft, storeRecoveryDraft } from './dra
 import { initializeAuth, accountDetails, accessToken, signIn, signOut, authConfigured } from './auth'
 import Profile from './Profile'
 import Community from './Community'
+import { withMissingCommentCounts } from './commentCounts'
 import PublicProfileLink from './PublicProfileLink'
 import { profileRequest, type UserProfile } from './profile'
 import { createApiProblemStore, readLocalProblems, ProblemStoreError } from './problemStore'
@@ -352,6 +353,11 @@ function App() {
   const [nextCursor, setNextCursor] = useState<string | undefined>()
   const [loadingMore, setLoadingMore] = useState(false)
   const [activeProblem, setActiveProblem] = useState<Problem | null>(null)
+  const updateCommentCount = useCallback((problemId: string, commentCount: number) => {
+    setProblems(previous => previous.some(problem => problem.id === problemId && problem.commentCount !== commentCount)
+      ? previous.map(problem => problem.id === problemId ? {...problem, commentCount} : problem) : previous)
+    setActiveProblem(previous => previous?.id === problemId && previous.commentCount !== commentCount ? {...previous, commentCount} : previous)
+  }, [])
   const [shareMessage, setShareMessage] = useState('')
   const [manualShareLink, setManualShareLink] = useState('')
   const shareSequence = useRef(0)
@@ -377,6 +383,23 @@ function App() {
   const mutation = useRef(false)
   const listSequence = useRef(0)
   const selectionSequence = useRef(0)
+  const loadLegacyCommentCounts = (items: Problem[], sequence: number) => {
+    if (!problemStore.shared || !items.some(problem => problem.commentCount === undefined)) return
+    void withMissingCommentCounts(apiBaseUrl, items).then(enriched => {
+      if (sequence !== listSequence.current) return
+      const counts = new Map(enriched.filter(problem => problem.commentCount !== undefined).map(problem => [problem.id, problem.commentCount!]))
+      setProblems(previous => {
+        let changed = false
+        const next = previous.map(problem => {
+          const commentCount = counts.get(problem.id)
+          if (problem.commentCount !== undefined || commentCount === undefined) return problem
+          changed = true
+          return {...problem, commentCount}
+        })
+        return changed ? next : previous
+      })
+    })
+  }
   const [showAllPolygons, setShowAllPolygons] = useState(false)
   const [showPolygonLabels, setShowPolygonLabels] = useState(false)
   const [debugDataset, setDebugDataset] = useState<'current' | 'sam2'>('current')
@@ -492,7 +515,7 @@ function App() {
     setListError('')
     try {
       const page = await problemStore.list()
-      if (sequence === listSequence.current) { setProblems(page.items.map(routeCompatibility)); setNextCursor(page.nextCursor) }
+      if (sequence === listSequence.current) { setProblems(page.items.map(routeCompatibility)); setNextCursor(page.nextCursor); loadLegacyCommentCounts(page.items, sequence) }
     } catch (error) {
       if (sequence === listSequence.current) setListError(error instanceof Error ? error.message : 'Could not load problems.')
     } finally {
@@ -518,6 +541,7 @@ function App() {
           return [...previous, ...page.items.map(routeCompatibility).filter((p) => { if (ids.has(p.id)) return false; ids.add(p.id); return true })]
         })
         setNextCursor(page.nextCursor)
+        loadLegacyCommentCounts(page.items, sequence)
       }
     } catch (e) {
       if (sequence === listSequence.current) setListError(e instanceof Error ? e.message : 'Could not load more routes.')
@@ -535,7 +559,7 @@ function App() {
     try {
       const fresh = await problemStore.get(problem.id)
       if (sequence !== selectionSequence.current) return
-      setProblems((prev) => prev.map((item) => item.id === fresh.id ? fresh : item))
+      setProblems((prev) => prev.map((item) => item.id === fresh.id ? {...fresh, commentCount: fresh.commentCount ?? item.commentCount} : item))
       selectProblem(fresh)
       setRoutesOpen(false)
       if (edit) {
@@ -803,7 +827,7 @@ function App() {
           </button>}
           {shareMessage && <p className="share-notice" role="status">{shareMessage}</p>}
           {manualShareLink && <label className="share-link-field">Route link<input readOnly autoFocus value={manualShareLink} onFocus={(e) => e.currentTarget.select()} /></label>}
-          {problemStore.shared && activeProblem && <Community key={activeProblem.id} baseUrl={apiBaseUrl} problemId={activeProblem.id} name={activeProblem.name} userId={identity?.userId} />}
+          {problemStore.shared && activeProblem && <Community key={activeProblem.id} baseUrl={apiBaseUrl} problemId={activeProblem.id} name={activeProblem.name} userId={identity?.userId} onCommentCountChange={updateCommentCount} />}
         </section>}
         <dialog id="routes-drawer" className="routes-drawer" ref={routesDialog} aria-labelledby="routes-title"
           onCancel={() => setRoutesOpen(false)}
@@ -847,7 +871,9 @@ function App() {
                 >
                   <span className="grade-chip">{problem.grade}</span>
                   <span className="problem-copy">
-                    <strong>{problem.name}</strong>
+                    <span className="problem-title"><strong>{problem.name}</strong>
+                      {typeof problem.commentCount === 'number' && Number.isSafeInteger(problem.commentCount) && problem.commentCount > 0 && <span className="route-comment-count" role="img" aria-label={`${problem.commentCount} ${problem.commentCount === 1 ? 'comment' : 'comments'}`}><span aria-hidden="true">💬 {problem.commentCount}</span></span>}
+                    </span>
                     <small>{problem.setter} · {problem.holds.length} holds</small>
                   </span>
                   <span className="chevron">›</span>
