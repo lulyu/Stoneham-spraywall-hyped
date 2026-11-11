@@ -15,6 +15,7 @@ sdk.DynamoDBDocumentClient.from=()=>({send:async command=>{
   return {Items:scanned.filter(r=>r.entityType==='problem'&&r.gymId===p.ExpressionAttributeValues[':gym']&&r.wallId===p.ExpressionAttributeValues[':wall']),ScannedCount:scanned.length,...(start+2<all.length?{LastEvaluatedKey:{pk:last.pk,sk:last.sk}}:{})}
  }
  if(kind==='QueryCommand') {
+  if(p.Select==='COUNT')return {Count:[...rows.values()].filter(row=>row.pk===p.ExpressionAttributeValues[':pk']&&row.sk.startsWith('COMMENT#')&&!row.deleted).length}
   const all=[...rows.values()].filter(r=>r.gsi1pk===p.ExpressionAttributeValues[':pk']).sort((a,b)=>b.gsi1sk.localeCompare(a.gsi1sk))
   const start=p.ExclusiveStartKey?all.findIndex(r=>key(r)===key(p.ExclusiveStartKey))+1:0
   const items=all.slice(start,start+p.Limit),last=items.at(-1)

@@ -37,6 +37,7 @@ sdk.DynamoDBDocumentClient.from=()=>Object.setPrototypeOf({send:async command=>{
   const all=[...rows.values()].filter(r=>r.pk===pk&&r.sk.startsWith(p.ExpressionAttributeValues[':prefix'])).sort((a,b)=>a.sk.localeCompare(b.sk))
   const start=p.ExclusiveStartKey?all.findIndex(r=>r.sk===p.ExclusiveStartKey.sk)+1:0
   const selected=all.slice(start,start+1),last=selected.at(-1)
+  if(p.Select==='COUNT')return {Count:selected.filter(row=>!row.deleted).length,...(start+1<all.length?{LastEvaluatedKey:{pk:last.pk,sk:last.sk}}:{})}
   const visible=p.FilterExpression?selected.filter(r=>r.userId===p.ExpressionAttributeValues[':user']&&!r.deleted):selected
   return {Items:visible,...(start+1<all.length?{LastEvaluatedKey:{pk:last.pk,sk:last.sk}}:{})}
  }
@@ -203,4 +204,30 @@ test('public cards handle empty profiles and never infer users from setter names
  const comment=data(await request('POST','comments',{text:'Hi'},'bob'))
  assert.deepEqual(data(await request('GET','comments/'+comment.id+'/author-profile',undefined,null)),{displayName:'Climber',bio:''})
  assert.equal((await request('GET','/v1/problems/missing/creator-profile',undefined,null)).statusCode,404)
+})
+
+test('route comment totals include every page, exclude deleted rows, and track writes without storing counters',async()=>{
+ const original=structuredClone(rows.get('PROBLEM#p1|META'))
+ rows.set('PROBLEM#p1|LIST',{pk:'PROBLEM#p1',sk:'LIST',problemId:'p1',gsi1pk:'GYM#stoneham-crg#WALL#spray-wall-1#ALL',gsi1sk:'PROBLEM#2026-11-03#p1'})
+ for(let i=0;i<25;i++){
+  const id=String(i).padStart(2,'0'),deleted=i<2
+  const row={pk:'PROBLEM#p1',sk:'COMMENT#'+id,id,text:'Comment '+id,author:'Alice',userId:'alice',createdAt:'2026-11-03',...(deleted?{deleted:true}:{gsi1pk:'PROBLEM#p1#COMMENTS',gsi1sk:'2026-11-03#'+id})}
+  rows.set(key(row),row)
+ }
+ const first=data(await request('GET','community',undefined,null))
+ assert.equal(first.comments.length,20);assert.equal(first.commentCount,23);assert(first.nextCursor)
+ const second=data(await request('GET','community',undefined,null,first.nextCursor))
+ assert.equal(second.comments.length,3);assert.equal(second.commentCount,23)
+ const list=()=>request('GET','/v1/gyms/stoneham-crg/walls/spray-wall-1/problems',undefined,null)
+ assert.equal(data(await list()).items[0].commentCount,23)
+ assert.equal(data(await request('GET','/v1/problems/p1',undefined,null)).commentCount,23)
+ assert.equal(data(await request('DELETE','comments/24')).commentCount,22)
+ assert.equal(data(await request('DELETE','comments/24')).commentCount,22)
+ assert.equal(data(await list()).items[0].commentCount,22)
+ const input={text:'New comment',requestId:'00000000-0000-4000-8000-000000000099'}
+ assert.equal(data(await request('POST','comments',input)).commentCount,23)
+ assert.equal(data(await request('POST','comments',input)).commentCount,23)
+ assert.equal(data(await request('PATCH','comments/23',{text:'Edited comment'})).commentCount,23)
+ assert.equal(data(await list()).items[0].commentCount,23)
+ assert.deepEqual(rows.get('PROBLEM#p1|META'),original)
 })

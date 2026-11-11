@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import sam2Experiment from './data/experiments/top_left_sam2_polygons.json'
 import { DEFAULT_WALL_VERSION, wallVersions, findWallVersion, wallVersionUrl } from './wallVersions'
 import { emitSessionEvent, onSessionEvent } from './sessionEvents.ts'
@@ -352,6 +352,11 @@ function App() {
   const [nextCursor, setNextCursor] = useState<string | undefined>()
   const [loadingMore, setLoadingMore] = useState(false)
   const [activeProblem, setActiveProblem] = useState<Problem | null>(null)
+  const updateCommentCount = useCallback((problemId: string, commentCount: number) => {
+    setProblems(previous => previous.some(problem => problem.id === problemId && problem.commentCount !== commentCount)
+      ? previous.map(problem => problem.id === problemId ? {...problem, commentCount} : problem) : previous)
+    setActiveProblem(previous => previous?.id === problemId && previous.commentCount !== commentCount ? {...previous, commentCount} : previous)
+  }, [])
   const [shareMessage, setShareMessage] = useState('')
   const [manualShareLink, setManualShareLink] = useState('')
   const shareSequence = useRef(0)
@@ -803,7 +808,7 @@ function App() {
           </button>}
           {shareMessage && <p className="share-notice" role="status">{shareMessage}</p>}
           {manualShareLink && <label className="share-link-field">Route link<input readOnly autoFocus value={manualShareLink} onFocus={(e) => e.currentTarget.select()} /></label>}
-          {problemStore.shared && activeProblem && <Community key={activeProblem.id} baseUrl={apiBaseUrl} problemId={activeProblem.id} name={activeProblem.name} userId={identity?.userId} />}
+          {problemStore.shared && activeProblem && <Community key={activeProblem.id} baseUrl={apiBaseUrl} problemId={activeProblem.id} name={activeProblem.name} userId={identity?.userId} onCommentCountChange={updateCommentCount} />}
         </section>}
         <dialog id="routes-drawer" className="routes-drawer" ref={routesDialog} aria-labelledby="routes-title"
           onCancel={() => setRoutesOpen(false)}
@@ -847,7 +852,9 @@ function App() {
                 >
                   <span className="grade-chip">{problem.grade}</span>
                   <span className="problem-copy">
-                    <strong>{problem.name}</strong>
+                    <span className="problem-title"><strong>{problem.name}</strong>
+                      {typeof problem.commentCount === 'number' && Number.isSafeInteger(problem.commentCount) && problem.commentCount > 0 && <span className="route-comment-count" role="img" aria-label={`${problem.commentCount} ${problem.commentCount === 1 ? 'comment' : 'comments'}`}><span aria-hidden="true">💬 {problem.commentCount}</span></span>}
+                    </span>
                     <small>{problem.setter} · {problem.holds.length} holds</small>
                   </span>
                   <span className="chevron">›</span>

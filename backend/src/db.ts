@@ -1,5 +1,5 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
-import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, QueryCommand, TransactWriteCommand, ScanCommand } from '@aws-sdk/lib-dynamodb'
+import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, QueryCommand, TransactWriteCommand, ScanCommand, type QueryCommandInput } from '@aws-sdk/lib-dynamodb'
 import type { Problem, UserProfile, ProblemItem, UpdateProblemInput } from './model'
 import { ApiError, latestWall } from './walls'
 import { compatibility, upgradeName } from './wallLifecycle'
@@ -29,6 +29,35 @@ function toProblem(item: ProblemItem): Problem {
 }
 
 const wallPk = (gymId:string,wallId:string) => `GYM#${gymId}#WALL#${wallId}`
+
+export async function getCommentCount(problemId: string): Promise<number> {
+  let after: QueryCommandInput['ExclusiveStartKey']
+  let count = 0
+  do {
+    const page = await client.send(new QueryCommand({
+      TableName: tableName,
+      KeyConditionExpression: 'pk = :pk AND begins_with(sk, :prefix)',
+      FilterExpression: 'attribute_not_exists(deleted) OR deleted = :notDeleted',
+      ExpressionAttributeValues: {':pk': problemPk(problemId), ':prefix': 'COMMENT#', ':notDeleted': false},
+      Select: 'COUNT', ConsistentRead: true, ExclusiveStartKey: after,
+    }))
+    count += page.Count ?? 0
+    after = page.LastEvaluatedKey
+  } while (after)
+  return count
+}
+
+export async function withCommentCounts(problems: Problem[]): Promise<Problem[]> {
+  const result = [...problems]
+  let next = 0
+  await Promise.all(Array.from({length: Math.min(8, problems.length)}, async () => {
+    while (next < problems.length) {
+      const index = next++
+      result[index] = {...problems[index], commentCount: await getCommentCount(problems[index].id)}
+    }
+  }))
+  return result
+}
 
 function problemWrites(problem:Problem, condition:Record<string,unknown>) {
   const order=`PROBLEM#${problem.createdAt}#${problem.id}`

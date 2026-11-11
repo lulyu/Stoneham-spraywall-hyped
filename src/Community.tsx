@@ -3,7 +3,7 @@ import { communityRequest, type CommunityData, type MyActivity, type Comment } f
 import { signIn } from './auth'
 import PublicProfileLink from './PublicProfileLink'
 
-export default function Community({ baseUrl, problemId, name, userId }: { baseUrl: string; problemId: string; name: string; userId?: string }) {
+export default function Community({ baseUrl, problemId, name, userId, onCommentCountChange }: { baseUrl: string; problemId: string; name: string; userId?: string; onCommentCountChange?: (problemId: string, count: number) => void }) {
   const path = '/v1/problems/' + encodeURIComponent(problemId)
   const [data, setData] = useState<CommunityData | null>(null)
   const [mine, setMine] = useState<MyActivity | null>(null)
@@ -30,6 +30,10 @@ export default function Community({ baseUrl, problemId, name, userId }: { baseUr
   }, [baseUrl, path, userId, reload])
 
   useEffect(() => { setEditingId(null); setDeletingId(null); setEditText('') }, [userId])
+  useEffect(() => {
+    const count = data?.commentCount
+    if (typeof count === 'number' && Number.isSafeInteger(count) && count >= 0) onCommentCountChange?.(problemId, count)
+  }, [data?.commentCount, problemId, onCommentCountChange])
 
   async function mutate(action: () => Promise<void>) {
     if (saving.current) return
@@ -55,7 +59,7 @@ export default function Community({ baseUrl, problemId, name, userId }: { baseUr
             await communityRequest(baseUrl, path + '/rating', 'PATCH', { score }, true)
             setMine((previous) => previous ? { ...previous, rating: score } : previous)
             const summary = await communityRequest<CommunityData>(baseUrl, path + '/community')
-            setData((previous) => previous ? { ...previous, ratingAverage: summary.ratingAverage, ratingCount: summary.ratingCount } : summary)
+            setData((previous) => previous ? { ...previous, ratingAverage: summary.ratingAverage, ratingCount: summary.ratingCount, commentCount: summary.commentCount } : summary)
           })}><svg aria-hidden="true" viewBox="0 0 24 24" width="30" height="30"><path fill={(mine?.rating ?? 0) >= score ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.9-6.2-3.3-6.2 3.3 1.2-6.9-5-4.9 6.9-1z" /></svg></button>)}</div>
         </div>
       </>}
@@ -63,7 +67,7 @@ export default function Community({ baseUrl, problemId, name, userId }: { baseUr
       {userId && <form onSubmit={(event) => { event.preventDefault(); void mutate(async () => {
         pendingComment.current ??= crypto.randomUUID()
         const added = await communityRequest<Comment>(baseUrl, path + '/comments', 'POST', { text: text.trim(), requestId: pendingComment.current }, true)
-        setData((previous) => previous ? { ...previous, comments: [added, ...previous.comments.filter((c) => c.id !== added.id)] } : previous)
+        setData((previous) => previous ? { ...previous, commentCount: added.commentCount ?? previous.commentCount, comments: [added, ...previous.comments.filter((c) => c.id !== added.id)] } : previous)
         setMine((previous) => previous ? { ...previous, commentIds: [...new Set([...(previous.commentIds ?? []), added.id])] } : previous)
         setText(''); pendingComment.current = null
       }) }}>
@@ -79,7 +83,7 @@ export default function Community({ baseUrl, problemId, name, userId }: { baseUr
           event.preventDefault()
           void mutate(async () => {
             const saved = await communityRequest<Comment>(baseUrl, path + '/comments/' + encodeURIComponent(c.id), 'PATCH', { text: editText.trim() }, true)
-            setData((previous) => previous ? { ...previous, comments: previous.comments.map((item) => item.id === c.id ? saved : item) } : previous)
+            setData((previous) => previous ? { ...previous, commentCount: saved.commentCount ?? previous.commentCount, comments: previous.comments.map((item) => item.id === c.id ? saved : item) } : previous)
             setEditingId(null); setEditText('')
           })
         }}>
@@ -94,8 +98,8 @@ export default function Community({ baseUrl, problemId, name, userId }: { baseUr
           {deletingId === c.id ? <>
             <span role="status">Delete this comment?</span>
             <button className="ghost small danger" disabled={busy} onClick={() => void mutate(async () => {
-              await communityRequest(baseUrl, path + '/comments/' + encodeURIComponent(c.id), 'DELETE', undefined, true)
-              setData((previous) => previous ? { ...previous, comments: previous.comments.filter((item) => item.id !== c.id) } : previous)
+              const result = await communityRequest<{commentCount?: number}>(baseUrl, path + '/comments/' + encodeURIComponent(c.id), 'DELETE', undefined, true)
+              setData((previous) => previous ? { ...previous, commentCount: result.commentCount ?? previous.commentCount, comments: previous.comments.filter((item) => item.id !== c.id) } : previous)
               setMine((previous) => previous ? { ...previous, commentIds: previous.commentIds?.filter((id) => id !== c.id) } : previous)
               setDeletingId(null)
             })}>Confirm delete</button>
@@ -108,7 +112,7 @@ export default function Community({ baseUrl, problemId, name, userId }: { baseUr
       </article>)}</div>
       {data.nextCursor && <button className="ghost small" disabled={busy} onClick={() => void mutate(async () => {
         const next = await communityRequest<CommunityData>(baseUrl, path + '/community?cursor=' + encodeURIComponent(data.nextCursor!))
-        setData((previous) => previous ? { ...previous, comments: [...new Map([...previous.comments, ...next.comments].map((c) => [c.id, c])).values()], nextCursor: next.nextCursor } : next)
+        setData((previous) => previous ? { ...previous, commentCount: next.commentCount ?? previous.commentCount, comments: [...new Map([...previous.comments, ...next.comments].map((c) => [c.id, c])).values()], nextCursor: next.nextCursor } : next)
       })}>More comments</button>}
     </>}
   </section>

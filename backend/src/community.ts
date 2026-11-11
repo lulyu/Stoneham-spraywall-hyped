@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { GetCommand, PutCommand, QueryCommand, UpdateCommand, paginateQuery } from '@aws-sdk/lib-dynamodb'
-import { client, tableName, getProfile } from './db'
+import { client, tableName, getProfile, getCommentCount } from './db'
 import { ApiError } from './walls'
 import type { Problem } from './model'
 
@@ -89,11 +89,12 @@ export async function addComment(userId: string, problemId: string, input: unkno
   if (typeof id !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(id)) throw new ApiError(400, 'requestId must be a UUID v4')
   const profile = await getProfile(userId)
   const createdAt = new Date().toISOString()
-  return commentView(await createOnce({
+  const added = await createOnce({
     pk: problemKey(problemId), sk: 'COMMENT#' + id, id, userId, entityType: 'comment',
     text: body.text.trim(), author: profile.displayName || 'Climber', createdAt,
     gsi1pk: problemKey(problemId) + '#COMMENTS', gsi1sk: createdAt + '#' + id,
-  }))
+  })
+  return {...commentView(added), commentCount: await getCommentCount(problemId)}
 }
 export async function community(problemId: string, after?: string) {
   const comments = await page(problemKey(problemId) + '#COMMENTS', problemKey(problemId), 'COMMENT#', after)
@@ -105,7 +106,7 @@ export async function community(problemId: string, after?: string) {
   })) {
     for (const r of part.Items ?? []) { count++; total += r.score }
   }
-  return { ratingAverage: count ? total / count : null, ratingCount: count, comments: comments.rows.filter((row) => !row.deleted).map(commentView), nextCursor: comments.nextCursor }
+  return { ratingAverage: count ? total / count : null, ratingCount: count, commentCount: await getCommentCount(problemId), comments: comments.rows.filter((row) => !row.deleted).map(commentView), nextCursor: comments.nextCursor }
 }
 
 export async function changeComment(userId: string, problemId: string, id: string, input?: unknown) {
@@ -115,7 +116,7 @@ export async function changeComment(userId: string, problemId: string, id: strin
   if (existing.userId !== userId) throw new ApiError(403, 'Only the comment author can edit or delete this comment')
   const deleting = input === undefined
   if (existing.deleted) {
-    if (deleting) return { deleted: true }
+    if (deleting) return { deleted: true, commentCount: await getCommentCount(problemId) }
     throw new ApiError(404, 'comment not found')
   }
   let text = ''
@@ -138,11 +139,12 @@ export async function changeComment(userId: string, problemId: string, id: strin
       ExpressionAttributeValues: { ':user': userId, ...(deleting ? { ':deleted': true } : { ':text': text, ':now': new Date().toISOString() }) },
       ReturnValues: 'ALL_NEW',
     }))
-    return deleting ? { deleted: true } : commentView(result.Attributes!)
+    const commentCount = await getCommentCount(problemId)
+    return deleting ? { deleted: true, commentCount } : {...commentView(result.Attributes!), commentCount}
   } catch (e) {
     if ((e as { name?: string }).name === 'ConditionalCheckFailedException') {
       const latest = await get(Key)
-      if (deleting && latest?.deleted && latest.userId === userId) return { deleted: true }
+      if (deleting && latest?.deleted && latest.userId === userId) return { deleted: true, commentCount: await getCommentCount(problemId) }
       throw new ApiError(409, 'Comment changed or was deleted. Refresh and retry.')
     }
     throw e

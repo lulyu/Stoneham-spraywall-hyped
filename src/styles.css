@@ -86,6 +86,9 @@ input:focus, select:focus { border-color: #6e7b59; }
 .grade-chip { min-width: 44px; height: 44px; border-radius: 12px; background: #c9ff53; color: #15180f; display: grid; place-items: center; font-weight: 900; }
 .problem-copy { min-width: 0; overflow-wrap: anywhere; display: grid; gap: 2px; margin-left: 11px; }
 .problem-copy small { color: #8d9584; }
+.problem-title { display: flex; align-items: baseline; gap: 8px; }
+.problem-title strong { min-width: 0; }
+.route-comment-count { color: #b2bba7; font-size: 12px; font-weight: 500; white-space: nowrap; flex-shrink: 0; }
 .chevron { margin-left: auto; font-size: 24px; color: #687060; }
 
 @media (max-width: 680px) {
