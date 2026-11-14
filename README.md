@@ -12,7 +12,8 @@ A mobile-first route-setting app for the Stoneham CRG spray wall.
   enjoyment ratings, and comments. Browsing does not require sign-in.
 - Explore all routes on the latest wall. Outdated routes remain clickable and
   open on a compatible historical wall, with an old-wall notice. Routes with
-  comments show a comment icon and total beside their name.
+  comments show a comment icon and total beside their name. Filter by grade or
+  **Valid only**, and sort by newest, grade, or average enjoyment stars.
 - Upgrade your outdated route into a new draft with the surviving holds and a
   suggested V2/V3 name. Saving creates a new route; the original and its activity
   stay intact.

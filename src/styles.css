@@ -214,3 +214,16 @@ body:has(.public-profile-dialog[open]) { overflow: hidden; }
 .topbar > div { flex: 1; min-width: 0; }
 .topbar h1 { white-space: nowrap; font-size: clamp(13px, 3.85vw, 20px); font-weight: 650; line-height: 1.4; letter-spacing: -.025em; color: #9ea792; }
 .brand-highlight { color: #c9ff53; font-weight: 800; letter-spacing: .18em; }
+
+.explore-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 12px; margin-bottom: 16px; }
+.explore-filters label { display: grid; gap: 6px; min-width: 0; color: #b9c0b0; font-size: 13px; }
+.explore-filters select { min-height: 44px; padding: 10px 10px; font-size: 16px; }
+.explore-filters .valid-only { display: flex; align-items: center; gap: 9px; min-height: 44px; font-size: 15px; color: #f4f4ef; }
+.valid-only input { width: 20px; height: 20px; margin: 0; accent-color: #c9ff53; }
+.route-stars { color: #dcddaa; }
+.empty-filter-results { padding: 20px 0; color: #b9c0b0; }
+
+.explore-filters .explore-sort { grid-column: 1 / -1; grid-row: 2; }
+.explore-filters .valid-only { grid-column: 2; grid-row: 1; }
+
+.explore-filters > button { grid-column: 1 / -1; justify-self: start; white-space: nowrap; }
