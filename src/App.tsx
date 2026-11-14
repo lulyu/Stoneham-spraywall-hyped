@@ -7,6 +7,8 @@ import { initializeAuth, accountDetails, accessToken, signIn, signOut, authConfi
 import Profile from './Profile'
 import Community from './Community'
 import { withMissingCommentCounts } from './commentCounts'
+import { defaultExploreQuery, exploreRoutes, gradeValue, isStarSort, needsAllRoutes, type ExploreQuery, type ExploreSort } from './exploreRoutes'
+import { useRouteRatings } from './useRouteRatings'
 import PublicProfileLink from './PublicProfileLink'
 import { profileRequest, type UserProfile } from './profile'
 import { createApiProblemStore, readLocalProblems, ProblemStoreError } from './problemStore'
@@ -328,7 +330,7 @@ type ScreenSnapshot = {
   activeProblem: Problem | null; draft: ProblemHold[]; name: string; grade: string; setter: string
   editing: Problem | null; upgrade: UpgradeDraft | null; draftNotes?: string
   currentRole: HoldRole; highlightedHoldId: string | null; conflict: boolean; storageError: string
-  draftUserId: string | null; exploreScroll: number
+  draftUserId: string | null; exploreScroll: number; exploreQuery: ExploreQuery
 }
 
 function App() {
@@ -369,6 +371,13 @@ function App() {
   const [problems, setProblems] = useState<Problem[]>([])
   const [nextCursor, setNextCursor] = useState<string | undefined>()
   const [loadingMore, setLoadingMore] = useState(false)
+  const [exploreQuery, setExploreQuery] = useState<ExploreQuery>(defaultExploreQuery)
+  const starSort = isStarSort(exploreQuery.sort)
+  const allRoutesNeeded = needsAllRoutes(exploreQuery)
+  const routeRatings = useRouteRatings(apiBaseUrl, problems.map(problem => problem.id),
+    problemStore.shared && routesOpen && starSort && !nextCursor && !loadingMore)
+  const visibleProblems = useMemo(() => exploreRoutes(problems, exploreQuery, routeRatings.ratings), [problems, exploreQuery, routeRatings.ratings])
+  const filterGrades = [...new Set([...grades, ...problems.map(problem => problem.grade)])].sort((a, b) => gradeValue(a) - gradeValue(b) || a.localeCompare(b))
   const [activeProblem, setActiveProblem] = useState<Problem | null>(null)
   const updateCommentCount = useCallback((problemId: string, commentCount: number) => {
     setProblems(previous => previous.some(problem => problem.id === problemId && problem.commentCount !== commentCount)
@@ -444,7 +453,7 @@ function App() {
 
   captureScreen.current = () => ({activeProblem, draft, name, grade, setter, editing, upgrade, draftNotes,
     currentRole, highlightedHoldId, conflict, storageError, draftUserId: draftUserId.current,
-    exploreScroll: routesDialog.current?.scrollTop ?? 0})
+    exploreScroll: routesDialog.current?.scrollTop ?? 0, exploreQuery})
   restoreScreen.current = (entry, snapshot) => {
     const sequence = ++selectionSequence.current
     closeAccount(); setOpeningId(null); setLinkError(''); setLinkLoading(false)
@@ -459,7 +468,10 @@ function App() {
     }
     setRoutesOpen(target.screen === 'explore'); setShowProfile(target.screen === 'profile')
     if (target.screen === 'profile') setProfileVisited(true)
-    if (target.screen === 'explore') pendingExploreScroll.current = snapshot?.exploreScroll ?? 0
+    if (target.screen === 'explore') {
+      pendingExploreScroll.current = snapshot?.exploreScroll ?? 0
+      if (snapshot) setExploreQuery(snapshot.exploreQuery)
+    }
     setMode(target.screen === 'editor' ? 'set' : 'browse')
     if (target.screen === 'editor' && snapshot && ownsDraft) {
       draftUserId.current = snapshot.draftUserId
@@ -640,6 +652,7 @@ function App() {
     setLoadingMore(true); setListError('')
     try {
       const page = await problemStore.list(nextCursor)
+      if (page.nextCursor === nextCursor) throw new Error('Could not advance the route list. Refresh and try again.')
       if (sequence === listSequence.current) {
         setProblems((previous) => {
           const ids = new Set(previous.map((p) => p.id))
@@ -655,6 +668,11 @@ function App() {
       if (sequence === listSequence.current) setLoadingMore(false)
     }
   }
+
+  // Filter and sort the complete collection, including routes beyond page one.
+  useEffect(() => {
+    if (routesOpen && allRoutesNeeded && nextCursor && !loading && !loadingMore && !listError && !busy) void loadMoreProblems()
+  }, [routesOpen, allRoutesNeeded, nextCursor, loading, loadingMore, listError, busy])
 
   const openProblem = async (problem: Problem, edit = false) => {
     const sourceSnapshot = captureScreen.current()
@@ -931,7 +949,7 @@ function App() {
           </button>}
           {shareMessage && <p className="share-notice" role="status">{shareMessage}</p>}
           {manualShareLink && <label className="share-link-field">Route link<input readOnly autoFocus value={manualShareLink} onFocus={(e) => e.currentTarget.select()} /></label>}
-          {problemStore.shared && activeProblem && <Community key={activeProblem.id} baseUrl={apiBaseUrl} problemId={activeProblem.id} name={activeProblem.name} userId={identity?.userId} onCommentCountChange={updateCommentCount} />}
+          {problemStore.shared && activeProblem && <Community key={activeProblem.id} baseUrl={apiBaseUrl} problemId={activeProblem.id} name={activeProblem.name} userId={identity?.userId} onCommentCountChange={updateCommentCount} onRatingChange={routeRatings.update} />}
         </section>}
         <dialog id="routes-drawer" className="routes-drawer" ref={routesDialog} aria-labelledby="routes-title"
           onCancel={event => { event.preventDefault(); goBack() }}
@@ -947,10 +965,24 @@ function App() {
           </div>
 
           <div className="problem-tools">
-            <button className="ghost small" disabled={busy || loading} onClick={() => void refreshProblems()}>{loading ? 'Loading…' : 'Refresh'}</button>
+            <button className="ghost small" disabled={busy || loading} onClick={() => { routeRatings.refresh(); void refreshProblems() }}>{loading ? 'Loading…' : 'Refresh'}</button>
 
           </div>
 
+          <div className="explore-filters" role="group" aria-label="Filter and sort routes">
+            <label>Grade<select aria-label="Grade" value={exploreQuery.grade} onChange={event => setExploreQuery(query => ({...query, grade: event.target.value}))}>
+              <option value="">All grades</option>{filterGrades.map(value => <option key={value}>{value}</option>)}
+            </select></label>
+            <label className="explore-sort">Sort by<select aria-label="Sort by" value={exploreQuery.sort} onChange={event => setExploreQuery(query => ({...query, sort: event.target.value as ExploreSort}))}>
+              <option value="newest">Newest</option><option value="grade-asc">Grade: low to high</option><option value="grade-desc">Grade: high to low</option>
+              <option value="stars-desc">Stars: highest first</option><option value="stars-asc">Stars: lowest first</option>
+            </select></label>
+            <label className="valid-only"><input type="checkbox" checked={exploreQuery.validOnly} onChange={event => setExploreQuery(query => ({...query, validOnly: event.target.checked}))} />Valid only</label>
+            {allRoutesNeeded && <button className="ghost small" onClick={() => setExploreQuery(defaultExploreQuery)}>Reset filters</button>}
+          </div>
+          {allRoutesNeeded && <p className="muted" role="status">{visibleProblems.length} matching {visibleProblems.length === 1 ? 'route' : 'routes'}{nextCursor ? (listError ? ' · More routes to load' : ' · Loading all routes…') : ''}</p>}
+          {starSort && routeRatings.loading && <p className="muted" role="status">Loading star ratings…</p>}
+          {starSort && routeRatings.failed > 0 && <p className="error-message" role="alert">Some star ratings could not be loaded. <button className="ghost small" onClick={routeRatings.retry}>Retry ratings</button></p>}
           {listError && <p className="error-message" role="alert">{listError}</p>}
           {openingId && <p role="status" className="muted">Opening problem…</p>}
           {problemStore.shared && localProblems.length > 0 && <div className="local-import">
@@ -966,7 +998,9 @@ function App() {
             </button>
           ) : (
             <div className="problem-list">
-              {problems.map((problem) => (
+              {visibleProblems.map((problem) => {
+                const rating = routeRatings.ratings.get(problem.id)
+                return (
                 <button
                   key={problem.id}
                   className={`problem-card ${problem.outdated?'outdated':''} ${activeProblem?.id === problem.id ? 'active' : ''}`}
@@ -979,12 +1013,16 @@ function App() {
                       {typeof problem.commentCount === 'number' && Number.isSafeInteger(problem.commentCount) && problem.commentCount > 0 && <span className="route-comment-count" role="img" aria-label={`${problem.commentCount} ${problem.commentCount === 1 ? 'comment' : 'comments'}`}><span aria-hidden="true">💬 {problem.commentCount}</span></span>}
                     </span>
                     <small>{problem.setter} · {problem.holds.length} holds</small>
+                    {starSort && <small className="route-stars">{rating?.ratingAverage != null
+                      ? `★ ${rating.ratingAverage.toFixed(1)} · ${rating.ratingCount} ${rating.ratingCount === 1 ? 'rating' : 'ratings'}`
+                      : rating?.ratingCount === 0 || !problemStore.shared ? 'Unrated' : routeRatings.loading || nextCursor ? 'Loading rating…' : 'Rating unavailable'}</small>}
                   </span>
                   <span className="chevron">›</span>
                 </button>
-              ))}
+              )})}
             </div>
           )}
+          {problems.length > 0 && visibleProblems.length === 0 && !loading && !nextCursor && <p className="empty-filter-results" role="status">No routes match these filters. Try another grade or turn off Valid only.</p>}
           {nextCursor && <button className="ghost load-more" disabled={busy || loading || loadingMore} onClick={() => void loadMoreProblems()}>{loadingMore ? 'Loading more…' : 'Load more routes'}</button>}
         </section>
         </dialog>

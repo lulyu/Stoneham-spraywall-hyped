@@ -3,8 +3,9 @@ import { communityRequest, type CommunityData, type MyActivity, type Comment } f
 import { signIn } from './auth'
 import PublicProfileLink from './PublicProfileLink'
 import { fetchCommentCount } from './commentCounts'
+import type { RouteRating } from './exploreRoutes'
 
-export default function Community({ baseUrl, problemId, name, userId, onCommentCountChange }: { baseUrl: string; problemId: string; name: string; userId?: string; onCommentCountChange?: (problemId: string, count: number) => void }) {
+export default function Community({ baseUrl, problemId, name, userId, onCommentCountChange, onRatingChange }: { baseUrl: string; problemId: string; name: string; userId?: string; onCommentCountChange?: (problemId: string, count: number) => void; onRatingChange?: (problemId: string, rating: RouteRating) => void }) {
   const path = '/v1/problems/' + encodeURIComponent(problemId)
   const [data, setData] = useState<CommunityData | null>(null)
   const [mine, setMine] = useState<MyActivity | null>(null)
@@ -38,6 +39,10 @@ export default function Community({ baseUrl, problemId, name, userId, onCommentC
     const count = data?.commentCount
     if (typeof count === 'number' && Number.isSafeInteger(count) && count >= 0) onCommentCountChange?.(problemId, count)
   }, [data?.commentCount, problemId, onCommentCountChange])
+
+  useEffect(() => {
+    if (data) onRatingChange?.(problemId, {ratingAverage: data.ratingAverage, ratingCount: data.ratingCount})
+  }, [data?.ratingAverage, data?.ratingCount, problemId, onRatingChange])
 
   async function mutate(action: () => Promise<void>) {
     if (saving.current) return
