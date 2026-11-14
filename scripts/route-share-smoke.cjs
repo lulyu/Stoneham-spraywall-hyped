@@ -15,7 +15,7 @@ const app = process.env.APP_URL || 'http://localhost:5182'
   let failOlder = false, releaseList, delayList = false, olderRequests = 0
   await context.route(api + '/**', async route => {
    const path = new URL(route.request().url()).pathname
-   if (path.endsWith('/versions/2026-10-v4/problems')) {
+   if (path === '/v1/gyms/stoneham-crg/walls/spray-wall-1/problems') {
     if (delayList) { delayList = false; await new Promise(resolve => { releaseList = resolve }) }
     return route.fulfill({ json: { items: [record('new')] } })
    }
@@ -32,7 +32,7 @@ const app = process.env.APP_URL || 'http://localhost:5182'
   await page.goto(app)
   await page.getByRole('button', { name: 'Explore routes' }).click()
   await page.locator('.problem-card').click()
-  await page.evaluate(() => history.replaceState({}, '', '?route=new&tracking=ignore#route-activity'))
+  await page.evaluate(() => history.replaceState(history.state, '', '?route=new&tracking=ignore#route-activity'))
   await page.getByRole('button', { name: 'Copy route link', exact: true }).click()
   await page.getByRole('status').filter({ hasText: 'Link copied' }).waitFor()
   const copied = await page.evaluate(() => window.copiedRouteLink)
@@ -58,12 +58,12 @@ const app = process.env.APP_URL || 'http://localhost:5182'
   await direct.getByRole('button', { name: 'Copy route link', exact: true }).click()
   assert.equal(new URL(await direct.getByLabel('Route link', { exact: true }).inputValue()).search, '?route=older')
   await direct.getByRole('button', { name: 'Clear selected route', exact: true }).click()
-  assert.equal(new URL(direct.url()).searchParams.has('route'), false)
+  await direct.waitForFunction(() => !new URL(location.href).searchParams.has('route'))
   assert.equal(await direct.getByLabel('Route link', { exact: true }).count(), 0)
   await direct.goto(app + '/?route=missing')
   await direct.getByRole('alert').filter({ hasText: 'This route does not exist.' }).waitFor()
   await direct.getByRole('button', { name: 'Dismiss', exact: true }).click()
-  assert.equal(new URL(direct.url()).searchParams.has('route'), false)
+  await direct.waitForFunction(() => !new URL(location.href).searchParams.has('route'))
   failOlder = true
   await direct.goto(app + '/?route=older')
   await direct.getByRole('alert').filter({ hasText: 'Temporarily unavailable' }).waitFor()

@@ -13,7 +13,9 @@ import { createApiProblemStore, readLocalProblems, ProblemStoreError } from './p
 import { createLocalWallStore, localWallKey } from './localWallStore'
 import { latestWall, routeCompatibility, displayWall, routeFits } from './routeLifecycle'
 import type { UpgradeDraft } from './problemStore'
-import type { PointerEvent as ReactPointerEvent } from 'react'
+import { createScreenHistory } from './screenHistory'
+import type { ScreenEntry, ScreenView } from './screenHistory'
+import type { PointerEvent as ReactPointerEvent, MouseEvent as ReactMouseEvent } from 'react'
 import type { HoldRole, Problem, ProblemHold, PolygonHoldCandidate, Point } from './types'
 
 const selectedWall=findWallVersion(new URLSearchParams(window.location.search).get('wallVersion')??DEFAULT_WALL_VERSION)
@@ -322,12 +324,27 @@ function WallViewer({
   )
 }
 
+type ScreenSnapshot = {
+  activeProblem: Problem | null; draft: ProblemHold[]; name: string; grade: string; setter: string
+  editing: Problem | null; upgrade: UpgradeDraft | null; draftNotes?: string
+  currentRole: HoldRole; highlightedHoldId: string | null; conflict: boolean; storageError: string
+  draftUserId: string | null; exploreScroll: number
+}
+
 function App() {
   const [identity, setIdentity] = useState<{ userId: string; isAdmin: boolean } | null>(null)
   const [profile, setProfile] = useState<UserProfile>({ displayName: '', bio: '' })
   const [email, setEmail] = useState('')
   const [showProfile, setShowProfile] = useState(false)
+  const [profileVisited, setProfileVisited] = useState(false)
+  const [profileVisit, setProfileVisit] = useState(0)
   const [routesOpen, setRoutesOpen] = useState(false)
+  const [navigationReady, setNavigationReady] = useState(false)
+  const navigation = useRef<ReturnType<typeof createScreenHistory<ScreenSnapshot>> | null>(null)
+  const captureScreen = useRef<() => ScreenSnapshot>(null!)
+  const restoreScreen = useRef<(entry: ScreenEntry, snapshot?: ScreenSnapshot) => void>(null!)
+  const completedEditors = useRef(new Map<string, Problem>())
+  const pendingExploreScroll = useRef<number | null>(null)
   const routesDialog = useRef<HTMLDialogElement>(null)
   const accountMenu = useRef<HTMLDetailsElement>(null)
   const closeAccount = () => { if (accountMenu.current) accountMenu.current.open = false }
@@ -361,8 +378,6 @@ function App() {
   const [shareMessage, setShareMessage] = useState('')
   const [manualShareLink, setManualShareLink] = useState('')
   const shareSequence = useRef(0)
-  const [initialRouteId, setInitialRouteId] = useState(() => new URLSearchParams(window.location.search).get('route'))
-  const [linkAttempt, setLinkAttempt] = useState(0)
   const [linkLoading, setLinkLoading] = useState(false)
   const [linkError, setLinkError] = useState('')
   const [draft, setDraft] = useState<ProblemHold[]>([])
@@ -409,7 +424,13 @@ function App() {
   useEffect(() => {
     const dialog = routesDialog.current
     if (!dialog) return
-    if (routesOpen && mode === 'browse' && !showProfile) dialog.showModal()
+    if (routesOpen && mode === 'browse' && !showProfile) {
+      if (!dialog.open) dialog.showModal()
+      if (pendingExploreScroll.current !== null) {
+        dialog.scrollTop = pendingExploreScroll.current
+        pendingExploreScroll.current = null
+      }
+    }
     else dialog.close()
   }, [routesOpen, mode, showProfile])
 
@@ -419,11 +440,83 @@ function App() {
     setActiveProblem(evaluated)
     shareSequence.current++
     setShareMessage(''); setManualShareLink('')
-    const url = new URL(window.location.href)
-    if (problem) url.searchParams.set('route', problem.id)
-    else url.searchParams.delete('route')
-    url.hash = ''
-    window.history.replaceState(window.history.state, '', url)
+  }
+
+  captureScreen.current = () => ({activeProblem, draft, name, grade, setter, editing, upgrade, draftNotes,
+    currentRole, highlightedHoldId, conflict, storageError, draftUserId: draftUserId.current,
+    exploreScroll: routesDialog.current?.scrollTop ?? 0})
+  restoreScreen.current = (entry, snapshot) => {
+    const sequence = ++selectionSequence.current
+    closeAccount(); setOpeningId(null); setLinkError(''); setLinkLoading(false)
+    let target = entry
+    const completed = completedEditors.current.get(entry.id)
+    const ownsDraft = snapshot && (!problemStore.shared || snapshot.draftUserId === identity?.userId ||
+      (!identity && needsSignIn && snapshot.draftUserId === draftUserId.current))
+    if (entry.screen === 'editor' && (completed || !ownsDraft)) {
+      const routeId = completed?.id ?? entry.routeId
+      navigation.current!.replace(routeId ? {screen: 'route', routeId} : {screen: 'home'})
+      target = navigation.current!.current
+    }
+    setRoutesOpen(target.screen === 'explore'); setShowProfile(target.screen === 'profile')
+    if (target.screen === 'profile') setProfileVisited(true)
+    if (target.screen === 'explore') pendingExploreScroll.current = snapshot?.exploreScroll ?? 0
+    setMode(target.screen === 'editor' ? 'set' : 'browse')
+    if (target.screen === 'editor' && snapshot && ownsDraft) {
+      draftUserId.current = snapshot.draftUserId
+      setDraft(snapshot.draft); setName(snapshot.name); setGrade(snapshot.grade); setSetter(snapshot.setter)
+      setEditing(snapshot.editing); setUpgrade(snapshot.upgrade); setDraftNotes(snapshot.draftNotes)
+      setCurrentRole(snapshot.currentRole); setHighlightedHoldId(snapshot.highlightedHoldId)
+      setConflict(snapshot.conflict); setStorageError(snapshot.storageError)
+      setActiveProblem(snapshot.activeProblem); setViewWall(latestWall)
+      return
+    }
+    setHighlightedHoldId(null)
+    const previousProblem = snapshot?.activeProblem
+    const known = completed ?? problems.find(problem => problem.id === target.routeId) ??
+      (previousProblem?.id === target.routeId ? previousProblem : undefined)
+    if (target.screen === 'home' || !target.routeId) { selectProblem(null); return }
+    if (known) { selectProblem(known); return }
+    selectProblem(null); setLinkLoading(true)
+    void problemStore.get(target.routeId).then(problem => {
+      if (sequence === selectionSequence.current) selectProblem(problem)
+    }).catch(error => {
+      if (sequence === selectionSequence.current) setLinkError(error instanceof Error ? error.message : 'Could not open the shared route.')
+    }).finally(() => { if (sequence === selectionSequence.current) setLinkLoading(false) })
+  }
+  useEffect(() => {
+    let live = true
+    const initialize = () => {
+      if (!live) return
+      const controller = createScreenHistory<ScreenSnapshot>({history: window.history,
+        url: () => new URL(window.location.href), capture: () => captureScreen.current(),
+        restore: (entry, snapshot) => restoreScreen.current(entry, snapshot),
+        listen: callback => {
+          const handler = (event: PopStateEvent) => callback(event.state)
+          window.addEventListener('popstate', handler)
+          return () => window.removeEventListener('popstate', handler)
+        }})
+      navigation.current = controller; setNavigationReady(true); controller.restore()
+    }
+    // Finish OAuth URL cleanup before writing any app history entries.
+    void initializeAuth().then(initialize, initialize)
+    return () => { live = false; navigation.current?.dispose(); navigation.current = null }
+  }, [])
+  const pushScreen = (view: ScreenView, snapshot?: ScreenSnapshot) => navigation.current?.push(view, snapshot)
+  const goBack = () => { selectionSequence.current++; navigation.current?.back() }
+  const goHome = () => { selectionSequence.current++; navigation.current?.home() }
+  const onHomeClick = (event: ReactMouseEvent<HTMLAnchorElement>) => {
+    if (selectedWall.id !== DEFAULT_WALL_VERSION || !navigationReady || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    event.preventDefault(); goHome()
+  }
+  const openExplore = () => {
+    selectionSequence.current++; setOpeningId(null); setLinkLoading(false)
+    pushScreen({screen: 'explore', routeId: activeProblem?.id}); setRoutesOpen(true)
+  }
+  const openProfile = () => {
+    selectionSequence.current++; closeAccount(); setOpeningId(null); setLinkLoading(false)
+    pushScreen({screen: 'profile', routeId: activeProblem?.id})
+    setProfileVisit(visit => visit + 1)
+    setRoutesOpen(false); setProfileVisited(true); setShowProfile(true); setProfileNotice('')
   }
   const copyRouteLink = async () => {
     if (!activeProblem) return
@@ -464,7 +557,6 @@ function App() {
         if (!current()) return
         const returnedWall=findWallVersion(new URLSearchParams(window.location.search).get('wallVersion')??DEFAULT_WALL_VERSION)??findWallVersion(DEFAULT_WALL_VERSION)!
         if(returnedWall.id!==selectedWall.id){window.location.replace(window.location.href);return}
-        setInitialRouteId(new URLSearchParams(window.location.search).get('route'))
         const token = await accessToken()
         if (!current()) return
         if (!token) { setIdentity(null); return }
@@ -488,6 +580,7 @@ function App() {
           draftUserId.current = value.userId
           setDraft(recovery.draft); setName(recovery.name); setGrade(recovery.grade); setSetter(recovery.setter)
           setEditing(recovery.editing);setUpgrade(recovery.upgrade??null);setDraftNotes(recovery.editing?.notes??recovery.upgrade?.notes);setViewWall(latestWall); setMode('set'); setConflict(false)
+          navigation.current?.push({screen: 'editor', routeId: recovery.editing?.id ?? recovery.upgrade?.sourceId})
           setProfileNotice('Draft restored. You can save it now.')
         }
         clearRecovery()
@@ -501,11 +594,23 @@ function App() {
       if (event === 'expired') {
         setNeedsSignIn(true)
         setAuthError('Your session expired. Sign in again to continue; your route draft is kept.')
-      } else { setNeedsSignIn(false); setShowProfile(false) }
+      } else {
+        setNeedsSignIn(false); setShowProfile(false); setProfileVisited(false)
+        draftUserId.current = null
+        navigation.current?.replace({screen: 'home'})
+        setMode('browse'); selectProblem(null)
+      }
     })
     void loadIdentity()
     return () => { live = false; sequence++; unsubscribe() }
   }, [])
+
+  useEffect(() => {
+    if (problemStore.shared && identity && draftUserId.current && draftUserId.current !== identity.userId) {
+      draftUserId.current = null; setDraft([]); setEditing(null); setUpgrade(null)
+      navigation.current?.replace({screen: 'home'}); setMode('browse'); selectProblem(null)
+    }
+  }, [identity?.userId])
 
 
   const refreshProblems = async () => {
@@ -552,6 +657,7 @@ function App() {
   }
 
   const openProblem = async (problem: Problem, edit = false) => {
+    const sourceSnapshot = captureScreen.current()
     const sequence = ++selectionSequence.current
     setLinkLoading(false); setLinkError('')
     setOpeningId(problem.id)
@@ -559,11 +665,12 @@ function App() {
     try {
       const fresh = await problemStore.get(problem.id)
       if (sequence !== selectionSequence.current) return
+      if (edit && routeCompatibility(fresh).outdated) throw new Error('Use Upgrade to create a new route on the latest wall.')
+      pushScreen({screen: edit ? 'editor' : 'route', routeId: fresh.id}, sourceSnapshot)
       setProblems((prev) => prev.map((item) => item.id === fresh.id ? {...fresh, commentCount: fresh.commentCount ?? item.commentCount} : item))
       selectProblem(fresh)
       setRoutesOpen(false)
       if (edit) {
-        if(routeCompatibility(fresh).outdated)throw new Error('Use Upgrade to create a new route on the latest wall.')
         setUpgrade(null);setDraftNotes(fresh.notes);setViewWall(latestWall)
         draftUserId.current = identity?.userId ?? null
         setEditing(fresh)
@@ -583,21 +690,6 @@ function App() {
     }
   }
 
-  useEffect(() => {
-    if (!initialRouteId) return
-    let live = true
-    const sequence = ++selectionSequence.current
-    setLinkLoading(true); setLinkError('')
-    void problemStore.get(initialRouteId).then((problem) => {
-      if (live && sequence === selectionSequence.current) selectProblem(problem)
-    }).catch((error) => {
-      if (live && sequence === selectionSequence.current) setLinkError(error instanceof Error ? error.message : 'Could not open the shared route.')
-    }).finally(() => {
-      if (live && sequence === selectionSequence.current) setLinkLoading(false)
-    })
-    return () => { live = false }
-  }, [initialRouteId, linkAttempt])
-
   const startUpgrade=async(source:Problem)=> {
     if(!problemStore.getUpgradeDraft)return
     const sequence=++selectionSequence.current
@@ -605,6 +697,7 @@ function App() {
     try {
       const seed=await problemStore.getUpgradeDraft(source.id)
       if(sequence!==selectionSequence.current)return
+      pushScreen({screen: 'editor', routeId: source.id})
       draftUserId.current=identity?.userId??null
       clearRecovery();setUpgrade(seed);setEditing(null);setDraftNotes(seed.notes)
       setDraft(seed.holds);setName(seed.name);setGrade(seed.grade);setSetter(seed.setter)
@@ -616,6 +709,7 @@ function App() {
 
   const startSetting = () => {
     if (!canWrite) { void signInWithRecovery(); return }
+    pushScreen({screen: 'editor', routeId: activeProblem?.id})
     draftUserId.current = identity?.userId ?? null
     clearRecovery()
     setShowProfile(false)
@@ -662,11 +756,15 @@ function App() {
     listSequence.current++
     setLoading(false)
     setLoadingMore(false)
+    const savingEntry = navigation.current?.current.id
     const input = { name: name.trim(), grade, setter: setter.trim() || 'Anonymous', holds: draft, ...(draftNotes !== undefined ? { notes: draftNotes } : {}) }
     try {
       const problem = upgrade&&problemStore.upgrade ? await problemStore.upgrade(upgrade,input,name.trim()===upgrade.name) : editing ? await problemStore.update(editing, input) : await problemStore.create(input)
       setProblems((prev) => [problem, ...prev.filter((p) => p.id !== problem.id)])
+      if (savingEntry) completedEditors.current.set(savingEntry, problem)
+      if (savingEntry && savingEntry !== navigation.current?.current.id) return
       clearRecovery()
+      navigation.current?.replace({screen: 'route', routeId: problem.id})
       selectProblem(problem)
       setHighlightedHoldId(null)
       setEditing(null);setUpgrade(null)
@@ -718,13 +816,13 @@ function App() {
     <main className={`app-shell ${mode === 'set' ? 'is-setting' : activeProblem ? 'has-active-route' : ''}`}>
       <header className="topbar">
         <div>
-          <h1><span className="brand-highlight">Hyped</span>@Stoneham CRG Spray Wall</h1>
+          <h1><a className="brand-home" href={import.meta.env.BASE_URL} aria-label="Home" onClick={onHomeClick}><span className="brand-highlight">Hyped</span>@Stoneham CRG Spray Wall</a></h1>
         </div>
         {identity && <details className="account-menu" ref={accountMenu}>
           <summary aria-label="Account menu" title="Account menu">{(profile.displayName || 'U').slice(0, 1).toUpperCase()}</summary>
           <div className="account-popover">
             <strong>{profile.displayName || 'Your account'}</strong>
-            <button className="ghost small" disabled={busy} onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); setRoutesOpen(false); setShowProfile(true); setProfileNotice('') }}>Profile{profile.displayName ? ' · ' + profile.displayName : ''}</button>
+            <button className="ghost small" disabled={busy} onClick={openProfile}>Profile{profile.displayName ? ' · ' + profile.displayName : ''}</button>
             <button className="ghost small" disabled={busy} onClick={() => { clearRecovery(); void signOut().catch((e) => setAuthError(e.message)) }}>Sign out</button>
             {identity.isAdmin && <><span className="muted">Gym administrator</span>
       <details className="polygon-debug-panel">
@@ -748,21 +846,27 @@ function App() {
       {selectedWall.id!==DEFAULT_WALL_VERSION && <p className="wall-history-notice">Wall history · {selectedWall.label} · <a href={wallVersionUrl(window.location.href,DEFAULT_WALL_VERSION).href}>Back to current wall</a></p>}
       {!showProfile && <nav className="home-actions" aria-label="Wall actions">
         {mode === 'browse' ? <>
-          <button className="primary" disabled={busy || (problemStore.shared && !identity && !authConfigured)} onClick={startSetting}>{problemStore.shared && !identity ? (needsSignIn ? 'Sign in again' : 'Login to set') : '＋ Set'}</button>
-          <button className="primary" aria-haspopup="dialog" aria-expanded={routesOpen} aria-controls="routes-drawer" onClick={() => setRoutesOpen(true)}>Explore routes <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10" /></svg></button>
-        </> : <button className="ghost small" disabled={busy} onClick={() => { clearRecovery();setUpgrade(null);setViewWall(activeProblem?displayWall(activeProblem,selectedWall):selectedWall); setMode('browse'); setHighlightedHoldId(null) }}>Cancel</button>}
+          <button className="primary" disabled={!navigationReady || busy || (problemStore.shared && !identity && !authConfigured)} onClick={startSetting}>{problemStore.shared && !identity ? (needsSignIn ? 'Sign in again' : 'Login to set') : '＋ Set'}</button>
+          <button className="primary" disabled={!navigationReady} aria-haspopup="dialog" aria-expanded={routesOpen} aria-controls="routes-drawer" onClick={openExplore}>Explore routes <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10" /></svg></button>
+        </> : <button className="ghost small" disabled={busy} onClick={() => { clearRecovery(); goBack() }}>Cancel</button>}
         {mode === 'set' && problemStore.shared && !identity && <button className="primary small" disabled={!authConfigured} onClick={() => void signInWithRecovery()}>{needsSignIn ? 'Sign in again' : 'Login to set'}</button>}
       </nav>}
       {authError && <p role="alert" className="error-message auth-notice">{authError}</p>}
       {profileNotice && <p className="profile-notice" role="status">{profileNotice}</p>}
-      {showProfile && (identity || needsSignIn) ? <Profile baseUrl={apiBaseUrl} initial={profile} email={email} userId={identity?.userId}
-        onClose={() => setShowProfile(false)} onOpenSend={async (id) => {
+      {(showProfile || profileVisited) && (identity || needsSignIn) && <div hidden={!showProfile}>
+      <Profile key={`${identity?.userId ?? 'signed-out'}:${profileVisit}`} baseUrl={apiBaseUrl} initial={profile} email={email} userId={identity?.userId}
+        onClose={goBack} onOpenSend={async (id) => {
+          const sequence = ++selectionSequence.current
           const problem = await problemStore.get(id)
+          if (sequence !== selectionSequence.current) return
+          pushScreen({screen: 'route', routeId: problem.id})
           setProblems((previous) => [problem, ...previous.filter((p) => p.id !== id)])
           selectProblem(problem); setMode('browse'); setShowProfile(false)
-        }} onSave={(saved) => { setProfile(saved); setProfileNotice('Profile saved.'); setShowProfile(false) }} /> : <>
+        }} onSave={(saved) => { setProfile(saved); setProfileNotice('Profile saved.'); goBack() }} />
+      </div>}
+      {!(showProfile && (identity || needsSignIn)) && <>
       {linkLoading && <p className="link-notice" role="status">Opening shared route…</p>}
-      {linkError && <div className="link-notice" role="alert"><p>{linkError}</p><button className="ghost small" onClick={() => setLinkAttempt((previous) => previous + 1)}>Retry shared route</button><button className="ghost small" onClick={() => { setLinkError(''); selectProblem(null) }}>Dismiss</button></div>}
+      {linkError && <div className="link-notice" role="alert"><p>{linkError}</p><button className="ghost small" onClick={() => { if (navigation.current) restoreScreen.current(navigation.current.current) }}>Retry shared route</button><button className="ghost small" onClick={goHome}>Dismiss</button></div>}
       <section className="wall-card">
         <WallViewer key={viewWall.id} wall={viewWall} mode={mode} draft={draft} activeProblem={activeProblem} onHoldTap={tapHold}
           debugPolygons={identity?.isAdmin && showAllPolygons ? debugHolds : []} showPolygonLabels={Boolean(identity?.isAdmin && showPolygonLabels)} showCropFocus={Boolean(identity?.isAdmin && showAllPolygons) && debugDataset === 'sam2'} highlightedHoldId={highlightedHoldId} />
@@ -818,7 +922,7 @@ function App() {
             <div><div className="route-attribution"><span className="muted">{activeProblem.grade} · {activeProblem.setter}</span>
               {problemStore.shared && activeProblem.ownerId && <span className="added-by"><span aria-hidden="true">∆ </span>added by <PublicProfileLink key={activeProblem.id} baseUrl={apiBaseUrl} path={'/v1/problems/' + encodeURIComponent(activeProblem.id) + '/creator-profile'} /></span>}
             </div><h2>{activeProblem.name}</h2>{activeProblem.outdated&&<p className="route-old-wall">Route only available on old version wall</p>}</div>
-            <button className="ghost small" aria-label="Clear selected route" onClick={() => { selectionSequence.current++; selectProblem(null); setLinkError(''); setLinkLoading(false) }}>✕</button>
+            <button className="ghost small" aria-label="Clear selected route" onClick={goBack}>✕</button>
           </div>
             {activeProblem && !activeProblem.outdated && (!problemStore.shared || identity?.isAdmin || (identity && activeProblem.ownerId === identity.userId)) && <button className="ghost small" disabled={busy || openingId !== null} onClick={() => void openProblem(activeProblem, true)}>Edit problem</button>}
           {activeProblem.outdated && (!problemStore.shared || identity?.userId===activeProblem.ownerId) && <button className="primary upgrade-route-button" disabled={busy || openingId!==null} onClick={()=>void startUpgrade(activeProblem)}>Upgrade</button>}
@@ -830,10 +934,10 @@ function App() {
           {problemStore.shared && activeProblem && <Community key={activeProblem.id} baseUrl={apiBaseUrl} problemId={activeProblem.id} name={activeProblem.name} userId={identity?.userId} onCommentCountChange={updateCommentCount} />}
         </section>}
         <dialog id="routes-drawer" className="routes-drawer" ref={routesDialog} aria-labelledby="routes-title"
-          onCancel={() => setRoutesOpen(false)}
-          onClick={(e) => { if (e.target === e.currentTarget) { const rect = e.currentTarget.getBoundingClientRect(); if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) setRoutesOpen(false) } }}>
+          onCancel={event => { event.preventDefault(); goBack() }}
+          onClick={(e) => { if (e.target === e.currentTarget) { const rect = e.currentTarget.getBoundingClientRect(); if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) goBack() } }}>
         <section className="problem-sheet">
-          <div className="drawer-heading"><h2 id="routes-title">Explore routes</h2><button className="ghost small" aria-label="Close routes" onClick={() => setRoutesOpen(false)}>✕</button></div>
+          <div className="drawer-heading"><div><a className="drawer-home" href={import.meta.env.BASE_URL} aria-label="Home" onClick={onHomeClick}>Hyped</a><h2 id="routes-title">Explore routes</h2></div><button className="ghost small" aria-label="Close routes" onClick={goBack}>✕</button></div>
           <div className="section-heading">
             <div>
               <div className="eyebrow">{problemStore.shared ? 'SHARED WALL' : 'LOCAL MODE'}</div>

@@ -19,6 +19,8 @@ A mobile-first route-setting app for the Stoneham CRG spray wall.
 - Edit your profile and browse **My routes**, newest first: five initially, then
   **Load more**. Creator attribution uses the account identity; the editable
   Setter credit can name someone else.
+- Use browser or phone **Back** to return to the previous screen, including the
+  Explore list behind a route. Click **Hyped** to return Home.
 - View public creator profiles and your own send history. Use **Browse wall
   history** at the bottom of the page to see earlier wall versions.
 

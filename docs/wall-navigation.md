@@ -49,3 +49,35 @@ in a shared URL. Local-only routes are not shareable across devices.
 `scripts/route-share-smoke.cjs` verifies the copy and manual-copy flows, a fresh
 anonymous deep link, a route outside page one, late list/refresh responses, and
 missing/failed-link handling with isolated API fixtures.
+
+## Browser and phone Back
+
+Home, Explore, route details, Profile and the route editor now use browser history.
+Home → Explore → route → Back restores Explore, including its loaded pages and
+scroll position. Forward restores the route. Escape, backdrop and close controls
+on Explore also return to the preceding screen. The clickable Hyped brand returns
+to Home; the drawer has its own Hyped link while the main header is inert.
+A directly opened shared route receives a Home entry underneath it. Reloading
+that route reuses its history entry. Back from Home can leave the site normally.
+
+Screen descriptors and route IDs live in `history.state`. Unsaved editor content
+stays in tab memory, bound to the draft owner's identity; Back/Forward restores
+it while the tab remains open. Profile drafts and loaded My routes pages survive
+returning from a route. Explicitly reopening Profile from the account menu starts
+a fresh visit with five routes. Reloaded editor history without an in-memory draft
+falls back to its route or Home; the existing sign-in recovery mechanism remains
+separate. Saving replaces the editor entry with its saved route, including when
+the response arrives after navigating away. Late route loads do not override a
+newer navigation action.
+
+`src/screenHistory.ts` manages the history entries, with unit checks in
+`tests/screenHistory.test.mjs`. To check the full mobile Back/Forward flow:
+
+```sh
+APP_URL=http://localhost:5194 node scripts/screen-history-smoke.cjs
+```
+
+This isolated browser fixture covers list pagination/scroll, historical routes,
+Upgrade, Profile drafts, editor drafts and saving, responses after navigating
+away, direct shared links and reload, the Hyped links, and normal exit at Home.
+All route mutations are intercepted by fixtures.

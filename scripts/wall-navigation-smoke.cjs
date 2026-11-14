@@ -67,7 +67,7 @@ const api = 'https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com'
         if (role === 'admin') {
           await page.getByText('Polygon debug', { exact: true }).click()
           await page.getByLabel('Show all polygons', { exact: true }).check()
-          assert.equal(await page.locator('.debug-polygon').count(), 677)
+          assert.equal(await page.locator('.debug-polygon').count(), 797)
         }
         await page.getByRole('button', { name: 'Profile · Alice', exact: true }).click()
         await page.getByRole('region', { name: 'Your sends' }).waitFor()
@@ -83,6 +83,9 @@ const api = 'https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com'
       }
       await page.setViewportSize({ width: 390, height: 844 })
       await page.getByRole('button', { name: 'Clear selected route', exact: true }).click()
+      await page.getByRole('dialog', { name: 'Explore routes' }).waitFor()
+      await page.locator('.drawer-home').click()
+      await page.getByRole('dialog', { name: 'Explore routes' }).waitFor({state: 'hidden'})
       if (role === 'guest') {
         await page.screenshot({ path: 'artifacts/wall-home-mobile.png' })
         await page.getByRole('button', { name: 'Explore routes' }).click()
