@@ -1,0 +1,61 @@
+{
+  "recordedAt": "2026-11-15T04:13:31.873Z",
+  "wallVersionId": "2026-11-v8",
+  "sourceCommit": "3fcbf3b3b33ffb29ed40e141c4e926709a984b72",
+  "backend": {
+    "stack": "stoneham-spraywall-prod",
+    "stackStatus": "UPDATE_COMPLETE",
+    "artifactKey": "backend/v8-reviewed-g44sRmZ0ejcJzaeddi.zip",
+    "lambdaCodeSha256": "g44sRmZ0ejcJzaeddi+eyWOA6KpNoBtjLnPcl9I6wFs=",
+    "resourceReplacements": false
+  },
+  "migration": {
+    "wallVersionId": "2026-11-v8",
+    "dryRun": false,
+    "complete": true,
+    "conflicts": 0,
+    "pages": 1,
+    "scanned": 43,
+    "processed": 9,
+    "compatible": 8,
+    "outdated": 1,
+    "changed": 9
+  },
+  "convergence": {
+    "converged": true,
+    "postMigrationDryRun": {
+      "pages": 2,
+      "scanned": 51,
+      "processed": 9,
+      "compatible": 8,
+      "outdated": 1,
+      "changed": 0
+    }
+  },
+  "routeVerification": {
+    "total": 9,
+    "compatible": 8,
+    "outdated": 1,
+    "routeIdsContentRolesAndTimestamps": "unchanged",
+    "outdatedRoutes": [
+      {
+        "id": "c7438dcd-86c4-45f7-bac1-d22c2fcfa3ae",
+        "name": "Carjack Fever",
+        "missingHoldIds": [
+          "sam2-auto-0247"
+        ]
+      }
+    ],
+    "versionSpecificReadCount": 8
+  },
+  "checks": {
+    "frontendTests": "passed",
+    "backendTests": "passed",
+    "backendTypecheck": "passed",
+    "frontendBuild": "passed",
+    "backendBuild": "passed",
+    "offlineRescanTests": 13,
+    "mobileLifecycleAndUpgradeFixtures": "passed",
+    "publicApiSmoke": "passed"
+  }
+}
