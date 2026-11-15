@@ -1,3 +1,4 @@
+import {latestRouteVersions} from './routeVersionGroups.ts'
 import type { Problem } from './types'
 
 export type ExploreSort = 'newest' | 'grade-asc' | 'grade-desc' | 'stars-desc' | 'stars-asc'
@@ -21,7 +22,7 @@ export function readRating(value: unknown): RouteRating | undefined {
 }
 const newest = (a: Problem, b: Problem) => b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id)
 export function exploreRoutes(items: Problem[], query: ExploreQuery, ratings: ReadonlyMap<string, RouteRating>): Problem[] {
-  return items.filter(item => (!query.grade || item.grade === query.grade) && (!query.validOnly || !item.outdated)).sort((a, b) => {
+  return latestRouteVersions(items).filter(item => (!query.grade || item.grade === query.grade) && (!query.validOnly || !item.outdated)).sort((a, b) => {
     if (query.sort === 'grade-asc' || query.sort === 'grade-desc') {
       const av = gradeValue(a.grade), bv = gradeValue(b.grade)
       if (av !== bv) {

@@ -129,11 +129,11 @@ test('CORS preflight succeeds without accessing problem data', async () => {
   assert.equal(writes.length, 0)
 })
 
-test('anonymous writes fail, DELETE is unavailable, legacy records are not claimable', async () => {
+test('anonymous writes fail, removal requires a revision, legacy records are not claimable', async () => {
   const anonymous = (method, body) => handler({ rawPath: path, body: JSON.stringify(body),
     requestContext: { requestId: 'anonymous', http: { method, path } } })
   assert.equal((await anonymous('PATCH', { revision: 2, name: 'Attack' })).statusCode, 401)
-  assert.equal((await request('DELETE', path)).statusCode, 405)
+  assert.equal((await request('DELETE', path)).statusCode, 400)
   delete item.ownerId
   assert.equal((await request('PATCH', path, { revision: 2, name: 'Claim' })).statusCode, 403)
   assert.equal(writes.length, 0)

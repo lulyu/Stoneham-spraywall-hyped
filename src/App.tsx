@@ -6,6 +6,8 @@ import { DRAFT_RECOVERY_KEY, readRecoveryDraft, storeRecoveryDraft } from './dra
 import { initializeAuth, accountDetails, accessToken, signIn, signOut, authConfigured } from './auth'
 import Profile from './Profile'
 import Community from './Community'
+import RouteVersions from './RouteVersions'
+import {latestRouteVersions} from './routeVersionGroups'
 import { withMissingCommentCounts } from './commentCounts'
 import { defaultExploreQuery, exploreRoutes, gradeValue, isStarSort, needsAllRoutes, type ExploreQuery, type ExploreSort } from './exploreRoutes'
 import { useRouteRatings } from './useRouteRatings'
@@ -37,7 +39,7 @@ const problemStore = apiBaseUrl
 const importKey = localStorageKey + ':imported:' + apiBaseUrl
 function pendingLocalProblems() {
   const allIds=new Set(wallVersions.flatMap(wall=>wall.holds.map(h=>h.id)))
-  const local = wallVersions.flatMap(wall=>readLocalProblems(browserStorage,allIds,localWallKey(wall.id))).map(routeCompatibility)
+  const local = wallVersions.flatMap(wall=>readLocalProblems(browserStorage,allIds,localWallKey(wall.id)).filter(route=>!route.hidden)).map(routeCompatibility)
   const imported:Record<string,string>={}
   for(const wall of wallVersions) {
     try{Object.assign(imported,JSON.parse(browserStorage.getItem(localWallKey(wall.id)+':imported:'+apiBaseUrl)||'{}'))}catch{/* Preserve other versions' import records. */}
@@ -373,13 +375,16 @@ function App() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [exploreQuery, setExploreQuery] = useState<ExploreQuery>(defaultExploreQuery)
+  const groupedProblems=useMemo(()=>latestRouteVersions(problems),[problems])
   const starSort = isStarSort(exploreQuery.sort)
   const allRoutesNeeded = needsAllRoutes(exploreQuery)
-  const routeRatings = useRouteRatings(apiBaseUrl, problems.map(problem => problem.id),
+  const routeRatings = useRouteRatings(apiBaseUrl, groupedProblems.map(problem => problem.id),
     problemStore.shared && routesOpen && !loadingMore && (!starSort || !nextCursor))
   const visibleProblems = useMemo(() => exploreRoutes(problems, exploreQuery, routeRatings.ratings), [problems, exploreQuery, routeRatings.ratings])
-  const filterGrades = [...new Set([...grades, ...problems.map(problem => problem.grade)])].sort((a, b) => gradeValue(a) - gradeValue(b) || a.localeCompare(b))
+  const filterGrades = [...new Set([...grades, ...groupedProblems.map(problem => problem.grade)])].sort((a, b) => gradeValue(a) - gradeValue(b) || a.localeCompare(b))
   const [activeProblem, setActiveProblem] = useState<Problem | null>(null)
+  const removedIds=useRef(new Set<string>())
+  const [confirmRemove,setConfirmRemove]=useState(false),[removeError,setRemoveError]=useState('')
   const updateCommentCount = useCallback((problemId: string, commentCount: number) => {
     setProblems(previous => previous.some(problem => problem.id === problemId && problem.commentCount !== commentCount)
       ? previous.map(problem => problem.id === problemId ? {...problem, commentCount} : problem) : previous)
@@ -447,6 +452,7 @@ function App() {
   const selectProblem = (problem: Problem | null) => {
     const evaluated=problem?routeCompatibility(problem):null
     setViewWall(evaluated?displayWall(evaluated,selectedWall):selectedWall)
+    setConfirmRemove(false);setRemoveError('')
     setActiveProblem(evaluated)
     shareSequence.current++
     setShareMessage(''); setManualShareLink('')
@@ -466,6 +472,9 @@ function App() {
       const routeId = completed?.id ?? entry.routeId
       navigation.current!.replace(routeId ? {screen: 'route', routeId} : {screen: 'home'})
       target = navigation.current!.current
+    }
+    if((target.routeId&&removedIds.current.has(target.routeId))||(completed&&removedIds.current.has(completed.id))){
+      navigation.current!.replace({screen:target.screen==='profile'?'profile':'explore'});target=navigation.current!.current
     }
     setRoutesOpen(target.screen === 'explore'); setShowProfile(target.screen === 'profile')
     if (target.screen === 'profile') setProfileVisited(true)
@@ -633,7 +642,7 @@ function App() {
     setListError('')
     try {
       const page = await problemStore.list()
-      if (sequence === listSequence.current) { setProblems(page.items.map(routeCompatibility)); setNextCursor(page.nextCursor); loadLegacyCommentCounts(page.items, sequence) }
+      if (sequence === listSequence.current) { for(const route of page.items)removedIds.current.delete(route.id);setProblems(page.items.map(routeCompatibility)); setNextCursor(page.nextCursor); loadLegacyCommentCounts(page.items, sequence) }
     } catch (error) {
       if (sequence === listSequence.current) setListError(error instanceof Error ? error.message : 'Could not load problems.')
     } finally {
@@ -683,6 +692,7 @@ function App() {
     setListError('')
     try {
       const fresh = await problemStore.get(problem.id)
+      removedIds.current.delete(fresh.id)
       if (sequence !== selectionSequence.current) return
       if (edit && routeCompatibility(fresh).outdated) throw new Error('Use Upgrade to create a new route on the latest wall.')
       pushScreen({screen: edit ? 'editor' : 'route', routeId: fresh.id}, sourceSnapshot)
@@ -707,6 +717,22 @@ function App() {
     } finally {
       if (sequence === selectionSequence.current) setOpeningId(null)
     }
+  }
+
+  const removeActive=async()=>{
+    if(!activeProblem||mutation.current)return
+    const route=activeProblem,entry=navigation.current?.current.id
+    mutation.current=true;setBusy(true);setRemoveError('')
+    try{
+      await problemStore.remove(route)
+      removedIds.current.add(route.id);selectionSequence.current++;setProfileVisit(value=>value+1)
+      setProblems(previous=>previous.filter(p=>p.id!==route.id));routeRatings.refresh()
+      if(entry===navigation.current?.current.id){
+        navigation.current?.replace({screen:'explore'});selectProblem(null);setMode('browse');setShowProfile(false);setRoutesOpen(true)
+      }
+      await refreshProblems()
+    }catch(error){setRemoveError(error instanceof Error?error.message:'Could not remove this route. Please retry.')}
+    finally{mutation.current=false;setBusy(false)}
   }
 
   const startUpgrade=async(source:Problem)=> {
@@ -943,14 +969,25 @@ function App() {
             </div><h2>{activeProblem.name}</h2>{activeProblem.outdated&&<p className="route-old-wall">Route only available on old version wall</p>}</div>
             <button className="ghost small" aria-label="Clear selected route" onClick={goBack}>✕</button>
           </div>
-            {activeProblem && !activeProblem.outdated && (!problemStore.shared || identity?.isAdmin || (identity && activeProblem.ownerId === identity.userId)) && <button className="ghost small" disabled={busy || openingId !== null} onClick={() => void openProblem(activeProblem, true)}>Edit problem</button>}
-          {activeProblem.outdated && (!problemStore.shared || identity?.userId===activeProblem.ownerId) && <button className="primary upgrade-route-button" disabled={busy || openingId!==null} onClick={()=>void startUpgrade(activeProblem)}>Upgrade</button>}
+          {(!problemStore.shared||identity?.isAdmin||Boolean(identity&&identity.userId===activeProblem.ownerId))&&<div className="route-management-actions">
+            {!activeProblem.outdated&&<button className="ghost small" disabled={busy||openingId!==null} onClick={()=>void openProblem(activeProblem,true)}>Edit problem</button>}
+            <button className="ghost small danger" disabled={busy||openingId!==null} onClick={()=>{setConfirmRemove(true);setRemoveError('')}}>Remove</button>
+          </div>}
+          {confirmRemove&&<div className="remove-route-confirmation" role="group" aria-label="Remove route confirmation">
+            <p>Remove “{activeProblem.name}”?</p>
+            <p className="muted">Only this version will be removed. Other versions and their activity will stay available.</p>
+            {removeError&&<p className="error-message" role="alert">{removeError}</p>}
+            <div className="comment-actions"><button className="ghost small danger" disabled={busy} onClick={()=>void removeActive()}>{busy?'Removing…':'Confirm remove'}</button><button className="ghost small" disabled={busy} onClick={()=>{setConfirmRemove(false);setRemoveError('')}}>Cancel remove</button></div>
+          </div>}
+          {listError&&<p className="error-message" role="alert">{listError}</p>}
+          {activeProblem.outdated && (!problemStore.shared || Boolean(identity&&identity.userId===activeProblem.ownerId)) && <button className="primary upgrade-route-button" disabled={busy || openingId!==null} onClick={()=>void startUpgrade(activeProblem)}>Upgrade</button>}
           {problemStore.shared && <button className="ghost share-route-button" aria-label="Copy route link" title="Share route" onClick={() => void copyRouteLink()}>
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 10.5 6.8-4m-6.8 7 6.8 4" /></svg>
           </button>}
           {shareMessage && <p className="share-notice" role="status">{shareMessage}</p>}
           {manualShareLink && <label className="share-link-field">Route link<input readOnly autoFocus value={manualShareLink} onFocus={(e) => e.currentTarget.select()} /></label>}
           {problemStore.shared && activeProblem && <Community key={activeProblem.id} baseUrl={apiBaseUrl} problemId={activeProblem.id} name={activeProblem.name} userId={identity?.userId} onCommentCountChange={updateCommentCount} onRatingChange={routeRatings.update} />}
+          <RouteVersions key={activeProblem.id} active={activeProblem} store={problemStore} onOpen={openProblem} busy={busy||openingId!==null} />
         </section>}
         <dialog id="routes-drawer" className="routes-drawer" ref={routesDialog} aria-labelledby="routes-title"
           onCancel={event => { event.preventDefault(); goBack() }}
@@ -962,7 +999,7 @@ function App() {
               <div className="eyebrow">{problemStore.shared ? 'SHARED WALL' : 'LOCAL MODE'}</div>
               <span className="muted">Choose a problem to see it on the wall</span>
             </div>
-            <span className="muted">{problems.length} {problemStore.shared ? (nextCursor ? 'routes loaded' : 'shared problems') : 'saved on this device'}</span>
+            <span className="muted">{groupedProblems.length} {problemStore.shared ? (nextCursor ? 'routes loaded' : 'shared problems') : 'saved on this device'}</span>
           </div>
 
           <div className="problem-tools">
@@ -1008,6 +1045,7 @@ function App() {
                 return (
                 <button
                   key={problem.id}
+                  data-route-id={problem.id}
                   className={`problem-card ${problem.outdated?'outdated':''} ${activeProblem?.id === problem.id ? 'active' : ''}`}
                   disabled={busy}
                   onClick={() => void openProblem(problem)}

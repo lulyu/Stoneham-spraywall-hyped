@@ -30,7 +30,9 @@ A mobile-first route-setting app for the Stoneham CRG spray wall.
 
 The current wall is **2026-11-v8**, with **801 human-reviewed holds** and a
 7292 × 5514 image. Previous v7 (797 holds) and original v4 (677 holds) maps remain
-available for historical routes. The app opens the current physical wall by default.
+available for historical routes. The app opens the current physical wall by default. Explore and My routes show
+only the latest version in each Upgrade family; Other versions below a route
+opens its earlier versions with their original activity.
 
 A publication checks every hold used by each existing route, including starts,
 finishes, and foot-only holds. If all IDs still exist, the route gains the new
@@ -50,6 +52,7 @@ See [the standard wall-update workflow](docs/wall-update-workflow.md),
 | --- | --- |
 | Browse routes, wall history, ratings, comments, and public profiles | Anyone |
 | Create routes, manage a profile, log sends, rate, and comment | Signed-in users |
+| Remove one route version (recoverable) | Its creator or a gym administrator |
 | Edit a route | Its creator or a gym administrator |
 | Edit or delete a comment | Its author |
 | Upgrade an outdated route into a new route | Its original creator; admin status alone does not grant this |

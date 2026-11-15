@@ -99,3 +99,26 @@ test('overlapping hold IDs do not import old local routes into a candidate wall'
   assert.deepEqual((await old.list()).items.map(p=>p.id),[original.id])
   assert.equal((await candidate.list()).items.length,1)
 })
+
+test('API route versions and removal preserve identifiers, cursor and optimistic revision',async()=>{
+ const calls=[]
+ const store=createApiProblemStore('https://example.test',async(url,options)=>{calls.push({url,options});return Response.json(options.method==='DELETE'?{removed:true}:{items:[]})},async()=> 'account-token')
+ await store.listVersions('route/id','cursor/+?=')
+ assert.equal(new URL(calls[0].url).pathname,'/v1/problems/route%2Fid/versions')
+ assert.equal(new URL(calls[0].url).searchParams.get('cursor'),'cursor/+?=')
+ await store.remove({...input,id:'route',revision:4})
+ assert.equal(calls[1].options.method,'DELETE');assert.deepEqual(JSON.parse(calls[1].options.body),{revision:4})
+ assert.equal(calls[1].options.headers.authorization,'Bearer account-token')
+ await assert.rejects(store.remove({...input,id:'missing-revision'}),/Reload/)
+})
+test('local removal is idempotent, preserves raw records and rejects stale edits without resurrecting routes',async()=>{
+ const storage=memory(),store=createLocalProblemStore(storage,new Set(['a','b']))
+ const original=await store.create(input),updated=await store.update(original,{...input,name:'Updated'})
+ await assert.rejects(store.remove(original),e=>e.status===409)
+ await store.remove(updated);await store.remove(updated)
+ assert.equal((await store.list()).items.length,0)
+ await assert.rejects(store.get(updated.id),e=>e.status===404)
+ await assert.rejects(store.update(updated,input),e=>e.status===404)
+ assert.equal(JSON.parse(storage.getItem(STORAGE_KEY))[0].hidden,true)
+ assert.deepEqual(JSON.parse(storage.getItem(STORAGE_KEY))[0].holds,updated.holds)
+})

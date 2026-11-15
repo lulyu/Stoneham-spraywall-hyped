@@ -48,5 +48,6 @@ export type Problem = {
   updatedAt?: string
   revision?: number
   ownerId?: string
+  hidden?: boolean
   commentCount?: number
 }

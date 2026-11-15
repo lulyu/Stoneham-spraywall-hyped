@@ -1,4 +1,5 @@
 import { emitSessionEvent } from './sessionEvents.ts'
+import {routeFamilyId,compareRouteVersions} from './routeVersionGroups.ts'
 import type { Problem, ProblemHold } from './types'
 
 export const STORAGE_KEY = 'stoneham-spraywall:problems:v3'
@@ -9,6 +10,8 @@ export interface ProblemStore {
   shared: boolean
   list(cursor?: string): Promise<ProblemPage>
   get(id: string): Promise<Problem>
+  listVersions(id:string,cursor?:string):Promise<ProblemPage>
+  remove(existing:Problem):Promise<void>
   create(input: ProblemInput): Promise<Problem>
   update(existing: Problem, input: ProblemInput): Promise<Problem>
   getUpgradeDraft?(id:string):Promise<UpgradeDraft>
@@ -36,7 +39,8 @@ export function readLocalProblems(storage: Pick<Storage, 'getItem'>, validIds: S
 }
 
 export function createLocalProblemStore(storage: Pick<Storage, 'getItem' | 'setItem'>, validIds: Set<string>, storageKey=STORAGE_KEY, wallVersionId?:string): ProblemStore {
-  const list = () => readLocalProblems(storage, validIds, storageKey)
+  const all = () => readLocalProblems(storage, validIds, storageKey)
+  const list = () => all().filter(p=>!p.hidden)
   const persist = (items: Problem[]) => {
     try { storage.setItem(storageKey, JSON.stringify(items)) }
     catch { throw new Error('Could not save on this device. Free storage or enable browser storage, then try again.') }
@@ -49,14 +53,22 @@ export function createLocalProblemStore(storage: Pick<Storage, 'getItem' | 'setI
       if (!p) throw new ProblemStoreError(404, 'This problem no longer exists.')
       return p
     },
+    async listVersions(id){const source=list().find(p=>p.id===id);if(!source)throw new ProblemStoreError(404,'This problem no longer exists.');return {items:list().filter(p=>routeFamilyId(p)===routeFamilyId(source)).sort(compareRouteVersions)}},
+    async remove(existing){
+      const rows=all(),current=rows.find(p=>p.id===existing.id)
+      if(!current)throw new ProblemStoreError(404,'This problem no longer exists.')
+      if(current.hidden)return
+      if((current.revision??1)!==(existing.revision??1))throw new ProblemStoreError(409,'This route changed. Reload before removing it.')
+      persist(rows.map(p=>p.id===existing.id?{...p,hidden:true,revision:(p.revision??1)+1}:p))
+    },
     async create(input) {
       const p: Problem = { ...input, ...(wallVersionId?{wallVersionId}:{}), id: typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : 'problem-' + Date.now() + '-' + Math.random().toString(36).slice(2), createdAt: new Date().toISOString(), revision: 1 }
-      persist([p, ...list()])
+      persist([p, ...all()])
       return p
     },
     async update(existing, input) {
-      const items = list()
-      const latest = items.find((p) => p.id === existing.id)
+      const items = all()
+      const latest = items.find((p) => p.id === existing.id&&!p.hidden)
       if (!latest) throw new ProblemStoreError(404, 'This problem no longer exists.')
       if ((latest.revision ?? 1) !== (existing.revision ?? 1)) throw new ProblemStoreError(409, 'This problem changed.')
       const p = { ...latest, ...input, revision: (latest.revision ?? 1) + 1, updatedAt: new Date().toISOString() }
@@ -91,6 +103,8 @@ export function createApiProblemStore(baseUrl: string, fetcher: typeof fetch = f
     shared: true,
     async list(cursor) { return request<ProblemPage>('GET', (allVersions?'/v1/gyms/stoneham-crg/walls/spray-wall-1/problems':collection) + (cursor ? '?cursor=' + encodeURIComponent(cursor) : '')) },
     get(id) { return request('GET', '/v1/problems/' + encodeURIComponent(id)) },
+    listVersions(id,cursor){return request('GET','/v1/problems/'+encodeURIComponent(id)+'/versions'+(cursor?'?cursor='+encodeURIComponent(cursor):''))},
+    async remove(existing){if(!Number.isSafeInteger(existing.revision)||existing.revision!<1)throw new Error('Reload this route before removing it.');await request('DELETE','/v1/problems/'+encodeURIComponent(existing.id),{revision:existing.revision})},
     create(input) { return request('POST', collection, input) },
     async update(existing, input) {
       if(!allVersions&&(existing.wallVersionId??'2026-10-v4')!==wallVersionId)throw new Error('Open this route on its original wall before editing it.')
