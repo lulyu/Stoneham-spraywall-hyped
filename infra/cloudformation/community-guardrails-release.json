@@ -1,0 +1,44 @@
+{
+  "recordedAt": "2026-11-15T09:06:38.320Z",
+  "sourceCommit": "03f386468a7415db6d28d09238c2ee9c754c8312",
+  "backend": {
+    "stack": "stoneham-spraywall-prod",
+    "status": "UPDATE_COMPLETE",
+    "artifactKey": "backend/guardrails-778cf7a05c8558bde546.zip",
+    "codeSha256": "d4z3oFyFWL3lRm0D6yvmusYGlR58CDgpCLEz+CGo9X0=",
+    "resourceReplacements": false,
+    "oldWritersDrained": true,
+    "quotaTTL": "ENABLED",
+    "verifiedJwtAdminRoutes": 6
+  },
+  "backfill": {
+    "routes": 9,
+    "initialized": 9,
+    "allOriginalRouteContentPreserved": true,
+    "allOriginalCommunityTotalsPreserved": true
+  },
+  "deployedBackendVerification": {
+    "checks": [
+      "rating replacement preserves count and sum",
+      "comment retries increment once",
+      "comment hiding, restoring and deletion keep totals correct",
+      "hidden route direct-link rejection and recovery",
+      "existing-token write suspension and unban",
+      "non-admin rejection",
+      "durable rate limit returns 429 and Retry-After"
+    ],
+    "temporaryRecordsCleaned": 25,
+    "temporaryRecordsRemaining": 0,
+    "realUserContentModified": false
+  },
+  "validation": {
+    "backendTests": "passed, including 15 security/concurrency cases",
+    "backendTypecheck": "passed",
+    "frontendTests": "passed",
+    "builds": "passed",
+    "cloudFormationLint": "passed",
+    "mobileModerationFixtures": "passed",
+    "mobileCommunityRegression": "passed",
+    "anonymousAndForgedWriteRejection": "passed"
+  }
+}
