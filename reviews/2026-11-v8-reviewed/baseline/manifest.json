@@ -1,0 +1,52 @@
+{
+  "session": {
+    "scanId": "2026-11-v8-sam2-review",
+    "gymId": "stoneham-crg",
+    "wallId": "spray-wall-1",
+    "referenceVersion": "2026-11-v7",
+    "candidateVersion": "2026-11-v8",
+    "referenceImageSha256": "6fb57bee42af9b5b51283d79502968466cf7d25eaf0f5a6a64b3c92c22e4e72b",
+    "referenceHoldsSha256": "24ba37e849c7575571d6d723d4f5b6c165c74042a894bea3bc581f87ef9d665d",
+    "registeredImageSha256": "be434e5ca6c33b9c8f126fbf6950eb8fb1e8df00ff3130eda47ff2da6b98f1f1",
+    "coordinateFrame": {
+      "size": [
+        7292,
+        5514
+      ],
+      "orientation": "v7 canonical frame; EXIF-prepared source photos"
+    },
+    "sourceContents": [
+      {
+        "id": "IMG20261114133704.jpg",
+        "imageSha256": "55132c4fd79e4c5f0501942bf3188f6b23cad1c34edc1c2d5e0d3a0929468758"
+      },
+      {
+        "id": "IMG20261114133713.jpg",
+        "imageSha256": "b6de2e4d323cdd34a7c207d817fbe180492a11d6481db8077e4fb1156d39dbf1"
+      },
+      {
+        "id": "IMG20261114133726.jpg",
+        "imageSha256": "54fd2f5e95a6a341561ec7ba6adcf886a1e7d8ead1a24bd28d01f878400ebed2"
+      },
+      {
+        "id": "IMG20261114133728.jpg",
+        "imageSha256": "468859a2bd99fa298719d1484feb91de9aaecbfbeb38c724aa0e784472a50ab5"
+      },
+      {
+        "id": "IMG20261114144544.jpg",
+        "imageSha256": "63539bbd01324a2650ed4bb9ed6b07d710288a7bba7131c6bd53ab00fe931328"
+      }
+    ],
+    "compositionManifestSha256": "d832320e89c8f09e727bd7c9fa2cfdc7024b1404d7cbd57c57badee121757bff",
+    "sourceSessionId": "2a48f57e32ded1e49f39423edc19be490b5ff68ffee8963e96b52863bf7603dd",
+    "candidateManifestSha256": "0c7fcb386e3f040af2dd60c20be8d7d42936b69c5ec08068456616671d122e41",
+    "coverageSha256": "5f555a10da8725678151fd650af235fcec69dc295b267d2540ad0053c289510a",
+    "uncertaintySha256": "8b159fbae0459f2d380d250a95bd6969614bc2f2a6deb2f41b7fa2da255717b5",
+    "proposalsSha256": "8d03432a882437e2c3c35ee566591a854646e81c9ad79d95f3e170f9e6e3332d",
+    "referenceFilledFraction": 0.010419893629361337,
+    "sessionId": "647cb9a3c75287330654a13358a441671e75f2bc4a983cd1ba6266166ad55b6e"
+  },
+  "publishable": false,
+  "inputKind": "real-captures",
+  "imageFile": "wall_registered.jpg"
+}

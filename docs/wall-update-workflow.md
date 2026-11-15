@@ -134,3 +134,9 @@ The November 14 candidate run is documented in
 797 inherited prompts, 792 total suggestions including five new-location drafts,
 20% inset prompting, zero transferred approvals. That summary describes the
 prelabel run; it is not evidence that the final human review has been archived.
+
+The user's completed v8 export is now archived separately in
+[2026-11-v8-reviewed](../reviews/2026-11-v8-reviewed/README.md): 801 active holds,
+eight removals and zero pending entries. The user confirmed its two physical replacements and authorized publication;
+[the publication record](../reviews/2026-11-v8-publication/README.md) records their
+new IDs separately, preserving the raw review and replay-derived snapshot.

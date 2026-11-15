@@ -1,8 +1,11 @@
 # Wall publication, route compatibility and Upgrade
 
-The current physical wall is `2026-11-v7`. The homepage uses its reviewed image
-and 797 polygons. Explore lists all routes for the wall, including outdated ones.
-The footer's Browse wall history links retain access to earlier wall images.
+The current physical wall is `2026-11-v8`. The homepage uses its reviewed image
+and 801 polygons. Explore lists all routes for the wall, including outdated ones.
+The footer's Browse wall history links retain access to earlier wall images, including v7.
+
+The [v8 publication record](../reviews/2026-11-v8-publication/README.md) records
+the two user-confirmed replacement IDs separately from the unchanged raw review.
 
 ## Publication gate
 
@@ -14,9 +17,9 @@ The footer's Browse wall history links retain access to earlier wall images.
 
    ```sh
    node backend/scripts/publish-wall.mjs \
-     --function stoneham-spraywall-prod-api --version 2026-11-v7 --dry-run
+     --function stoneham-spraywall-prod-api --version 2026-11-v8 --dry-run
    node backend/scripts/publish-wall.mjs \
-     --function stoneham-spraywall-prod-api --version 2026-11-v7
+     --function stoneham-spraywall-prod-api --version 2026-11-v8
    ```
 
    The operator uses the normal AWS SDK credential chain and needs IAM permission

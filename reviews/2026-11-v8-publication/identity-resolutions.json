@@ -1,0 +1,50 @@
+{
+  "wallVersionId": "2026-11-v8",
+  "authorization": "User confirmed both numbered physical replacements and requested new IDs and publication.",
+  "sourceCheckpointSha256": "5a7c70721cca771a94e38d2f586280790c9bd06224b3ae6e26bb83647dc42abc",
+  "rawReviewUnchanged": true,
+  "resolutions": [
+    {
+      "oldHoldId": "sam2-auto-0240",
+      "newHoldId": "replacement-v8-0240",
+      "decision": "physical-replacement",
+      "geometry": "unchanged from completed human review"
+    },
+    {
+      "oldHoldId": "scan-3d03fe67-21c0-4ff4-af5c-31e25b77e011",
+      "newHoldId": "replacement-v8-3d03fe67",
+      "decision": "physical-replacement",
+      "geometry": "unchanged from completed human review"
+    }
+  ],
+  "activeHoldCount": 801,
+  "retainedHoldCount": 787,
+  "retiredHoldIds": [
+    "manual-65dbb8961b36",
+    "manual-71dd227dbab7",
+    "manual-aff744c86d42",
+    "manual-cffef2e03e11",
+    "sam2-auto-0240",
+    "sam2-auto-0247",
+    "sam2-auto-0262",
+    "scan-3d03fe67-21c0-4ff4-af5c-31e25b77e011",
+    "scan-84c01ed7-d763-408d-b625-720fa12e2fbc",
+    "scan-cb8662fd-90c4-4f5f-98c7-416aaf2228b3"
+  ],
+  "newHoldIds": [
+    "replacement-v8-0240",
+    "replacement-v8-3d03fe67",
+    "scan-084e3d4a-60c6-4521-8dba-18d951bd102c",
+    "scan-12fff133-38ad-4fc7-a1ec-22688f047751",
+    "scan-3b8a33b0-b94b-4e38-b65c-0dfc88a54613",
+    "scan-52d8ca2c-27e7-4d7d-b324-1dfa228be54f",
+    "scan-611b55ea-06df-4b00-ba05-4263d5d18e21",
+    "scan-69ee9bf4-0bce-41b9-b9f4-51056b959ca9",
+    "scan-75b8a71e-1ce5-4413-a479-d66735c7ad78",
+    "scan-89ca00f1-56a3-45c5-bb10-80cf6e164960",
+    "scan-92ff40f8-ba7b-4ce9-9a8b-e67bde89a63d",
+    "scan-a2073ff9-2eb5-4920-9aaa-0ad29c9966ba",
+    "scan-d47df577-da00-4229-bc5e-827c9618d524",
+    "scan-e36d9e09-ff93-49e7-a828-e55c8af8d913"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "wallVersionId": "2026-11-v8",
+  "status": "published",
+  "gymId": "stoneham-crg",
+  "wallId": "spray-wall-1",
+  "image": "wall/versions/2026-11-v8/wall.jpg",
+  "imageSha256": "be434e5ca6c33b9c8f126fbf6950eb8fb1e8df00ff3130eda47ff2da6b98f1f1",
+  "checkpointSha256": "5a7c70721cca771a94e38d2f586280790c9bd06224b3ae6e26bb83647dc42abc",
+  "sourceSessionId": "647cb9a3c75287330654a13358a441671e75f2bc4a983cd1ba6266166ad55b6e",
+  "reviewRevision": 812,
+  "holdCount": 801,
+  "routeMigration": "hold-id-compatibility",
+  "identityResolutions": "reviews/2026-11-v8-publication/identity-resolutions.json"
+}

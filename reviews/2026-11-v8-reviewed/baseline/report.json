@@ -1,0 +1,10 @@
+{
+  "sessionId": "647cb9a3c75287330654a13358a441671e75f2bc4a983cd1ba6266166ad55b6e",
+  "publishable": false,
+  "status": "needs-review",
+  "qaFailures": [
+    "new-image-needs-human-review",
+    "changed-positions-need-identity-review",
+    "unannotated-bottom-footholds"
+  ]
+}

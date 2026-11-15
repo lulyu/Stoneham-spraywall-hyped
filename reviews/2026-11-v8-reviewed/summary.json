@@ -1,0 +1,112 @@
+{
+  "format": "stoneham-reviewed-backup-v1",
+  "checkpoint": "review-progress-r812.json",
+  "checkpointSha256": "5a7c70721cca771a94e38d2f586280790c9bd06224b3ae6e26bb83647dc42abc",
+  "sessionId": "647cb9a3c75287330654a13358a441671e75f2bc4a983cd1ba6266166ad55b6e",
+  "imageSha256": "be434e5ca6c33b9c8f126fbf6950eb8fb1e8df00ff3130eda47ff2da6b98f1f1",
+  "reviewRevision": 812,
+  "historyEvents": 814,
+  "statusCounts": {
+    "verified-refined": 789,
+    "removed": 8,
+    "new": 12
+  },
+  "confirmedHoldCount": 801,
+  "confirmedPartialCoverage": 0,
+  "pendingCount": 0,
+  "publishable": false,
+  "wallVersionId": "2026-11-v8",
+  "referenceVersion": "2026-11-v7",
+  "image": "wall.jpg",
+  "imageSize": [
+    7292,
+    5514
+  ],
+  "referenceHoldCount": 797,
+  "retainedHoldIdCount": 789,
+  "retiredHoldIds": [
+    "sam2-auto-0247",
+    "sam2-auto-0262",
+    "manual-aff744c86d42",
+    "manual-71dd227dbab7",
+    "manual-cffef2e03e11",
+    "manual-65dbb8961b36",
+    "scan-cb8662fd-90c4-4f5f-98c7-416aaf2228b3",
+    "scan-84c01ed7-d763-408d-b625-720fa12e2fbc"
+  ],
+  "newHoldIds": [
+    "scan-084e3d4a-60c6-4521-8dba-18d951bd102c",
+    "scan-a2073ff9-2eb5-4920-9aaa-0ad29c9966ba",
+    "scan-75b8a71e-1ce5-4413-a479-d66735c7ad78",
+    "scan-89ca00f1-56a3-45c5-bb10-80cf6e164960",
+    "scan-611b55ea-06df-4b00-ba05-4263d5d18e21",
+    "scan-92ff40f8-ba7b-4ce9-9a8b-e67bde89a63d",
+    "scan-69ee9bf4-0bce-41b9-b9f4-51056b959ca9",
+    "scan-12fff133-38ad-4fc7-a1ec-22688f047751",
+    "scan-d47df577-da00-4229-bc5e-827c9618d524",
+    "scan-e36d9e09-ff93-49e7-a828-e55c8af8d913",
+    "scan-3b8a33b0-b94b-4e38-b65c-0dfc88a54613",
+    "scan-52d8ca2c-27e7-4d7d-b324-1dfa228be54f"
+  ],
+  "newLocationDecisions": [
+    {
+      "proposalId": "sam2-v8-new-5d185e50429717",
+      "hintName": "relocated-beige",
+      "reviewHoldId": "scan-d47df577-da00-4229-bc5e-827c9618d524",
+      "status": "new",
+      "polygonIoU": 0.9540673678604713,
+      "intersectionOfSmaller": 0.9930709534368071,
+      "matchedBy": "reviewed-geometry-not-provisional-ID",
+      "resolved": true
+    },
+    {
+      "proposalId": "sam2-v8-new-43ffdefe609e47",
+      "hintName": "bottom-red",
+      "reviewHoldId": "scan-92ff40f8-ba7b-4ce9-9a8b-e67bde89a63d",
+      "status": "new",
+      "polygonIoU": 0.9538864628820961,
+      "intersectionOfSmaller": 0.9902085222121487,
+      "matchedBy": "reviewed-geometry-not-provisional-ID",
+      "resolved": true
+    },
+    {
+      "proposalId": "sam2-v8-new-cb0f62cc32e644",
+      "hintName": "bottom-green",
+      "reviewHoldId": "scan-3b8a33b0-b94b-4e38-b65c-0dfc88a54613",
+      "status": "new",
+      "polygonIoU": 0.7060804490177737,
+      "intersectionOfSmaller": 0.97343306680423,
+      "matchedBy": "reviewed-geometry-not-provisional-ID",
+      "resolved": true
+    },
+    {
+      "proposalId": "sam2-v8-new-b245a10dd64ce2",
+      "hintName": "relocated-green",
+      "reviewHoldId": "scan-69ee9bf4-0bce-41b9-b9f4-51056b959ca9",
+      "status": "new",
+      "polygonIoU": 0.9801614508459582,
+      "intersectionOfSmaller": 0.9944129064105729,
+      "matchedBy": "reviewed-geometry-not-provisional-ID",
+      "resolved": true
+    },
+    {
+      "proposalId": "sam2-v8-new-1a0019ed1927cd",
+      "hintName": "bottom-blue",
+      "reviewHoldId": "scan-12fff133-38ad-4fc7-a1ec-22688f047751",
+      "status": "new",
+      "polygonIoU": 0.8977249008557713,
+      "intersectionOfSmaller": 0.999767549976755,
+      "matchedBy": "reviewed-geometry-not-provisional-ID",
+      "resolved": true
+    }
+  ],
+  "checkpointReplay": "validated-against-exact-hash-bound-baseline",
+  "knownChangedPositionsRetainingOldIds": [
+    "sam2-auto-0240",
+    "scan-3d03fe67-21c0-4ff4-af5c-31e25b77e011"
+  ],
+  "publicationChecksPending": [
+    "Review identity of the two changed positions retaining old IDs before route migration"
+  ],
+  "geometrySha256": "1c2f1797db4232f4400f27be6443faf58e033e27f59b7a0a49a329770065a314"
+}
