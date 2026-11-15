@@ -42,6 +42,7 @@ test('daily create allowance cannot be evaded by resetting minute windows or usi
  memory.get('PROBLEM#p1','META').outdated=true
  const upgrade=await request('POST','/v1/problems/p1/upgrade',{})
  assert.equal(upgrade.statusCode,429)
+ clock=Date.UTC(2026,10,16);assert.equal((await request('POST',createPath,input)).statusCode,201)
 })
 test('comment minute allowance and profile limits apply to invalid requests as well',async()=>{
  for(let i=0;i<5;i++)assert.equal((await request('POST','/v1/problems/p1/comments',{text:''})).statusCode,400)
@@ -149,4 +150,22 @@ test('admin moderation listing advances empty scan pages and binds cursors to th
  const page=data(first);assert.equal(page.items.length,0);assert(page.nextCursor)
  assert.equal((await request('GET','/v1/admin/moderation',undefined,'moderator',true,{kind:'users',cursor:page.nextCursor})).statusCode,400)
  const second=data(await request('GET','/v1/admin/moderation',undefined,'moderator',true,{kind:'routes',cursor:page.nextCursor}));assert.equal(second.items.length,1)
+})
+
+test('comment daily allowance is independent of minute resets and starts again at UTC midnight',async()=>{
+ for(let i=0;i<100;i++){
+  if(i%5===0)clock+=61000
+  assert.equal((await comment('00000000-0000-4000-8000-'+String(i).padStart(12,'0'))).statusCode,200)
+ }
+ clock+=61000;assert.equal((await comment('00000000-0000-4000-8000-999999999999')).statusCode,429)
+ clock=Date.UTC(2026,10,16)
+ assert.equal((await comment('00000000-0000-4000-8000-999999999999')).statusCode,200)
+ assert.equal(summary().commentCount,101)
+})
+test('a legacy writer deleting a comment without a revision cannot be undone by a racing edit',async()=>{
+ const added=data(await comment()),row=memory.get('PROBLEM#p1','COMMENT#'+added.id);delete row.revision
+ const intercept=p=>{if(p.TransactItems.some(a=>a.Put?.Item.entityType==='comment'))row.deleted=true;else memory.beforeTransaction=intercept}
+ memory.beforeTransaction=intercept
+ assert.equal((await request('PATCH','/v1/problems/p1/comments/'+added.id,{text:'Late edit'})).statusCode,409)
+ assert.equal(row.deleted,true);assert.equal(row.text,'Keep me')
 })
