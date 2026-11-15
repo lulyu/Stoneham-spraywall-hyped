@@ -1,11 +1,12 @@
+import AdminModeration from './AdminModeration'
 import SendHistory from './SendHistory'
 import MyRoutes from './MyRoutes'
 import { useId, useState } from 'react'
 import { accessToken } from './auth'
 import { profileRequest, type UserProfile } from './profile'
 
-export default function Profile({ baseUrl, initial, email, userId, onSave, onClose, onOpenSend }: {
-  baseUrl: string; initial: UserProfile; email: string; userId?: string
+export default function Profile({ baseUrl, initial, email, userId, isAdmin = false, onSave, onClose, onOpenSend }: {
+  baseUrl: string; initial: UserProfile; email: string; userId?: string; isAdmin?: boolean
   onSave: (profile: UserProfile) => void; onClose: () => void; onOpenSend: (id: string) => Promise<void>
 }) {
   const bioId = useId()
@@ -36,6 +37,7 @@ export default function Profile({ baseUrl, initial, email, userId, onSave, onClo
       </fieldset>
     </form>
     {userId && <MyRoutes key={userId} baseUrl={baseUrl} onOpen={onOpenSend} />}
+    {isAdmin && <AdminModeration baseUrl={baseUrl} />}
     <SendHistory baseUrl={baseUrl} onOpen={onOpenSend} />
   </section>
 }

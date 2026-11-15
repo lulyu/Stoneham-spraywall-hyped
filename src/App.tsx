@@ -873,7 +873,7 @@ function App() {
       {authError && <p role="alert" className="error-message auth-notice">{authError}</p>}
       {profileNotice && <p className="profile-notice" role="status">{profileNotice}</p>}
       {(showProfile || profileVisited) && (identity || needsSignIn) && <div hidden={!showProfile}>
-      <Profile key={`${identity?.userId ?? 'signed-out'}:${profileVisit}`} baseUrl={apiBaseUrl} initial={profile} email={email} userId={identity?.userId}
+      <Profile key={`${identity?.userId ?? 'signed-out'}:${profileVisit}`} baseUrl={apiBaseUrl} initial={profile} email={email} userId={identity?.userId} isAdmin={identity?.isAdmin}
         onClose={goBack} onOpenSend={async (id) => {
           const sequence = ++selectionSequence.current
           const problem = await problemStore.get(id)

@@ -4,6 +4,7 @@ const sdk = require('@aws-sdk/lib-dynamodb')
 process.env.DYNAMODB_TABLE = 'profile-test'
 let rows, calls
 sdk.DynamoDBDocumentClient.from = () => ({ send: async command => {
+ const intercepted=require('./helpers/legacy-security.cjs').intercept(command);if(intercepted)return intercepted
  const p = command.input; calls.push(p)
  const key = p.Key.pk
  if (command.constructor.name === 'GetCommand') return { Item: rows.get(key) }

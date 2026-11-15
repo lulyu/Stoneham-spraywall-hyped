@@ -4,6 +4,7 @@ process.env.DYNAMODB_TABLE='owned-problems-test'
 let rows,queries
 const key=item=>item.pk+'|'+item.sk
 sdk.DynamoDBDocumentClient.from=()=>({send:async command=>{
+ const intercepted=require('./helpers/legacy-security.cjs').intercept(command);if(intercepted)return intercepted
  const p=command.input
  if(command.constructor.name==='GetCommand')return {Item:rows.get(key(p.Key))}
  if(command.constructor.name==='QueryCommand'){

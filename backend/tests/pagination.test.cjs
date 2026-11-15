@@ -10,6 +10,7 @@ const rows = Array.from({length:125}, (_,i) => ({
 }))
 let queries = 0
 sdk.DynamoDBDocumentClient.from = () => ({ send: async command => {
+ const intercepted=require('./helpers/legacy-security.cjs').intercept(command);if(intercepted)return intercepted
  const p = command.input
  assert.equal(command.constructor.name,'QueryCommand')
  if(p.Select==='COUNT')return {Count:0}

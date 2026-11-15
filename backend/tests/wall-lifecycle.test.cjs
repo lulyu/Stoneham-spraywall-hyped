@@ -5,6 +5,7 @@ process.env.DYNAMODB_TABLE='lifecycle-test'
 let rows,transactions,scanCalls,injectConflict
 const key=p=>p.pk+'|'+p.sk
 sdk.DynamoDBDocumentClient.from=()=>({send:async command=>{
+ const intercepted=require('./helpers/legacy-security.cjs').intercept(command);if(intercepted)return intercepted
  const p=command.input,kind=command.constructor.name
  if(kind==='GetCommand')return {Item:rows.get(key(p.Key))}
  if(kind==='ScanCommand') {

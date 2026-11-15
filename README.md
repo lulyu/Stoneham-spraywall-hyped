@@ -28,9 +28,9 @@ A mobile-first route-setting app for the Stoneham CRG spray wall.
 
 ## Current wall and updates
 
-The current wall is **2026-11-v7**, with **797 human-reviewed holds** and a
-7292 × 5514 image. The original **2026-10-v4** wall retains its 677-hold map for
-historical routes. The app opens the current physical wall by default.
+The current wall is **2026-11-v8**, with **801 human-reviewed holds** and a
+7292 × 5514 image. Previous v7 (797 holds) and original v4 (677 holds) maps remain
+available for historical routes. The app opens the current physical wall by default.
 
 A publication checks every hold used by each existing route, including starts,
 finishes, and foot-only holds. If all IDs still exist, the route gains the new
@@ -53,6 +53,7 @@ See [the standard wall-update workflow](docs/wall-update-workflow.md),
 | Edit a route | Its creator or a gym administrator |
 | Edit or delete a comment | Its author |
 | Upgrade an outdated route into a new route | Its original creator; admin status alone does not grant this |
+| Hide/restore content or suspend/unban an account | A signed-in member of the Cognito `admins` group |
 | Run the wall publication/compatibility HTTP endpoint | A signed-in member of the Cognito `admins` group |
 | Deploy wall images, catalogs, or application code | Maintainers with the relevant GitHub and AWS/Vercel permissions |
 
@@ -70,6 +71,12 @@ SAM2 service supports an optional shared access key; use that protection for a
 temporary HTTPS review session. An unkeyed server has no authentication and
 should stay local. See [review server setup](docs/wall-v5-review-server.md) and
 [authentication details](docs/auth.md).
+
+Account writes are rate-limited in the API with shared DynamoDB quotas. Public
+comment/rating totals use transactional summaries. Administrators can open
+**Profile → Admin moderation** to hide/restore content or suspend/unban accounts;
+these actions require a reason and create audit records. See
+[community guardrails](docs/community-guardrails.md) for limits and rollout details.
 
 ## Run locally
 

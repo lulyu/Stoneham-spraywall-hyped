@@ -16,6 +16,7 @@ cognito.CognitoIdentityProviderClient.prototype.send=async function(command){
  return {Users:users}
 }
 dynamo.DynamoDBDocumentClient.from=()=>({send:async command=>{
+ const intercepted=require('./helpers/legacy-security.cjs').intercept(command);if(intercepted)return intercepted
  const p=command.input,kind=command.constructor.name
  if(kind==='GetCommand'){
   if(p.Key.sk==='META')return {Item:{pk:p.Key.pk,sk:'META',entityType:'problem',id:'route',ownerId:subject,holds:[]}}

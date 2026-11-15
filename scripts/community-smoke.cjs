@@ -40,14 +40,15 @@ async function openAccount(page) {
     assert.equal(req.headers().authorization,'Bearer community-test-token')
     return send(200,{items:[...sends.values()]})
    }
-   if(path.endsWith('/versions/2026-10-v4/problems'))return send(200,{items:records.slice(0,2)})
+   if(path==='/v1/me/problems')return send(200,{items:records})
+   if(path.endsWith('/walls/spray-wall-1/problems')||path.endsWith('/versions/2026-10-v4/problems'))return send(200,{items:records.slice(0,2)})
    const match=path.match(/\/problems\/(p\d)(?:\/(.+))?$/)
    if(!match)throw new Error('Unexpected path '+path)
    const [,id,action]=match
    if(!action)return send(200,records.find(r=>r.id===id))
    if(action==='community')return send(200,{ratingAverage:ratings.get(id)||null,ratingCount:ratings.has(id)?1:0,comments:comments.get(id)||[]})
    assert.equal(req.headers().authorization,'Bearer community-test-token')
-   if(action==='my-activity')return send(200,{sent:sends.has(id),sentAt:sends.get(id)?.sentAt,rating:ratings.get(id)||null,commentIds:(comments.get(id)||[]).filter(c=>c.author==='Alice').map(c=>c.id)})
+   if(action==='my-activity')return send(200,{sent:sends.has(id),sentAt:sends.get(id)?.sentAt,rating:ratings.get(id)||null,commentIds:(comments.get(id)||[]).filter(c=>c.author==='Alice'&&(url.searchParams.get('commentIds')||'').split(',').includes(c.id)).map(c=>c.id)})
    if(action==='sends'){
     sendAttempts++
     if(!sends.has(id))sends.set(id,{problemId:id,...records.find(r=>r.id===id),sentAt:'2026-11-03T12:00:00Z'})
