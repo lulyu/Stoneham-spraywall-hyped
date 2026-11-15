@@ -16,7 +16,7 @@ test('publication exposes upgrade/publish behind verified JWTs and scopes migrat
   assert(!dynamo.Action.includes('dynamodb:DeleteItem'));assert(!dynamo.Action.includes('dynamodb:*'))
   assert(dynamo.Resource.every(resource=>resource!=='*'))
   const walls=JSON.parse(readFileSync('backend/walls.json'))
-  assert.deepEqual(walls.filter(w=>w.active).map(w=>w.wallVersionId),['2026-11-v7'])
+  assert.deepEqual(walls.filter(w=>w.active).map(w=>w.wallVersionId),['2026-11-v8'])
 })
 
 test('creator-name lookup is scoped to the configured Cognito user pool',()=>{
