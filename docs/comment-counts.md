@@ -15,7 +15,9 @@ using consistent `Select: COUNT` queries and following every pagination key.
 Deleted records are excluded, including pages containing only tombstones. Totals
 are independent of the 20-comment display page and of the eventually consistent
 comment-list index. List enrichment runs at most eight count queries concurrently.
-When server totals are present, the browser makes no per-card community requests.
+When server totals are present, comment badges need no extra per-card community
+requests. Explore also reads public community summaries for its always-visible
+rating badges; those reads are independent of comment counting.
 For older deployments without totals, badges load independently through all public
 comment pages, deduplicating IDs with at most four requests in flight. A failed
 count leaves its badge unavailable without blocking route browsing. Confirmed

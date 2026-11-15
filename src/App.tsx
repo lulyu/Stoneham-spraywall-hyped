@@ -376,7 +376,7 @@ function App() {
   const starSort = isStarSort(exploreQuery.sort)
   const allRoutesNeeded = needsAllRoutes(exploreQuery)
   const routeRatings = useRouteRatings(apiBaseUrl, problems.map(problem => problem.id),
-    problemStore.shared && routesOpen && starSort && !nextCursor && !loadingMore)
+    problemStore.shared && routesOpen && !loadingMore && (!starSort || !nextCursor))
   const visibleProblems = useMemo(() => exploreRoutes(problems, exploreQuery, routeRatings.ratings), [problems, exploreQuery, routeRatings.ratings])
   const filterGrades = [...new Set([...grades, ...problems.map(problem => problem.grade)])].sort((a, b) => gradeValue(a) - gradeValue(b) || a.localeCompare(b))
   const [activeProblem, setActiveProblem] = useState<Problem | null>(null)
@@ -987,7 +987,7 @@ function App() {
           </div>
           {allRoutesNeeded && <p className="muted" role="status">{visibleProblems.length} matching {visibleProblems.length === 1 ? 'route' : 'routes'}{nextCursor ? (listError ? ' · More routes to load' : ' · Loading all routes…') : ''}</p>}
           {starSort && routeRatings.loading && <p className="muted" role="status">Loading star ratings…</p>}
-          {starSort && routeRatings.failed > 0 && <p className="error-message" role="alert">Some star ratings could not be loaded. <button className="ghost small" onClick={routeRatings.retry}>Retry ratings</button></p>}
+          {routeRatings.failed > 0 && <p className="error-message" role="alert">Some star ratings could not be loaded. <button className="ghost small" onClick={routeRatings.retry}>Retry ratings</button></p>}
           {listError && <p className="error-message" role="alert">{listError}</p>}
           {openingId && <p role="status" className="muted">Opening problem…</p>}
           {problemStore.shared && localProblems.length > 0 && <div className="local-import">
@@ -1018,11 +1018,15 @@ function App() {
                       {typeof problem.commentCount === 'number' && Number.isSafeInteger(problem.commentCount) && problem.commentCount > 0 && <span className="route-comment-count" role="img" aria-label={`${problem.commentCount} ${problem.commentCount === 1 ? 'comment' : 'comments'}`}><span aria-hidden="true">💬 {problem.commentCount}</span></span>}
                     </span>
                     <small>{problem.setter} · {problem.holds.length} holds</small>
-                    {starSort && <small className="route-stars">{rating?.ratingAverage != null
-                      ? `★ ${rating.ratingAverage.toFixed(1)} · ${rating.ratingCount} ${rating.ratingCount === 1 ? 'rating' : 'ratings'}`
-                      : rating?.ratingCount === 0 || !problemStore.shared ? 'Unrated' : routeRatings.loading || nextCursor ? 'Loading rating…' : 'Rating unavailable'}</small>}
                   </span>
-                  <span className="chevron">›</span>
+                  <span className={`route-rating ${rating?.ratingAverage != null ? 'is-rated' : ''}`} role="img"
+                    aria-label={rating?.ratingAverage != null ? `${rating.ratingAverage.toFixed(1)} out of 5 stars, ${rating.ratingCount} ${rating.ratingCount === 1 ? 'rating' : 'ratings'}`
+                      : rating?.ratingCount === 0 || !problemStore.shared ? 'Unrated' : routeRatings.loading ? 'Loading rating' : 'Rating unavailable'}
+                    title={rating?.ratingAverage != null ? `${rating.ratingCount} ${rating.ratingCount === 1 ? 'rating' : 'ratings'}` : undefined}>
+                    <span aria-hidden="true">{rating?.ratingAverage != null ? `★ ${rating.ratingAverage.toFixed(1)}`
+                      : rating?.ratingCount === 0 || !problemStore.shared ? '☆ —' : routeRatings.loading ? '☆ …' : '☆ ?'}</span>
+                  </span>
+                  <span className="chevron" aria-hidden="true">›</span>
                 </button>
               )})}
             </div>

@@ -11,9 +11,10 @@ support either direction.
 
 Stars use the existing public Enjoyment average, with rating count as a tie-break
 and newest as the final tie-break. Unrated and unavailable summaries stay last in
-both directions. When star sorting is selected, cards show the average and vote
-count, or an explicit unrated/unavailable state. Other sort modes make no extra
-rating-summary requests. Public summaries load with at most four requests in
+both directions. Every Explore card shows a compact star and average at the right,
+regardless of the selected sort, with vote counts in its accessible label and
+hover text. Empty stars distinguish unrated, loading, and unavailable summaries.
+Rating summaries load when Explore opens, including default newest browsing. Public summaries load with at most four requests in
 flight and are cached for the tab. A failure leaves the route visible and exposes
 Retry ratings. Confirmed ratings from route activity update the cache and order;
 Refresh clears the cache and reloads routes and summaries.

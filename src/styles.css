@@ -220,7 +220,10 @@ body:has(.public-profile-dialog[open]) { overflow: hidden; }
 .explore-filters select { min-height: 44px; padding: 10px 10px; font-size: 16px; }
 .explore-filters .valid-only { display: flex; align-items: center; gap: 9px; min-height: 44px; font-size: 15px; color: #f4f4ef; }
 .valid-only input { width: 20px; height: 20px; margin: 0; accent-color: #c9ff53; }
-.route-stars { color: #dcddaa; }
+.routes-drawer .problem-copy { flex: 1; }
+.route-rating { flex-shrink: 0; align-self: flex-start; margin: 2px 8px 0; color: #8d9584; white-space: nowrap; font-size: 13px; line-height: 1.4; }
+.route-rating.is-rated { color: #e5db97; }
+.problem-card.outdated .route-rating { color: #92968e; }
 .empty-filter-results { padding: 20px 0; color: #b9c0b0; }
 
 .explore-filters .explore-sort { grid-column: 1 / -1; grid-row: 2; }
