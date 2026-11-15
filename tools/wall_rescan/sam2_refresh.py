@@ -61,6 +61,60 @@ def prompt_for(hold, size):
     return seed, box
 
 
+
+def inset_prompt_for(hold, size, fraction=.2, max_points=5):
+    """Contract the polygon to 80% linear scale; positive seeds remain inside it.
+
+    Intersecting with the original raster keeps concave outlines safe when their
+    centroid lies outside the hold. The result is a prompt region, never the
+    segmentation output or an accepted outline.
+    """
+    if not 0 <= fraction < 1 or max_points < 1:
+        raise ValueError('Inset must be in [0, 1), with at least one seed.')
+    x, y, right, bottom = bounds(hold['polygon'], size)
+    origin = (x-2, y-2)
+    mask = np.zeros((bottom-y+5, right-x+5), np.uint8)
+    cv2.fillPoly(mask, [raster(hold['polygon'], size, origin)], 255)
+    distance = cv2.distanceTransform(mask, cv2.DIST_L2, 5)
+    sy, sx = np.unravel_index(distance.argmax(), distance.shape)
+    moments = cv2.moments(mask)
+    center = [moments['m10']/moments['m00'], moments['m01']/moments['m00']]
+    if mask[min(mask.shape[0]-1, round(center[1])), min(mask.shape[1]-1, round(center[0]))] == 0:
+        center = [float(sx), float(sy)]
+    scale = 1-fraction
+    affine = np.array([[scale, 0, center[0]*fraction], [0, scale, center[1]*fraction]], np.float32)
+    inner = cv2.warpAffine(mask, affine, mask.shape[::-1], flags=cv2.INTER_NEAREST)
+    inner = cv2.bitwise_and(inner, mask)
+    if not np.any(inner):
+        inner[sy, sx] = 255
+    inside_distance = cv2.distanceTransform(inner, cv2.DIST_L2, 5)
+    py, px = np.unravel_index(inside_distance.argmax(), inner.shape)
+    chosen = [[float(px), float(py)]]
+    candidates = np.argwhere(inside_distance >= max(1., inside_distance.max()*.35))
+    for _ in range(max_points-1):
+        if not len(candidates): break
+        xy = candidates[:, ::-1].astype(float)
+        nearest = np.min(np.sum((xy[:, None]-np.asarray(chosen)[None])**2, axis=2), axis=1)
+        index = int(nearest.argmax())
+        if nearest[index] < 25: break
+        chosen.append(xy[index].tolist())
+    contours, _ = cv2.findContours(inner, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    polygons = []
+    for contour in contours:
+        epsilon = max(.1, cv2.arcLength(contour, True)*.005)
+        polygon = cv2.approxPolyDP(contour, epsilon, True)
+        while len(polygon) > 16:
+            epsilon *= 1.25; polygon = cv2.approxPolyDP(contour, epsilon, True)
+        if len(polygon) >= 3:
+            polygons.append([[(float(px)+origin[0])/size[0], (float(py)+origin[1])/size[1]] for px, py in polygon[:, 0]])
+    padding = max(6, .04*max(right-x, bottom-y))
+    box = [max(0, x-padding), max(0, y-padding), min(size[0]-1, right+padding), min(size[1]-1, bottom+padding)]
+    points = [[px+origin[0], py+origin[1]] for px, py in chosen]
+    return points, box, dict(fraction=fraction, linearScale=scale, pointCount=len(points),
+        method='scaled-polygon-intersect-original; interior-positive-points',
+        innerPolygons=polygons, innerAreaFraction=float(np.count_nonzero(inner)/np.count_nonzero(mask)))
+
+
 def select_mask(masks, scores, old, seed, region, coverage, uncertainty, size, min_score, min_observed=.99):
     left, top, right, bottom = region
     w, h = right-left, bottom-top
@@ -169,6 +223,7 @@ def overlays(image, old, proposals, output):
 def run(args):
     started = time.monotonic()
     include_partial = getattr(args, 'include_partial', False)
+    prompt_inset = getattr(args, 'prompt_inset', 0.)
     if args.output.exists() and any(args.output.iterdir()):
         raise ValueError('Choose a new/empty output directory; prior experiment data is never overwritten.')
     if any((ROOT/p).resolve() == args.output.resolve() or (ROOT/p).resolve() in args.output.resolve().parents for p in ['public', 'src', 'backend', 'tools']):
@@ -220,13 +275,18 @@ def run(args):
                 boxes = [prompt_for(h,size)[1] for h in group]
                 region = [max(0,math.floor(min(initial[0],*(b[0]-64 for b in boxes)))),max(0,math.floor(min(initial[1],*(b[1]-64 for b in boxes)))),min(size[0],math.ceil(max(initial[2],*(b[2]+64 for b in boxes)))),min(size[1],math.ceil(max(initial[3],*(b[3]+64 for b in boxes))))]
                 left,top,right,bottom = region
-                predictor.set_image(np.asarray(image.crop(region)))
+                predictor.set_image(np.array(image.crop(region),copy=True))
                 before = len(proposals)
                 for hold in group:
-                    seed, box = prompt_for(hold,size); prompts += 1
-                    masks,scores,_ = predictor.predict(point_coords=np.asarray([[seed[0]-left,seed[1]-top]],np.float32),point_labels=np.array([1],np.int32),box=np.asarray(box,np.float32)-[left,top,left,top],multimask_output=True)
+                    seed, box = prompt_for(hold,size); points = [seed]; inset = None; prompts += 1
+                    if prompt_inset:
+                        points, box, inset = inset_prompt_for(hold,size,prompt_inset)
+                        seed = points[0]
+                    masks,scores,_ = predictor.predict(point_coords=np.asarray(points,np.float32)-[left,top],point_labels=np.ones(len(points),np.int32),box=np.asarray(box,np.float32)-[left,top,left,top],multimask_output=True)
                     entry = by_id[hold['id']]
                     entry['prompt'] = dict(point=[seed[0]/size[0],seed[1]/size[1]],box=[box[0]/size[0],box[1]/size[1],box[2]/size[0],box[3]/size[1]],tileRegion=region)
+                    if inset:
+                        entry['prompt'].update(points=[[px/size[0],py/size[1]] for px,py in points],inset=inset)
                     best = select_mask(masks,scores,hold,seed,region,coverage,uncertainty,size,args.min_score,min_observed=0 if include_partial else .99)
                     if best:
                         best.update(id='sam2-v5-'+hashlib.sha256((version['imageSha256']+hold['id']).encode()).hexdigest()[:14],oldHoldIds=[hold['id']],status='needs-review')
@@ -257,6 +317,8 @@ def run(args):
     metadata = dict(wallVersionId=version['wallVersionId'],referenceVersion=version['referenceVersion'],sourceSessionId=version['sourceSession']['sessionId'],imageSize=list(size),hashes=hashes,versionManifestSha256=digest(args.version_manifest),checkpointSha256=digest(args.checkpoint),model='SAM2.1 Small',device='cuda' if cuda else 'cpu',cudaAvailable=cuda,python=platform.python_version(),torch=torch.__version__,opencv=cv2.__version__,numpy=np.__version__,seed=args.seed,threads=args.threads,minScore=args.min_score,oldHoldCount=len(old),promptCount=prompts,masksBeforeDedup=len(proposals),proposalCount=len(unique),recommendations=counts,elapsedSeconds=round(time.monotonic()-started,2),codeCommit=commit,scriptSha256=digest(__file__),reviewRequired=True,acceptedHoldCount=0,limitations=['Point and box prompts assume rough old placement, not continued hold identity.','Reference-filled/partially observed old locations are skipped.','No automatic removed classification or approval; SAM2 score is not identity evidence.','No search for entirely new holds away from old prompts in this first pass.','No automatic publication or old-route migration.'])
     payload = dict(format='stoneham-sam2-refresh-v1',datasetRole='unreviewed-model-proposals',wallId=version['wallId'],publishable=False,metadata=metadata,entries=entries,proposals=unique)
     metadata['includePartialObservationPrompts'] = include_partial
+    metadata['promptInsetFraction'] = prompt_inset
+    metadata['promptPolicy'] = 'contract polygon to 80% linear scale and sample positive points; original extent box; model grows final outline' if prompt_inset == .2 else 'inset-positive-points' if prompt_inset else 'legacy-interior-point-and-box'
     if include_partial:
         metadata['limitations'][1] = 'Partial/reference-filled locations were explicitly prompted; actual observation evidence remains recorded and bulk approval still excludes these regions.'
     write(args.output/'sam2-refresh.json',payload)
@@ -275,10 +337,11 @@ def main():
     parser.add_argument('--threads',type=int,default=4)
     parser.add_argument('--seed',type=int,default=0)
     parser.add_argument('--min-score',type=float,default=.75)
+    parser.add_argument('--prompt-inset',type=float,default=0.,help='Contract old polygons by this linear fraction to sample interior positive seeds; never shrinks final model masks.')
     parser.add_argument('--include-partial',action='store_true',help='Also prompt partial/reference-filled locations as manual-review suggestions; never changes coverage or approves them.')
     args=parser.parse_args()
-    if args.threads<1 or not 0<=args.min_score<=1:
-        parser.error('threads must be positive and min-score between 0 and 1.')
+    if args.threads<1 or not 0<=args.min_score<=1 or not 0<=args.prompt_inset<1:
+        parser.error('threads must be positive, min-score in [0,1], and prompt-inset in [0,1).')
     try:
         return run(args)
     except Exception as error:

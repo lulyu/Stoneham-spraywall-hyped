@@ -7,7 +7,7 @@ import unittest
 import numpy as np
 import cv2
 
-from tools.wall_rescan.sam2_refresh import coverage_fraction, prompt_for, select_mask, deduplicate, recommendation
+from tools.wall_rescan.sam2_refresh import coverage_fraction, prompt_for, inset_prompt_for, select_mask, deduplicate, recommendation
 from tools.sam2_annotation_server import clean_dataset
 
 ROOT=Path(__file__).resolve().parents[2]
@@ -29,6 +29,32 @@ class RefreshTests(unittest.TestCase):
         self.assertGreater(cv2.pointPolygonTest(polygon,tuple(seed),True),0)
         self.assertLessEqual(box[0],seed[0]);self.assertLessEqual(box[1],seed[1])
         self.assertGreaterEqual(box[2],seed[0]);self.assertGreaterEqual(box[3],seed[1])
+
+    def test_inset_contracts_starting_polygon_and_keeps_all_positive_seeds_inside(self):
+        original = copy.deepcopy(HOLD)
+        points, box, info = inset_prompt_for(HOLD, (200, 120), .2)
+        self.assertEqual(info['linearScale'], .8)
+        self.assertTrue(.58 < info['innerAreaFraction'] < .71)
+        self.assertTrue(1 <= len(points) <= 5)
+        polygon = np.asarray(HOLD['polygon'], np.float32) * [200, 120]
+        for point in points:
+            self.assertGreater(cv2.pointPolygonTest(polygon.astype(np.float32), tuple(point), True), 0)
+            self.assertTrue(box[0] <= point[0] <= box[2] and box[1] <= point[1] <= box[3])
+        self.assertEqual(HOLD, original)
+        concave = dict(HOLD, polygon=[[.1,.1],[.9,.1],[.9,.3],[.3,.3],[.3,.9],[.1,.9]])
+        points, _, _ = inset_prompt_for(concave, (100,100), .2)
+        polygon = np.asarray(concave['polygon'], np.float32)*100
+        self.assertTrue(all(cv2.pointPolygonTest(polygon,tuple(point),True)>0 for point in points))
+        for fraction in [-.1, 1, float('nan')]:
+            with self.assertRaises(ValueError): inset_prompt_for(HOLD,(100,100),fraction)
+
+    def test_model_outline_can_grow_outside_the_inset_prompt(self):
+        points, _, _ = inset_prompt_for(HOLD,(100,100),.2)
+        masks = np.zeros((1,100,100),bool); masks[0,35:66,35:66] = True
+        result = select_mask(masks,[.98],HOLD,points[0],[0,0,100,100],np.full((100,100),255,np.uint8),np.zeros((100,100),np.uint8),(100,100),.75)
+        self.assertIsNotNone(result)
+        self.assertGreater(result['evidence']['oldMaskIoU'],.9)
+        self.assertGreater(result['evidence']['areaRatio'],.9)
 
     def test_mask_selection_keeps_normalized_simple_geometry_and_evidence(self):
         masks=np.zeros((3,100,100),bool);masks[0,34:66,34:66]=True;masks[1,:,:]=True;masks[2,48:50,48:50]=True

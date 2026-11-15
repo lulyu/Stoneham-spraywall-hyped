@@ -59,3 +59,20 @@ test('bulk confirmation respects threshold, ambiguity, coverage, risk and existi
  assert.equal(base.reviewRevision,0)
  console.log(`Bulk fixture: ${actions.length} eligible at 0.95; ${JSON.stringify(next).length} checkpoint bytes`)
 })
+
+test('new-location drafts are explicit, unassociated, and excluded from inherited bulk confirmation',async()=>{
+ const {bulkProposalActions}=await import('../src/wallProposals.ts')
+ const changed=structuredClone(raw)
+ const proposal={...structuredClone(raw.proposals[0]),id:'sam2-v8-new-example',oldHoldIds:[],newLocation:true}
+ changed.proposals.push(proposal)
+ const model=validateProposals(changed,base)
+ assert(model.proposals.at(-1).newLocation)
+ assert.deepEqual(bulkProposalActions(base,model,.95),bulkProposalActions(base,validateProposals(raw,base),.95))
+ assert.equal(base.reviewRevision,0)
+ for(const mutate of [p=>{delete p.newLocation},p=>{p.oldHoldIds=[holds[0].id]}]){
+  const invalid=structuredClone(changed);mutate(invalid.proposals.at(-1));assert.throws(()=>validateProposals(invalid,base))
+ }
+ const accepted=applyReview(base,{type:'add',hold:{...proposal,id:'scan-'+proposal.id}},'Reviewer')
+ assert.equal(accepted.entries.length,base.entries.length+1)
+ assert.equal(accepted.publishable,false)
+})
