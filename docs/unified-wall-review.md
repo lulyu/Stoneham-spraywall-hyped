@@ -1,5 +1,10 @@
 # Unified annotation and wall-update review
 
+For the current end-to-end process, use [the standard wall-update workflow](wall-update-workflow.md).
+**Review decisions are stored in the browser (IndexedDB), not on the SAM2 server.**
+At completion, export the final progress JSON and provide it for validation and
+archiving; a server-side prelabel bundle is not the completed review.
+
 The existing editor at `/?annotate=1` now has two modes. **Manual annotation**
 retains the original SAM2 server workflow. **Wall update review** (direct link:
 `/?review=1`) loads an offline registered scan into that same canvas and editing

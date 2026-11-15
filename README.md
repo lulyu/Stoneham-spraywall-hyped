@@ -40,7 +40,8 @@ remains available on an older wall. Compatible routes keep their IDs and activit
 Wall preparation is a maintainer workflow: compose/register photos, generate
 SAM2 suggestions, review the outlines, archive the completed review, deploy the
 versioned catalog, and run the compatibility sweep before releasing the frontend.
-See [wall publication and Upgrade](docs/wall-publication.md) and
+See [the standard wall-update workflow](docs/wall-update-workflow.md),
+[wall publication and Upgrade](docs/wall-publication.md) and
 [the v7 image/review workflow](docs/wall-v7-seam-trial.md).
 
 ## Permissions
