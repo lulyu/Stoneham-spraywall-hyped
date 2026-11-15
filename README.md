@@ -71,6 +71,12 @@ temporary HTTPS review session. An unkeyed server has no authentication and
 should stay local. See [review server setup](docs/wall-v5-review-server.md) and
 [authentication details](docs/auth.md).
 
+Account writes are rate-limited in the API with shared DynamoDB quotas. Public
+comment/rating totals use transactional summaries. Administrators can open
+**Profile → Admin moderation** to hide/restore content or suspend/unban accounts;
+these actions require a reason and create audit records. See
+[community guardrails](docs/community-guardrails.md) for limits and rollout details.
+
 ## Run locally
 
 Use **Node.js 24** and the committed lockfiles.

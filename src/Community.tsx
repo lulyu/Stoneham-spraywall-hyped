@@ -22,12 +22,11 @@ export default function Community({ baseUrl, problemId, name, userId, onCommentC
   useEffect(() => {
     let live = true
     setLoading(true); setError('')
-    void Promise.all([
-      communityRequest<CommunityData>(baseUrl, path + '/community'),
-      userId ? communityRequest<MyActivity>(baseUrl, path + '/my-activity', 'GET', undefined, true).catch((e) => { if (live) setError(e.message); return null }) : Promise.resolve(null),
-    ]).then(async ([summary, activity]) => {
-      const commentCount = summary.commentCount ?? await fetchCommentCount(baseUrl, problemId, fetch, summary).catch(() => undefined)
-      if (live) { setData({...summary, commentCount}); setMine(activity) }
+    void communityRequest<CommunityData>(baseUrl,path+'/community').then(async summary=>{
+      const commentCount=summary.commentCount??await fetchCommentCount(baseUrl,problemId,fetch,summary).catch(()=>undefined)
+      const ids=summary.comments.map(c=>c.id).join(',')
+      const activity=userId?await communityRequest<MyActivity>(baseUrl,path+'/my-activity?commentIds='+encodeURIComponent(ids),'GET',undefined,true).catch(e=>{if(live)setError(e.message);return null}):null
+      if(live){setData({...summary,commentCount});setMine(activity)}
     })
       .catch((e) => { if (live) setError(e.message) })
       .finally(() => { if (live) setLoading(false) })
@@ -121,6 +120,10 @@ export default function Community({ baseUrl, problemId, name, userId, onCommentC
       </article>)}</div>
       {data.nextCursor && <button className="ghost small" disabled={busy} onClick={() => void mutate(async () => {
         const next = await communityRequest<CommunityData>(baseUrl, path + '/community?cursor=' + encodeURIComponent(data.nextCursor!))
+        if(userId){
+          const activity=await communityRequest<MyActivity>(baseUrl,path+'/my-activity?commentIds='+encodeURIComponent(next.comments.map(c=>c.id).join(',')),'GET',undefined,true)
+          setMine(previous=>previous?{...previous,commentIds:[...new Set([...(previous.commentIds??[]),...(activity.commentIds??[])])]}:activity)
+        }
         setData((previous) => previous ? { ...previous, commentCount: next.commentCount ?? previous.commentCount, comments: [...new Map([...previous.comments, ...next.comments].map((c) => [c.id, c])).values()], nextCursor: next.nextCursor } : next)
       })}>More comments</button>}
     </>}

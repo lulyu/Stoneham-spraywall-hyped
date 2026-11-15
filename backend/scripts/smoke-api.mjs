@@ -28,7 +28,7 @@ for (const method of ['GET', 'PATCH']) {
 assert.equal(await request('POST', collection, {}), 401)
 assert.equal(await request('POST', collection, {}, { authorization: 'Bearer forged' }), 401)
 assert.equal(await request('PATCH', nonexistent, {}), 401)
-assert.equal(await request('DELETE', nonexistent), 405)
+assert.equal(await request('DELETE', nonexistent), 401)
 const preflight = await fetch(base + collection, {
   method: 'OPTIONS',
   headers: {

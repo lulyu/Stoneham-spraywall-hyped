@@ -1,17 +1,12 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
-import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, QueryCommand, TransactWriteCommand, ScanCommand, type QueryCommandInput } from '@aws-sdk/lib-dynamodb'
+import { GetCommand, PutCommand, UpdateCommand, QueryCommand, TransactWriteCommand, ScanCommand, type QueryCommandInput } from '@aws-sdk/lib-dynamodb'
 import type { Problem, UserProfile, ProblemItem, UpdateProblemInput } from './model'
 import { ApiError, latestWall } from './walls'
 import { compatibility, upgradeName } from './wallLifecycle'
 import { accountDisplayName } from './accountName'
 
-export const tableName = process.env.DYNAMODB_TABLE
-if (!tableName) throw new Error('DYNAMODB_TABLE is required')
-
-export const client = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
-  marshallOptions: { removeUndefinedValues: true },
-})
-
+export { client, tableName } from './storage'
+import { client, tableName } from './storage'
+import { getSummary, emptySummaryWrite } from './summaries'
 const problemPk = (problemId: string) => `PROBLEM#${problemId}`
 const wallVersionPk = (gymId: string, wallId: string, wallVersionId: string) =>
   `GYM#${gymId}#WALL#${wallId}#VERSION#${wallVersionId}`
@@ -30,22 +25,7 @@ function toProblem(item: ProblemItem): Problem {
 
 const wallPk = (gymId:string,wallId:string) => `GYM#${gymId}#WALL#${wallId}`
 
-export async function getCommentCount(problemId: string): Promise<number> {
-  let after: QueryCommandInput['ExclusiveStartKey']
-  let count = 0
-  do {
-    const page = await client.send(new QueryCommand({
-      TableName: tableName,
-      KeyConditionExpression: 'pk = :pk AND begins_with(sk, :prefix)',
-      FilterExpression: 'attribute_not_exists(deleted) OR deleted = :notDeleted',
-      ExpressionAttributeValues: {':pk': problemPk(problemId), ':prefix': 'COMMENT#', ':notDeleted': false},
-      Select: 'COUNT', ConsistentRead: true, ExclusiveStartKey: after,
-    }))
-    count += page.Count ?? 0
-    after = page.LastEvaluatedKey
-  } while (after)
-  return count
-}
+export async function getCommentCount(problemId:string) { return (await getSummary(problemId)).commentCount }
 
 export async function withCommentCounts(problems: Problem[]): Promise<Problem[]> {
   const result = [...problems]
@@ -86,7 +66,7 @@ async function persistProblem(problem:Problem,condition:Record<string,unknown>,e
   return next
 }
 export async function createProblem(problem:Problem):Promise<Problem> {
-  return persistProblem(problem,{ConditionExpression:'attribute_not_exists(pk)'})
+  return persistProblem(problem,{ConditionExpression:'attribute_not_exists(pk)'},[emptySummaryWrite(problem.id)])
 }
 
 export async function getProblem(problemId: string): Promise<Problem | undefined> {
@@ -95,7 +75,7 @@ export async function getProblem(problemId: string): Promise<Problem | undefined
     Key: { pk: problemPk(problemId), sk: 'META' },
     ConsistentRead: true,
   }))
-  return response.Item ? toProblem(response.Item as ProblemItem) : undefined
+  return response.Item && !response.Item.hidden ? toProblem(response.Item as ProblemItem) : undefined
 }
 
 export async function requireProblem(problemId: string): Promise<Problem> {
@@ -122,7 +102,7 @@ export async function listProblems(gymId:string,wallId:string,wallVersionId:stri
   const records=await Promise.all((response.Items??[]).map(item=>item.sk==='META'?toProblem(item as ProblemItem):getProblem(item.problemId)))
   const seen=new Set<string>()
   return {items:records.filter((p):p is Problem=>Boolean(p)).filter(p=> {
-    if(seen.has(p.id))return false
+    if(p.hidden||seen.has(p.id))return false
     seen.add(p.id)
     // Stale compatibility pointers are harmless: hydrate and verify current metadata.
     return !wallVersionId||(p.supportedWallVersionIds?p.supportedWallVersionIds.includes(wallVersionId):p.wallVersionId===wallVersionId)
@@ -150,7 +130,7 @@ export async function listOwnedProblems(userId: string, cursor?: string): Promis
   }))
   const records = await Promise.all((result.Items ?? []).map(item => getProblem(item.problemId)))
   return {
-    items: records.filter((record): record is Problem => Boolean(record) && record!.ownerId === userId),
+    items: records.filter((record): record is Problem => Boolean(record) && !record!.hidden && record!.ownerId === userId),
     ...(result.LastEvaluatedKey ? {nextCursor: Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64url')} : {}),
   }
 }
@@ -192,7 +172,7 @@ export async function createUpgrade(source:Problem,input:import('./model').Creat
       name:automaticName?upgradeName(base,number):input.name,ownerId:source.ownerId,createdAt:now,updatedAt:now,revision:1,
       upgradedFromId:source.id,upgradeRootId:root,upgradeBaseName:base,upgradeNumber:number}
     try {
-      return await persistProblem(next,{ConditionExpression:'attribute_not_exists(pk)'},[
+      return await persistProblem(next,{ConditionExpression:'attribute_not_exists(pk)'},[emptySummaryWrite(next.id),
         {ConditionCheck:{TableName:tableName,Key:{pk:problemPk(source.id),sk:'META'},ConditionExpression:'revision = :revision AND ownerId = :owner',
           ExpressionAttributeValues:{':revision':source.revision,':owner':source.ownerId}}},
         {Put:{TableName:tableName,Item:{pk:problemPk(root),sk:'UPGRADE_COUNTER',number,entityType:'upgrade-counter'},

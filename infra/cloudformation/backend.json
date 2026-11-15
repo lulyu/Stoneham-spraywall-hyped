@@ -83,6 +83,10 @@
         },
         "SSESpecification": {
           "SSEEnabled": true
+        },
+        "TimeToLiveSpecification": {
+          "AttributeName": "expiresAt",
+          "Enabled": true
         }
       }
     },
@@ -231,7 +235,10 @@
             "OPTIONS",
             "DELETE"
           ],
-          "MaxAge": 3600
+          "MaxAge": 3600,
+          "ExposeHeaders": [
+            "Retry-After"
+          ]
         }
       }
     },
@@ -746,6 +753,101 @@
           "Ref": "Api"
         },
         "RouteKey": "GET /v1/me/problems",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "JwtAuthorizer"
+        },
+        "AuthorizationScopes": [
+          "stoneham-api/write"
+        ]
+      }
+    },
+    "ListModerationRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "GET /v1/admin/moderation",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "JwtAuthorizer"
+        },
+        "AuthorizationScopes": [
+          "stoneham-api/write"
+        ]
+      }
+    },
+    "ModerateAccountRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "PATCH /v1/admin/users/{userId}/access",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "JwtAuthorizer"
+        },
+        "AuthorizationScopes": [
+          "stoneham-api/write"
+        ]
+      }
+    },
+    "ModerateProblemRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "PATCH /v1/admin/problems/{problemId}/visibility",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "JwtAuthorizer"
+        },
+        "AuthorizationScopes": [
+          "stoneham-api/write"
+        ]
+      }
+    },
+    "ModerateCommentRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "PATCH /v1/admin/problems/{problemId}/comments/{commentId}/visibility",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "JwtAuthorizer"
+        },
+        "AuthorizationScopes": [
+          "stoneham-api/write"
+        ]
+      }
+    },
+    "BackfillCommunityRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "POST /v1/admin/community/backfill",
         "Target": {
           "Fn::Sub": "integrations/${Integration}"
         },

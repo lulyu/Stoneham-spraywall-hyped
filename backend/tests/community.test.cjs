@@ -5,53 +5,26 @@ const holds=require('../../src/data/polygons/holds.json')
 process.env.DYNAMODB_TABLE='community-test'
 let rows, pageCalls, beforeUpdate
 const key=r=>r.pk+'|'+r.sk
-sdk.DynamoDBDocumentClient.from=()=>Object.setPrototypeOf({send:async command=>{
- const p=command.input,kind=command.constructor.name
- if(kind==='GetCommand')return {Item:rows.get(key(p.Key))}
- if(kind==='PutCommand'){
-  if(p.ConditionExpression&&rows.has(key(p.Item)))throw Object.assign(new Error(),{name:'ConditionalCheckFailedException'})
-  rows.set(key(p.Item),p.Item);return {}
- }
- if(kind==='UpdateCommand'){
-  assert.equal(p.ConditionExpression,'userId = :user AND attribute_not_exists(deleted)')
-  const existing=rows.get(key(p.Key))
-  if(beforeUpdate){const action=beforeUpdate;beforeUpdate=null;action(existing)}
-  if(!existing||existing.userId!==p.ExpressionAttributeValues[':user']||existing.deleted)
-   throw Object.assign(new Error(),{name:'ConditionalCheckFailedException'})
-  if(p.ExpressionAttributeValues[':deleted']){
-   existing.deleted=true
-   for(const field of ['text','author','gsi1pk','gsi1sk'])delete existing[field]
-  }else{existing.text=p.ExpressionAttributeValues[':text'];existing.updatedAt=p.ExpressionAttributeValues[':now']}
-  return {Attributes:{...existing}}
- }
- if(kind==='QueryCommand'){
-  pageCalls++
-  const pk=p.ExpressionAttributeValues[':pk']
-  if(p.IndexName){
-   const matches=[...rows.values()].filter(r=>r.gsi1pk===pk).sort((a,b)=>b.gsi1sk.localeCompare(a.gsi1sk))
-   const start=p.ExclusiveStartKey?matches.findIndex(r=>r.sk===p.ExclusiveStartKey.sk)+1:0
-   const items=matches.slice(start,start+p.Limit),last=items.at(-1)
-   return {Items:items,...(start+items.length<matches.length?{LastEvaluatedKey:{pk:last.pk,sk:last.sk,gsi1pk:last.gsi1pk,gsi1sk:last.gsi1sk}}:{})}
-  }
-  // Return one rating per page to exercise the real paginator across pages.
-  const all=[...rows.values()].filter(r=>r.pk===pk&&r.sk.startsWith(p.ExpressionAttributeValues[':prefix'])).sort((a,b)=>a.sk.localeCompare(b.sk))
-  const start=p.ExclusiveStartKey?all.findIndex(r=>r.sk===p.ExclusiveStartKey.sk)+1:0
-  const selected=all.slice(start,start+1),last=selected.at(-1)
-  if(p.Select==='COUNT')return {Count:selected.filter(row=>!row.deleted).length,...(start+1<all.length?{LastEvaluatedKey:{pk:last.pk,sk:last.sk}}:{})}
-  const visible=p.FilterExpression?selected.filter(r=>r.userId===p.ExpressionAttributeValues[':user']&&!r.deleted):selected
-  return {Items:visible,...(start+1<all.length?{LastEvaluatedKey:{pk:last.pk,sk:last.sk}}:{})}
- }
- throw new Error('Unexpected '+kind)
-}},sdk.DynamoDBDocumentClient.prototype)
+const {Memory}=require('./helpers/memory.cjs')
+let memory
+sdk.DynamoDBDocumentClient.from=()=>({send:async command=>{
+ const p=command.input
+ if(command.constructor.name==='GetCommand'&&p.Key.sk==='ACCESS')return {}
+ if(command.constructor.name==='TransactWriteCommand'&&p.TransactItems.every(a=>a.Update?.Key.pk.startsWith('QUOTA#')))return {}
+ if(command.constructor.name==='TransactWriteCommand'&&beforeUpdate){const action=beforeUpdate;beforeUpdate=null;memory.beforeTransaction=()=>{const item=p.TransactItems.find(a=>a.Put?.Item?.entityType==='comment')?.Put.Item;if(item){const row=rows.get(key(item));action(row);row.revision=(row.revision??0)+1}}}
+ if(command.constructor.name==='QueryCommand')pageCalls++
+ return memory.send(command)
+}})
 const {handler}=require('../dist/test-handler.cjs')
 const request=(method,action,body,user='alice',cursor)=>handler({
  rawPath:action.startsWith('/v1/')?action:'/v1/problems/p1/'+action,body:JSON.stringify(body),
- queryStringParameters:cursor?{cursor}:undefined,
+ queryStringParameters:{...(cursor?{cursor}:{}),...(action==='my-activity'?{commentIds:[...rows.values()].filter(r=>r.entityType==='comment').slice(0,20).map(r=>r.id).join(',')}:{})},
  requestContext:{requestId:'test',http:{method,path:''},...(user?{authorizer:{jwt:{claims:{sub:user}}}}:{})}
 })
 const data=r=>JSON.parse(r.body)
 beforeEach(()=>{
- rows=new Map();pageCalls=0;beforeUpdate=null
+ memory=new Memory();rows=memory.rows;pageCalls=0;beforeUpdate=null
+ memory.put({pk:'PROBLEM#p1',sk:'COMMUNITY_SUMMARY',entityType:'community-summary',version:1,revision:1,commentCount:0,ratingCount:0,ratingTotal:0})
  const problem={pk:'PROBLEM#p1',sk:'META',id:'p1',name:'Route one',grade:'V4',setter:'Original setter',gymId:'stoneham-crg',wallId:'spray-wall-1',wallVersionId:'2026-10-v4',holds:[{holdId:holds[0].id,role:'start'},{holdId:holds[1].id,role:'finish'}],createdAt:'2026-11-03',updatedAt:'2026-11-03',revision:1}
  rows.set(key(problem),problem)
  rows.set('USER#alice|PROFILE',{pk:'USER#alice',sk:'PROFILE',displayName:'Alice',bio:'Private bio'})
@@ -72,7 +45,7 @@ test('send retries are idempotent and user histories stay isolated',async()=>{
  assert.equal(data(await request('GET','/v1/me/sends',undefined,'bob')).items.length,0)
  assert(!('userId' in a))
 })
-test('ratings update one per user and aggregate every paginator page',async()=>{
+test('ratings update one per user and keep transactional aggregates',async()=>{
  await request('PATCH','rating',{score:5})
  await request('PATCH','rating',{score:3})
  await request('PATCH','rating',{score:5},'bob')
@@ -80,7 +53,7 @@ test('ratings update one per user and aggregate every paginator page',async()=>{
  assert.equal(summary.ratingCount,2)
  assert.equal(summary.ratingAverage,4)
  assert.equal(data(await request('GET','my-activity')).rating,3)
- assert(pageCalls>=3)
+ assert.equal(pageCalls,1)
  for(const score of [0,6,1.5,'5',null]){
   assert.equal((await request('PATCH','rating',{score})).statusCode,400)
  }
@@ -169,7 +142,7 @@ test('concurrent deletes block edits atomically and delete retries remain succes
  beforeUpdate=row=>{row.deleted=true}
  assert.equal((await request('DELETE','comments/'+second.id)).statusCode,200)
 })
-test('ownership lookup paginates through comments from other users',async()=>{
+test('ownership lookup is bounded to the displayed comment IDs',async()=>{
  for(let i=0;i<5;i++)await request('POST','comments',{text:'Comment '+i},i%2?'bob':'alice')
  assert.equal(data(await request('GET','my-activity')).commentIds.length,3)
  assert.equal(data(await request('GET','my-activity',undefined,'bob')).commentIds.length,2)
@@ -189,8 +162,8 @@ test('public profile cards identify the actual creator and comment author withou
  profile=await request('GET','comments/'+comment.id+'/author-profile',undefined,null)
  assert.equal(profile.statusCode,200)
  assert.deepEqual(data(profile),{displayName:'New name',bio:'Private bio'})
- assert.equal((await request('PATCH','creator-profile',{bio:'Hacked'},null)).statusCode,405)
- assert.equal((await request('PATCH','comments/'+comment.id+'/author-profile',{bio:'Hacked'},null)).statusCode,405)
+ assert.equal((await request('PATCH','creator-profile',{bio:'Hacked'},null)).statusCode,401)
+ assert.equal((await request('PATCH','comments/'+comment.id+'/author-profile',{bio:'Hacked'},null)).statusCode,401)
  assert.equal((await request('GET','comments/missing/author-profile',undefined,null)).statusCode,404)
  await request('DELETE','comments/'+comment.id)
  assert.equal((await request('GET','comments/'+comment.id+'/author-profile',undefined,null)).statusCode,404)
@@ -206,7 +179,7 @@ test('public cards handle empty profiles and never infer users from setter names
  assert.equal((await request('GET','/v1/problems/missing/creator-profile',undefined,null)).statusCode,404)
 })
 
-test('route comment totals include every page, exclude deleted rows, and track writes without storing counters',async()=>{
+test('route comment totals read summaries and remain correct across pages and retrying writes',async()=>{
  const original=structuredClone(rows.get('PROBLEM#p1|META'))
  rows.set('PROBLEM#p1|LIST',{pk:'PROBLEM#p1',sk:'LIST',problemId:'p1',gsi1pk:'GYM#stoneham-crg#WALL#spray-wall-1#ALL',gsi1sk:'PROBLEM#2026-11-03#p1'})
  for(let i=0;i<25;i++){
@@ -214,6 +187,7 @@ test('route comment totals include every page, exclude deleted rows, and track w
   const row={pk:'PROBLEM#p1',sk:'COMMENT#'+id,id,text:'Comment '+id,author:'Alice',userId:'alice',createdAt:'2026-11-03',...(deleted?{deleted:true}:{gsi1pk:'PROBLEM#p1#COMMENTS',gsi1sk:'2026-11-03#'+id})}
   rows.set(key(row),row)
  }
+ rows.get('PROBLEM#p1|COMMUNITY_SUMMARY').commentCount=23
  const first=data(await request('GET','community',undefined,null))
  assert.equal(first.comments.length,20);assert.equal(first.commentCount,23);assert(first.nextCursor)
  const second=data(await request('GET','community',undefined,null,first.nextCursor))

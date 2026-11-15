@@ -9,6 +9,7 @@ let writes
 let conflict
 sdk.DynamoDBDocumentClient.from = () => ({
   send: async (command) => {
+ const intercepted=require('./helpers/legacy-security.cjs').intercept(command);if(intercepted)return intercepted
     const input = command.input
     switch (command.constructor.name) {
       case 'GetCommand': return { Item: item }

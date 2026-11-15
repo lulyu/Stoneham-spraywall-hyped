@@ -1,5 +1,8 @@
 import { logSend, listSends, rate, addComment, community, myActivity, changeComment, commentAuthorProfile } from './community'
 import { requireIdentity, requireEditor } from './auth'
+import {guardWrite,RateLimitError} from './guardrails'
+import {listModeration,moderationInput,setAccess,setVisibility} from './moderation'
+import {initializeSummary} from './summaries'
 import { randomUUID } from 'node:crypto'
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda'
 import { createProblem, getProfile, updateProfile, listProblems, listOwnedProblems, requireProblem, updateProblem, upgradeDraft, createUpgrade, migrateWallPage, getCommentCount, withCommentCounts } from './db'
@@ -21,6 +24,7 @@ function response(statusCode: number, body?: unknown): APIGatewayProxyStructured
 }
 
 function parseJsonBody(event: APIGatewayProxyEventV2): unknown {
+  if (event.body && Buffer.byteLength(event.body,'utf8')>32768)throw new ApiError(413,'Request body is too large')
   if (!event.body) throw new ApiError(400, 'request body is required')
   try {
     const body = event.isBase64Encoded ? Buffer.from(event.body, 'base64').toString('utf8') : event.body
@@ -32,7 +36,7 @@ function parseJsonBody(event: APIGatewayProxyEventV2): unknown {
 
 function pathMatch(path: string, expression: RegExp): string[] | undefined {
   const match = path.match(expression)
-  return match?.slice(1).map(decodeURIComponent)
+  return match?.slice(1).map(value=>{try{return decodeURIComponent(value)}catch{throw new ApiError(400,'Invalid URL encoding')}})
 }
 
 export async function handler(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> {
@@ -49,6 +53,30 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
     }
 
     if (method === 'GET' && path === '/v1/me') return response(200, requireIdentity(event))
+
+    if(['POST','PATCH','DELETE'].includes(method))await guardWrite(requireIdentity(event),method,path)
+
+    if(path.startsWith('/v1/admin/')){
+      const identity=requireIdentity(event)
+      if(!identity.isAdmin)throw new ApiError(403,'Only administrators can moderate content')
+      if(path==='/v1/admin/moderation'&&method==='GET')return response(200,await listModeration(event.queryStringParameters?.kind??'routes',event.queryStringParameters?.cursor))
+      const account=pathMatch(path,/^\/v1\/admin\/users\/([^/]+)\/access$/)
+      if(account&&method==='PATCH'){
+        const decision=moderationInput(parseJsonBody(event),'banned')
+        return response(200,await setAccess(identity.userId,account[0],decision.value,decision.reason))
+      }
+      const content=pathMatch(path,/^\/v1\/admin\/problems\/([^/]+)\/comments\/([^/]+)\/visibility$/)??pathMatch(path,/^\/v1\/admin\/problems\/([^/]+)\/visibility$/)
+      if(content&&method==='PATCH'){
+        const decision=moderationInput(parseJsonBody(event),'hidden')
+        return response(200,await setVisibility(identity.userId,content[0],content[1],decision.value,decision.reason))
+      }
+      if(path==='/v1/admin/community/backfill'&&method==='POST'){
+        const input=parseJsonBody(event) as {problemId?:unknown}
+        if(!input||typeof input.problemId!=='string'||input.problemId.length>128)throw new ApiError(400,'problemId is required')
+        await requireProblem(input.problemId)
+        return response(200,await initializeSummary(input.problemId))
+      }
+    }
 
     if (path === '/v1/me/profile') {
       const identity = requireIdentity(event)
@@ -96,7 +124,7 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
       const identity = action === 'community' && method === 'GET' ? undefined : requireIdentity(event)
       const problem = await requireProblem(problemId)
       if (method === 'GET' && action === 'community') return response(200, await community(problemId, event.queryStringParameters?.cursor))
-      if (method === 'GET' && action === 'my-activity') return response(200, await myActivity(identity!.userId, problemId))
+      if (method === 'GET' && action === 'my-activity') return response(200, await myActivity(identity!.userId, problemId,event.queryStringParameters?.commentIds))
       if (method === 'POST' && action === 'sends') return response(200, await logSend(identity!.userId, problem))
       if (method === 'PATCH' && action === 'rating') return response(200, await rate(identity!.userId, problemId, parseJsonBody(event)))
       if (method === 'POST' && action === 'comments') return response(200, await addComment(identity!.userId, problemId, parseJsonBody(event)))
@@ -188,6 +216,7 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
 
     return response(404, { error: 'not found', requestId })
   } catch (error) {
+    if(error instanceof RateLimitError)return {...response(429,{error:error.message,retryAfter:error.retryAfter,requestId}),headers:{...headers,'retry-after':String(error.retryAfter)}}
     if (error instanceof ApiError) return response(error.statusCode, { error: error.message, requestId })
     console.error('Unhandled request error', { requestId, error })
     return response(500, { error: 'internal server error', requestId })
