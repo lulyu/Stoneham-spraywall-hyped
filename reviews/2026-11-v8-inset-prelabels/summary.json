@@ -1,0 +1,31 @@
+{
+  "wallVersionId": "2026-11-v8",
+  "referenceVersion": "2026-11-v7",
+  "model": "SAM2.1 Small",
+  "device": "cpu",
+  "oldHoldCount": 797,
+  "promptCount": 797,
+  "proposalCount": 792,
+  "recommendations": {
+    "alignment-needs-review": 7,
+    "known-wall-change-needs-review": 10,
+    "no-usable-mask": 5,
+    "possible-change-or-prompt-error": 2,
+    "possible-merge-or-duplicate-prompt": 4,
+    "possible-unchanged": 747,
+    "suggested-refinement": 22
+  },
+  "additionalNewLocationPromptCount": 5,
+  "additionalNewLocationProposalCount": 5,
+  "promptInsetFraction": 0.2,
+  "promptPolicy": "contract polygon to 80% linear scale and sample positive points; original extent box; model grows final outline",
+  "acceptedHoldCount": 0,
+  "checkpointSha256": "6d1aa6f30de5c92224f8172114de081d104bbd23dd9dc5c58996f0cad5dc4d38",
+  "format": "stoneham-inset-prelabel-run-v1",
+  "publishable": false,
+  "reviewSessionId": "647cb9a3c75287330654a13358a441671e75f2bc4a983cd1ba6266166ad55b6e",
+  "imageSha256": "be434e5ca6c33b9c8f126fbf6950eb8fb1e8df00ff3130eda47ff2da6b98f1f1",
+  "proposalsSha256": "8d03432a882437e2c3c35ee566591a854646e81c9ad79d95f3e170f9e6e3332d",
+  "bulkEligibleAt092": 693,
+  "reviewRequired": true
+}

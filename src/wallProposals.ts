@@ -2,7 +2,7 @@ import { stable, validateHold } from './wallReview.ts'
 import type { ReviewAction, WallReview } from './wallReview'
 import type { PolygonHoldCandidate } from './types'
 
-export type ModelProposal = PolygonHoldCandidate & { oldHoldIds: string[]; score: number; observedFraction: number; uncertaintyFraction: number }
+export type ModelProposal = PolygonHoldCandidate & { oldHoldIds: string[]; newLocation?: boolean; score: number; observedFraction: number; uncertaintyFraction: number }
 export type ModelProposals = { proposals: ModelProposal[]; recommendations: Record<string, string> }
 
 /** Proposals are editing drafts; never merge their provisional IDs into review entries. */
@@ -19,11 +19,11 @@ export function validateProposals(value: any, baseline: WallReview): ModelPropos
   const proposals:ModelProposal[]=value.proposals.map((p:any)=> {
     const hold=validateHold(p)
     if(ids.has(hold.id) || old.has(hold.id) || p.status!=='needs-review' || !Array.isArray(p.oldHoldIds) ||
-      !p.oldHoldIds.length || new Set(p.oldHoldIds).size!==p.oldHoldIds.length || !p.oldHoldIds.every((id:unknown)=>typeof id==='string'&&old.has(id)) ||
+      (p.oldHoldIds.length === 0 ? p.newLocation !== true : p.newLocation === true) || new Set(p.oldHoldIds).size!==p.oldHoldIds.length || !p.oldHoldIds.every((id:unknown)=>typeof id==='string'&&old.has(id)) ||
       ![p.evidence?.observedFraction,p.evidence?.uncertaintyFraction].every(n=>Number.isFinite(n)&&n>=0&&n<=1) ||
       !Number.isFinite(p.evidence?.modelScore) || p.evidence.modelScore<0 || p.evidence.modelScore>1) throw new Error('Invalid provisional SAM2 proposal.')
     ids.add(hold.id)
-    return {...hold,oldHoldIds:[...p.oldHoldIds],score:p.evidence.modelScore,observedFraction:p.evidence.observedFraction,uncertaintyFraction:p.evidence.uncertaintyFraction}
+    return {...hold,oldHoldIds:[...p.oldHoldIds],...(p.newLocation === true ? {newLocation:true} : {}),score:p.evidence.modelScore,observedFraction:p.evidence.observedFraction,uncertaintyFraction:p.evidence.uncertaintyFraction}
   })
   const seen=new Set<string>(),recommendations:Record<string,string>={}
   for(const e of value.entries) {

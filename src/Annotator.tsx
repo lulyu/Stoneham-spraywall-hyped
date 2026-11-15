@@ -98,7 +98,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
   const selectedProposals = modelByOld.get(selectedId) ?? []
   const pendingModel = useMemo(() => {
     const pendingIds = new Set(review?.data.entries.filter(e => e.status === 'inherited-unreviewed').map(e => e.hold.id))
-    return review?.assets.proposals?.proposals.filter(p => p.oldHoldIds.some(id => pendingIds.has(id))) ?? []
+    return review?.assets.proposals?.proposals.filter(p => p.newLocation ? !review?.data.entries.some(e => e.hold.id === `scan-${p.id}`) : p.oldHoldIds.some(id => pendingIds.has(id))) ?? []
   }, [review?.data, review?.assets.proposals])
   const preview = candidates[candidateIndex]
   const pendingSuggestions = suggestions.filter((hold) => !saved.dismissed_suggestions?.includes(hold.id) &&
@@ -213,6 +213,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
         if (review && 'oldHoldIds' in chosen) {
           const old = review.data.entries.find(e => (chosen.oldHoldIds as string[]).includes(e.hold.id) && e.status === 'inherited-unreviewed')
           if (old) { editHold(old.hold); setCandidates([chosen]); setTool('vertex') }
+          else if ('newLocation' in chosen && chosen.newLocation) reviewSuggestion(chosen)
         } else reviewSuggestion(chosen)
       }
     } else if (!started.moved && tool !== 'pan') {
@@ -244,7 +245,8 @@ export default function Annotator({ review }: { review?: ReviewController }) {
     setBusy(true); setError('')
     try {
       if (review) {
-        const hold = { ...preview, id: editingOriginal?.id ?? `scan-${crypto.randomUUID()}` }
+        const newProposal = review.assets.proposals?.proposals.find(p => p.id === suggestionId && p.newLocation)
+        const hold = { ...preview, id: editingOriginal?.id ?? (newProposal ? `scan-${newProposal.id}` : `scan-${crypto.randomUUID()}`) }
         await review.commit(editingOriginal ? { type: 'refine', id: editingOriginal.id, hold } : { type: 'add', hold })
         clear(); return
       }
@@ -496,6 +498,11 @@ export default function Annotator({ review }: { review?: ReviewController }) {
       </section>}
       {review?.assets.proposals && <section className="annotation-library" aria-label="SAM2 proposals">
         <h2>SAM2 suggestions ({review.assets.proposals.proposals.length})</h2>
+        {pendingModel.some(p => p.newLocation) && <div className="new-hold-proposals">
+          <h3>New hold positions</h3>
+          <p>These suggestions have no old hold ID. Inspect each outline before adding it.</p>
+          {pendingModel.filter(p => p.newLocation).map((proposal,index) => <button key={proposal.id} disabled={busy || !canEdit} onClick={() => reviewSuggestion(proposal)}>Review new hold {index+1} · {proposal.score.toFixed(2)}</button>)}
+        </div>}
         <label className="annotation-inline"><input type="checkbox" checked={showSuggestions} onChange={event => setShowSuggestions(event.target.checked)} />Show SAM2 suggestions</label>
         <p>Cyan dashed outlines are inherited; orange outlines are SAM2 suggestions. Select an inherited hold, load its suggestion, then inspect and confirm a correction or replacement.</p>
       </section>}
@@ -518,7 +525,7 @@ export default function Annotator({ review }: { review?: ReviewController }) {
         {preview && selectedEntry.oldHoldId === selectedEntry.hold.id && <details><summary>Different / moved hold?</summary><p>Replacing removes the old hold and assigns a new ID to this outline. Existing routes stay on their old wall version.</p><p>Use Mark replaced beside Confirm above to record this replacement.</p></details>}
       </section>}
       {editingOriginal && <p className="annotation-hint">Editing {editingOriginal.id}. Save changes keeps its ID; Clear cancels this edit.</p>}
-      {suggestionId && <button disabled={busy} onClick={() => void skipSuggestion()}>Skip this suggestion</button>}
+      {suggestionId && !review && <button disabled={busy} onClick={() => void skipSuggestion()}>Skip this suggestion</button>}
       {!review && error && <p className="annotation-error" role="alert">{error}</p>}
       {!review && <section className="annotation-library">
         <h2>Auto suggestions ({pendingSuggestions.length})</h2>
