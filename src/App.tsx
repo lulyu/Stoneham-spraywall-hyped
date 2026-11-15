@@ -986,8 +986,8 @@ function App() {
           </button>}
           {shareMessage && <p className="share-notice" role="status">{shareMessage}</p>}
           {manualShareLink && <label className="share-link-field">Route link<input readOnly autoFocus value={manualShareLink} onFocus={(e) => e.currentTarget.select()} /></label>}
-          {problemStore.shared && activeProblem && <Community key={activeProblem.id} baseUrl={apiBaseUrl} problemId={activeProblem.id} name={activeProblem.name} userId={identity?.userId} onCommentCountChange={updateCommentCount} onRatingChange={routeRatings.update} />}
-          <RouteVersions key={activeProblem.id} active={activeProblem} store={problemStore} onOpen={openProblem} busy={busy||openingId!==null} />
+          {problemStore.shared && activeProblem && <Community key={'activity:'+activeProblem.id} baseUrl={apiBaseUrl} problemId={activeProblem.id} name={activeProblem.name} userId={identity?.userId} onCommentCountChange={updateCommentCount} onRatingChange={routeRatings.update} />}
+          <RouteVersions key={'versions:'+activeProblem.id} active={activeProblem} store={problemStore} onOpen={openProblem} busy={busy||openingId!==null} />
         </section>}
         <dialog id="routes-drawer" className="routes-drawer" ref={routesDialog} aria-labelledby="routes-title"
           onCancel={event => { event.preventDefault(); goBack() }}
