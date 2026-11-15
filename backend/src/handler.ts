@@ -5,7 +5,7 @@ import {listModeration,moderationInput,setAccess,setVisibility} from './moderati
 import {initializeSummary} from './summaries'
 import { randomUUID } from 'node:crypto'
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda'
-import { createProblem, getProfile, updateProfile, listProblems, listOwnedProblems, requireProblem, updateProblem, upgradeDraft, createUpgrade, migrateWallPage, getCommentCount, withCommentCounts } from './db'
+import { listProblemVersions, removeProblem, createProblem, getProfile, updateProfile, listProblems, listOwnedProblems, requireProblem, updateProblem, upgradeDraft, createUpgrade, migrateWallPage, getCommentCount, withCommentCounts } from './db'
 import type { Problem } from './model'
 import { parseProfile, parseCreateProblem, parseUpdateProblem } from './validation'
 import { ApiError, requireWallVersion, latestWall } from './walls'
@@ -149,6 +149,11 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
       const page = await listProblems(allProblemsPath[0],allProblemsPath[1],undefined,event.queryStringParameters?.cursor)
       return response(200, {...page, items: await withCommentCounts(page.items)})
     }
+    const versionsPath=pathMatch(path,/^\/v1\/problems\/([^/]+)\/versions$/)
+    if(versionsPath){
+      if(method!=='GET')return response(405,{error:'method not allowed'})
+      return response(200,await listProblemVersions(await requireProblem(versionsPath[0]),event.queryStringParameters?.cursor))
+    }
     const upgradePath=pathMatch(path,/^\/v1\/problems\/([^/]+)\/upgrade$/)
     if(upgradePath) {
       const identity=requireIdentity(event),source=await requireProblem(upgradePath[0])
@@ -199,6 +204,11 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
     if (problemPath) {
       const [problemId] = problemPath
       if (method === 'GET') return response(200, {...await requireProblem(problemId), commentCount: await getCommentCount(problemId)})
+      if(method==='DELETE'){
+        const input=parseJsonBody(event) as {revision?:unknown}
+        if(!input||!Number.isSafeInteger(input.revision)||(input.revision as number)<1)throw new ApiError(400,'revision is required and must be a positive safe integer')
+        return response(200,await removeProblem(problemId,requireIdentity(event),input.revision as number))
+      }
       if (method === 'PATCH') {
         const identity = requireIdentity(event)
         const existing = await requireProblem(problemId)

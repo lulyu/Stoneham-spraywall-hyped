@@ -40,4 +40,4 @@ const preflight = await fetch(base + collection, {
 })
 assert.equal(preflight.status, 204)
 assert.equal(preflight.headers.get('access-control-allow-origin'), 'https://stoneham-spraywall-project.vercel.app')
-console.log('PASS: public reads, anonymous/forged write rejection, private profiles, disabled DELETE and CORS; no records created')
+console.log('PASS: public reads, anonymous/forged write rejection, private profiles, authenticated removal and CORS; no records created')

@@ -1,3 +1,4 @@
+import {routeFamilyId,compareRouteVersions} from './routeVersionGroups.ts'
 import { STORAGE_KEY, readLocalProblems, ProblemStoreError } from './problemStore'
 import type { ProblemStore, ProblemInput, UpgradeDraft } from './problemStore'
 import { wallVersions, DEFAULT_WALL_VERSION, LEGACY_WALL_VERSION } from './wallVersions'
@@ -13,7 +14,7 @@ export function createLocalWallStore(storage:Pick<Storage,'getItem'|'setItem'>):
       .filter(p=>{if(seen.has(p.id))return false;seen.add(p.id);return true}).map(routeCompatibility)
       .sort((a,b)=>b.createdAt.localeCompare(a.createdAt))
   }
-  const get=(id:string)=>{const p=read().find(p=>p.id===id);if(!p)throw new ProblemStoreError(404,'This problem no longer exists.');return p}
+  const get=(id:string)=>{const p=read().find(p=>p.id===id&&!p.hidden);if(!p)throw new ProblemStoreError(404,'This problem no longer exists.');return p}
   const write=(p:Problem)=> {
     const key=localWallKey(p.wallVersionId??LEGACY_WALL_VERSION)
     const rows=readLocalProblems(storage,validIds,key)
@@ -31,7 +32,9 @@ export function createLocalWallStore(storage:Pick<Storage,'getItem'|'setItem'>):
     return {sourceId:source.id,sourceRevision:source.revision??1,targetWallVersionId:DEFAULT_WALL_VERSION,name:nextUpgradeName(base,number),
       grade:source.grade,setter:source.setter,notes:source.notes,holds:source.holds.filter(h=>ids.has(h.holdId)),removedHoldIds:source.missingHoldIds??[]}
   }
-  return {shared:false,async list(){return {items:read()}},async get(id){return get(id)},
+  return {shared:false,async list(){return {items:read().filter(p=>!p.hidden)}},async get(id){return get(id)},
+    async listVersions(id){const source=get(id);return {items:read().filter(p=>!p.hidden&&routeFamilyId(p)===routeFamilyId(source)).sort(compareRouteVersions)}},
+    remove:existing=>lock(()=>{const p=read().find(p=>p.id===existing.id);if(!p)throw new ProblemStoreError(404,'This problem no longer exists.');if(p.hidden)return;if(p.revision!==existing.revision)throw new ProblemStoreError(409,'This route changed. Reload before removing it.');write({...p,hidden:true,revision:(p.revision??1)+1})}),
     create:input=>lock(()=>write(make(input))),
     update:(existing,input)=>lock(()=>{const p=get(existing.id);if(p.revision!==existing.revision)throw new ProblemStoreError(409,'This problem changed.');return write(routeCompatibility({...p,...input,revision:(p.revision??1)+1,updatedAt:new Date().toISOString()}))}),
     async getUpgradeDraft(id){return draft(get(id))},

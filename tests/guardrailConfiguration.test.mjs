@@ -13,3 +13,11 @@ test('moderation and backfill routes require verified JWTs and write scope, with
  const actions=Resources.Role.Properties.Policies.flatMap(p=>p.PolicyDocument.Statement).flatMap(s=>s.Action)
  assert(!actions.includes('dynamodb:DeleteItem'));assert(!actions.includes('dynamodb:*'))
 })
+
+test('route removal requires a verified write token while visible route history stays public',()=>{
+ const {Resources}=JSON.parse(readFileSync('infra/cloudformation/backend.json'))
+ assert.equal(Resources.RemoveProblemRoute.Properties.RouteKey,'DELETE /v1/problems/{problemId}')
+ assert.equal(Resources.RemoveProblemRoute.Properties.AuthorizationType,'JWT')
+ assert.deepEqual(Resources.RemoveProblemRoute.Properties.AuthorizationScopes,['stoneham-api/write'])
+ assert.equal(Resources.ListProblemVersionsRoute.Properties.AuthorizationType,'NONE')
+})

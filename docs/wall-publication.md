@@ -117,3 +117,40 @@ DISABLE_IAM_POLICY_AUTOPILOT_TELEMETRY=true uvx iam-policy-autopilot@latest gene
 
 CloudFormation lint/schema validation, JWT route configuration checks, backend
 type checks, frontend builds and frontend/backend tests gate the release.
+
+## Route families and removal
+
+Explore and My routes display the latest visible version in each Upgrade family,
+using `upgradeRootId` (or the original route's ID). Names do not establish lineage.
+Version numbers are compared numerically; filtering and sorting apply after
+selecting the latest version. Comments/ratings remain separate per route ID.
+My routes still starts with five families and Load more; automatic filling reads
+at most ten bounded API pages per batch, retaining a continuation if needed.
+
+At the bottom of a selected route, Other versions loads a public, paginated
+history. Selecting a version opens its original route ID, activity and appropriate
+wall image; old-version warnings remain visible. The existing all-routes API
+continues to expose individual route records for backward compatibility.
+
+A `FAMILY` directory item per version uses the existing GSI, partitioned by
+gym/wall/root ID and ordered by padded numeric Upgrade number. It is written in
+the same transaction as creates/edits/Upgrades. History hydrates at most 20 entries
+from canonical records, excludes hidden versions and validates each hydrated
+family. Cursors cannot be reused across families. No name-based merging or
+per-request table scan is used.
+
+On rollout, run the existing publication dry-run/apply against the unchanged
+current wall catalog to backfill these pointers. When compatibility already
+matches, this preserves route content, revisions, timestamps and all activity;
+only listing pointers are added. Check every scan page, including empty pages.
+
+The creator or a gym administrator can use Remove beside Edit (also available
+for outdated versions). Confirmation removes only that version; other versions
+remain. Removing the latest exposes the previous visible version in the list.
+`DELETE /v1/problems/{id}` requires a verified write token, account write access
+and a matching positive `revision` in JSON. Stale edits/removals return `409`.
+Removal atomically hides the canonical route and writes an audit entry; retries
+by an authorized caller are idempotent. It does not physically delete route,
+comment, rating, summary, family-pointer or Upgrade-counter records. Administrators
+can restore it through Profile → Admin moderation. Application IAM still has no
+`DeleteItem` permission. New Upgrade numbers are never reused after removal.

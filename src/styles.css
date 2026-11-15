@@ -243,3 +243,11 @@ body:has(.public-profile-dialog[open]) { overflow: hidden; }
 .moderation-panel select, .moderation-panel textarea { width: 100%; max-width: 100%; }
 .moderation-list article { padding: 1rem 0; border-bottom: 1px solid #414536; overflow-wrap: anywhere; }
 .moderation-panel form { padding: 1rem; border: 1px solid #8c5555; border-radius: 1rem; overflow-wrap: anywhere; }
+
+.route-management-actions { display: inline-flex; flex-wrap: wrap; gap: 8px; vertical-align: middle; }
+.remove-route-confirmation { border: 1px solid #8c5555; border-radius: 12px; padding: 12px; margin-block: 12px; overflow-wrap: anywhere; }
+.route-versions { margin-top: 18px; padding-top: 12px; border-top: 1px solid #414536; color: #aab09e; font-size: .85rem; }
+.route-versions summary { cursor: pointer; width: fit-content; }
+.route-versions ul { padding-left: 18px; }
+.route-versions li { margin-block: 6px; overflow-wrap: anywhere; }
+.route-version-link { background: transparent; border: 0; border-radius: 0; padding: 6px 0; color: #bbc4ab; font: inherit; text-decoration: underline; text-align: left; overflow-wrap: anywhere; }

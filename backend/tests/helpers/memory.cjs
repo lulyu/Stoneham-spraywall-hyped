@@ -50,7 +50,7 @@ class Memory {
   if(kind==='ScanCommand'){
    const all=[...this.rows.values()].sort((a,b)=>key(a).localeCompare(key(b))),start=p.ExclusiveStartKey?all.findIndex(r=>key(r)===key(p.ExclusiveStartKey))+1:0
    const scanned=all.slice(start,start+p.Limit),last=scanned.at(-1),v=p.ExpressionAttributeValues??{}
-   const items=scanned.filter(r=>!v[':type']||r.entityType===v[':type'])
+   const items=scanned.filter(r=>(!(v[':type']??v[':entity'])||r.entityType===(v[':type']??v[':entity']))&&(!v[':gym']||r.gymId===v[':gym'])&&(!v[':wall']||r.wallId===v[':wall']))
    return {Items:structuredClone(items),ScannedCount:scanned.length,...(start+scanned.length<all.length?{LastEvaluatedKey:{pk:last.pk,sk:last.sk}}:{})}
   }
   throw Error('Unexpected command '+kind)

@@ -1,4 +1,4 @@
-import {randomUUID} from 'node:crypto'
+import {auditWrite as audit} from './audit'
 import {GetCommand,ScanCommand} from '@aws-sdk/lib-dynamodb'
 import {client,tableName} from './storage'
 import {accessKey} from './guardrails'
@@ -6,10 +6,6 @@ import {commit,getSummary,isConflict,summaryWrite} from './summaries'
 import {rowWrite} from './community'
 import {ApiError} from './walls'
 const read=async(Key:{pk:string;sk:string})=>(await client.send(new GetCommand({TableName:tableName,Key,ConsistentRead:true}))).Item
-function audit(actor:string,target:string,action:string,reason:string){
- const now=new Date().toISOString(),id=randomUUID()
- return {Put:{TableName:tableName,Item:{pk:'MODERATION#'+target,sk:now+'#'+id,entityType:'moderation-audit',actor,target,action,reason,createdAt:now},ConditionExpression:'attribute_not_exists(pk)'}}
-}
 export function moderationInput(input:unknown,field:'hidden'|'banned'){
  if(!input||typeof input!=='object'||Array.isArray(input))throw new ApiError(400,'Invalid moderation request')
  const body=input as Record<string,unknown>

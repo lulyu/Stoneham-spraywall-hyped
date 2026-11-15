@@ -2,6 +2,8 @@ import { GetCommand, PutCommand, UpdateCommand, QueryCommand, TransactWriteComma
 import type { Problem, UserProfile, ProblemItem, UpdateProblemInput } from './model'
 import { ApiError, latestWall } from './walls'
 import { compatibility, upgradeName } from './wallLifecycle'
+import {auditWrite} from './audit'
+import {requireEditor,type requireIdentity} from './auth'
 import { accountDisplayName } from './accountName'
 
 export { client, tableName } from './storage'
@@ -39,6 +41,23 @@ export async function withCommentCounts(problems: Problem[]): Promise<Problem[]>
   return result
 }
 
+const familyRoot=(problem:Problem)=>problem.upgradeRootId??problem.id
+const familyPartition=(problem:Problem)=>`GYM#${problem.gymId}#WALL#${problem.wallId}#FAMILY#${familyRoot(problem)}`
+export async function listProblemVersions(source:Problem,cursor?:string):Promise<{items:Problem[];nextCursor?:string}>{
+ const partition=familyPartition(source);let start
+ if(cursor)try{
+  if(cursor.length>4096)throw Error()
+  const key=JSON.parse(Buffer.from(cursor,'base64url').toString('utf8'))
+  if(!key||Object.keys(key).length!==4||!['pk','sk','gsi1pk','gsi1sk'].every(k=>typeof key[k]==='string')||key.gsi1pk!==partition||key.sk!=='FAMILY'||!key.pk.startsWith('PROBLEM#')||!key.gsi1sk.startsWith('VERSION#'))throw Error()
+  start=key
+ }catch{throw new ApiError(400,'Invalid route version cursor')}
+ const page=await client.send(new QueryCommand({TableName:tableName,IndexName:'gsi1',KeyConditionExpression:'gsi1pk = :pk',ExpressionAttributeValues:{':pk':partition},ScanIndexForward:false,Limit:20,ExclusiveStartKey:start}))
+ const records=await Promise.all((page.Items??[]).map(item=>getProblem(item.problemId)))
+ const seen=new Set<string>()
+ const items=records.filter((r):r is Problem=>Boolean(r)).filter(r=>{if(familyPartition(r)!==partition||seen.has(r.id))return false;seen.add(r.id);return true})
+ return {items,...(page.LastEvaluatedKey?{nextCursor:Buffer.from(JSON.stringify(page.LastEvaluatedKey)).toString('base64url')}:{})}
+}
+
 function problemWrites(problem:Problem, condition:Record<string,unknown>) {
   const order=`PROBLEM#${problem.createdAt}#${problem.id}`
   const item:ProblemItem={...problem,pk:problemPk(problem.id),sk:'META',
@@ -46,6 +65,7 @@ function problemWrites(problem:Problem, condition:Record<string,unknown>) {
   const pointer={pk:problemPk(problem.id),problemId:problem.id,gsi1sk:order,entityType:'problem-listing'}
   return [
     {Put:{TableName:tableName,Item:item,...condition}},
+    {Put:{TableName:tableName,Item:{...pointer,sk:'FAMILY',gsi1pk:familyPartition(problem),gsi1sk:'VERSION#'+String(problem.upgradeNumber??1).padStart(16,'0')+'#'+problem.createdAt+'#'+problem.id}}},
     {Put:{TableName:tableName,Item:{...pointer,sk:'LIST',gsi1pk:wallPk(problem.gymId,problem.wallId)+'#ALL'}}},
     ...(problem.ownerId?[{Put:{TableName:tableName,Item:{...pointer,sk:'OWNER',gsi1pk:`USER#${problem.ownerId}#ROUTES`}}}]:[]),
     ...(problem.supportedWallVersionIds??[]).filter(version=>version!==problem.wallVersionId).map(version=>({Put:{TableName:tableName,
@@ -148,6 +168,17 @@ export async function updateProblem(existing: Problem, patch: UpdateProblemInput
     revision: existing.revision + 1,
   }
   return persistProblem(next,{ConditionExpression:'revision = :revision',ExpressionAttributeValues:{':revision':existing.revision}})
+}
+
+export async function removeProblem(id:string,identity:ReturnType<typeof requireIdentity>,revision:number){
+ const raw=(await client.send(new GetCommand({TableName:tableName,Key:{pk:problemPk(id),sk:'META'},ConsistentRead:true}))).Item
+ if(!raw)throw new ApiError(404,'problem not found')
+ const existing=toProblem(raw as ProblemItem)
+ requireEditor(identity,existing)
+ if(existing.hidden)return {id,removed:true}
+ if(existing.revision!==revision)throw new ApiError(409,'This route changed. Reload it before removing this version.')
+ await persistProblem({...existing,hidden:true,revision:revision+1},{ConditionExpression:'revision = :revision',ExpressionAttributeValues:{':revision':revision}},[auditWrite(identity.userId,id,'remove-route',identity.isAdmin?'Removed by an administrator from the route view':'Removed by its creator')])
+ return {id,removed:true}
 }
 
 export async function upgradeDraft(source:Problem) {
