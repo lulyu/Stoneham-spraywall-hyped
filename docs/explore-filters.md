@@ -1,6 +1,9 @@
 # Explore filters and sorting
 
-Explore defaults to all routes, newest first. Grade selects an exact grade;
+Explore defaults to all routes, newest first. The filter icon beside Refresh
+opens a panel containing all filter and sort controls; fresh Explore visits start
+with it collapsed. The icon highlights when filters or a non-default sort are
+active. Collapsing the panel preserves those selections. Grade selects an exact grade;
 Valid only hides outdated routes on the latest physical wall. Reset filters
 restores all grades, all routes, and newest first. Grade sorting is numeric,
 including VB and V10+, with unknown grades last. Both grade and star sorting

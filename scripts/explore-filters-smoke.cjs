@@ -39,11 +39,14 @@ const api='https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com',app=process.e
  const names=()=>cards.locator('.problem-title strong').allTextContents()
  const expectNames=async expected=>{await page.waitForFunction(expected=>JSON.stringify([...document.querySelectorAll('.routes-drawer .problem-card .problem-title strong')].map(element=>element.textContent))===JSON.stringify(expected),expected);assert.deepEqual(await names(),expected)}
  await page.goto(app);await page.getByLabel('Account menu',{exact:true}).waitFor();await page.getByRole('button',{name:'Explore routes',exact:true}).click();await cards.nth(2).waitFor()
+ const filters=drawer.getByRole('button',{name:'Filters',exact:true}),panel=drawer.getByRole('group',{name:'Filter and sort routes',exact:true});assert.equal(await filters.getAttribute('aria-expanded'),'false');assert(!await panel.isVisible());
+ require('node:fs').mkdirSync('artifacts',{recursive:true});await drawer.evaluate(element=>Promise.all(element.getAnimations().map(animation=>animation.finished)));await page.screenshot({path:'artifacts/explore-filters-collapsed-mobile.png'});
+ await filters.click();await panel.waitFor();assert.equal(await filters.getAttribute('aria-expanded'),'true');
  const initialListCalls=listCalls;assert(initialListCalls>=1&&initialListCalls<=2);assert.equal(ratingCalls,0);assert(!await drawer.getByLabel('Valid only',{exact:true}).isChecked())
  await drawer.getByLabel('Grade',{exact:true}).selectOption('V2');await drawer.getByText('Temporary list failure',{exact:true}).waitFor();await expectNames(['Route 1'])
  await drawer.getByRole('button',{name:'Load more routes',exact:true}).click();await expectNames(['Route 1','Route 4']);assert.equal(listCalls,initialListCalls+3)
- await drawer.getByLabel('Valid only',{exact:true}).check();await expectNames(['Route 1']);await cards.click();await page.getByRole('heading',{name:'Route 1',level:2,exact:true}).waitFor()
- await page.goBack();await drawer.waitFor();assert.equal(await drawer.getByLabel('Grade',{exact:true}).inputValue(),'V2');assert(await drawer.getByLabel('Valid only',{exact:true}).isChecked());await expectNames(['Route 1'])
+ await drawer.getByLabel('Valid only',{exact:true}).check();await expectNames(['Route 1']);await filters.click();assert(!await panel.isVisible());assert(await filters.evaluate(element=>element.classList.contains('has-filters')));await expectNames(['Route 1']);await cards.click();await page.getByRole('heading',{name:'Route 1',level:2,exact:true}).waitFor()
+ await page.goBack();await drawer.waitFor();assert(!await panel.isVisible());await filters.click();assert.equal(await drawer.getByLabel('Grade',{exact:true}).inputValue(),'V2');assert(await drawer.getByLabel('Valid only',{exact:true}).isChecked());await expectNames(['Route 1'])
  await drawer.getByLabel('Grade',{exact:true}).selectOption('V9');await drawer.getByText('No routes match these filters. Try another grade or turn off Valid only.',{exact:true}).waitFor()
  await drawer.getByRole('button',{name:'Reset filters',exact:true}).click();await expectNames(records.map(record=>record.name));assert.equal(await drawer.locator('.problem-card.outdated').count(),1)
  await drawer.getByLabel('Sort by',{exact:true}).selectOption('grade-asc');await expectNames(['Route 3','Route 6','Route 5','Route 1','Route 4','Route 2','Route 0'])
@@ -59,5 +62,5 @@ const api='https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com',app=process.e
  await page.goBack();await drawer.waitFor();await expectNames(['Route 0','Route 2','Route 1','Route 5','Route 3','Route 6']);await cards.first().getByText('★ 5.0 · 6 ratings',{exact:true}).waitFor()
  await drawer.getByRole('button',{name:'Refresh',exact:true}).click();await expectNames(['Route 0','Route 2','Route 1','Route 5','Route 3','Route 6']);await page.waitForFunction(()=>!document.querySelector('.routes-drawer .load-more'));assert(listCalls>=initialListCalls+6)
  assert.deepEqual(errors,[])
- console.log('PASS: grade/valid filters, numeric grade sorting, global pagination and retry, star averages/ties/unrated, bounded rating reads/failure retry/cache, Back retains filters, confirmed rating updates, refresh and mobile layout. All writes mocked.')
+ console.log('PASS: collapsed icon button/panel, active filters retained while hidden, grade/valid filters, numeric grade sorting, global pagination and retry, star averages/ties/unrated, bounded rating reads/failure retry/cache, Back retains filters, confirmed rating updates, refresh and mobile layout. All writes mocked.')
  }finally{for(const context of browser.contexts())await context.unrouteAll({behavior:'ignoreErrors'});await browser.close()}})().catch(error=>{console.error(error);process.exitCode=1})
