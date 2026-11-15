@@ -1,0 +1,90 @@
+{
+  "format": "stoneham-completed-review-archive-v1",
+  "publishable": false,
+  "wallVersionId": "2026-11-v8",
+  "sessionId": "647cb9a3c75287330654a13358a441671e75f2bc4a983cd1ba6266166ad55b6e",
+  "assets": {
+    "wall.jpg": {
+      "sha256": "be434e5ca6c33b9c8f126fbf6950eb8fb1e8df00ff3130eda47ff2da6b98f1f1",
+      "bytes": 12678917
+    },
+    "coverage.png": {
+      "sha256": "5f555a10da8725678151fd650af235fcec69dc295b267d2540ad0053c289510a",
+      "bytes": 52449
+    },
+    "composition-manifest.json": {
+      "sha256": "d832320e89c8f09e727bd7c9fa2cfdc7024b1404d7cbd57c57badee121757bff",
+      "bytes": 6292
+    },
+    "geometry-qa.json": {
+      "sha256": "e38d6080fef494c253735a3f3b12cf4841afe9700da9224f2b425dd4a341f8b6",
+      "bytes": 1081
+    },
+    "README.md": {
+      "sha256": "6f120ef3126d4eaa53cae3820d136846837a65b7777b8e291853085059272b9a",
+      "bytes": 2610
+    },
+    "source-index.png": {
+      "sha256": "3e9b69bbdf01223683509e00704121fd5d6a062971504b30649d536b39907907",
+      "bytes": 131258
+    },
+    "confirmed-geometry.json": {
+      "sha256": "1c2f1797db4232f4400f27be6443faf58e033e27f59b7a0a49a329770065a314",
+      "bytes": 1117918
+    },
+    "review-progress-r812.json": {
+      "sha256": "5a7c70721cca771a94e38d2f586280790c9bd06224b3ae6e26bb83647dc42abc",
+      "bytes": 4830642
+    },
+    "uncertainty.png": {
+      "sha256": "8b159fbae0459f2d380d250a95bd6969614bc2f2a6deb2f41b7fa2da255717b5",
+      "bytes": 160843
+    },
+    "candidate-manifest.json": {
+      "sha256": "0c7fcb386e3f040af2dd60c20be8d7d42936b69c5ec08068456616671d122e41",
+      "bytes": 4914
+    },
+    "confirmed-overlay.jpg": {
+      "sha256": "6bbed60e4d2f182a2b33f2c99091000fad8ef3eff508b4ff0d6cf6358315566c",
+      "bytes": 2011602
+    },
+    "summary.json": {
+      "sha256": "799f9cd0f4de14c43a3fc5a29ceaff46f8967b688d2c99540370af6303c06144",
+      "bytes": 3906
+    },
+    "validate.mjs": {
+      "sha256": "341b258c343225f5e1d298e7a83175f5e65e8a642387a459dad59b4bdbaab582",
+      "bytes": 2450
+    }
+  },
+  "baselineFiles": [
+    {
+      "name": "holds_prelabels.json",
+      "sha256": "68b9c14b3e14c437636101ea119f4deea94de6fa90648e600ae2ef2842403b88"
+    },
+    {
+      "name": "manifest.json",
+      "sha256": "57a0b583b9ffe7d1ecd8376026111ccb2432b6d40056468ff70c024e020ab901"
+    },
+    {
+      "name": "report.json",
+      "sha256": "14790a2239cf11bfa9a98b0ab708c813e6b65bd13792b7eee13ba635028d8889"
+    },
+    {
+      "name": "review_queue.json",
+      "sha256": "6579348f8e5f69b8e9461e8fe68046041bc53d066919374b2803f3f0a1d2ed62"
+    },
+    {
+      "name": "sam2-proposals.json",
+      "sha256": "8d03432a882437e2c3c35ee566591a854646e81c9ad79d95f3e170f9e6e3332d"
+    }
+  ],
+  "referenceImage": {
+    "path": "public/wall/versions/2026-11-v7-seam-trial/wall.jpg",
+    "sha256": "6fb57bee42af9b5b51283d79502968466cf7d25eaf0f5a6a64b3c92c22e4e72b"
+  },
+  "referenceHolds": {
+    "path": "src/data/walls/2026-11-v7/holds.json",
+    "sha256": "24ba37e849c7575571d6d723d4f5b6c165c74042a894bea3bc581f87ef9d665d"
+  }
+}

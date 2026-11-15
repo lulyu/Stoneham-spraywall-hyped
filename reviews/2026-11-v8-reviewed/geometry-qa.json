@@ -1,0 +1,34 @@
+{
+  "confirmedCount": 801,
+  "duplicateIdCount": 0,
+  "highIoUDuplicateCandidates": [],
+  "identityChecks": [
+    {
+      "id": "sam2-auto-0240",
+      "referenceCenter": [
+        0.47565619356879457,
+        0.6853640024463277
+      ],
+      "reviewedCenter": [
+        0.4722132040321378,
+        0.6836683037915989
+      ],
+      "issue": "Known changed physical hold at this position retains its old ID; review identity before publication/route migration",
+      "status": "publication-check-open"
+    },
+    {
+      "id": "scan-3d03fe67-21c0-4ff4-af5c-31e25b77e011",
+      "referenceCenter": [
+        0.5405278228184057,
+        0.685473480465933
+      ],
+      "reviewedCenter": [
+        0.5409380136894305,
+        0.6832697382940002
+      ],
+      "issue": "Known changed physical hold at this position retains its old ID; review identity before publication/route migration",
+      "status": "publication-check-open"
+    }
+  ],
+  "note": "Raw human review and its IDs are archived unchanged. Identity findings are publication checks, not edits to reviewer decisions."
+}

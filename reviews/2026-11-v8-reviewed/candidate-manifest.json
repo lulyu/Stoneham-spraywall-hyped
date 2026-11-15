@@ -1,0 +1,127 @@
+{
+  "format": "stoneham-wall-candidate-v1",
+  "wallId": "spray-wall-1",
+  "wallVersionId": "2026-11-v8",
+  "referenceVersion": "2026-11-v7",
+  "status": "candidate-needs-review",
+  "publishable": false,
+  "imageSize": [
+    7292,
+    5514
+  ],
+  "image": "wall.jpg",
+  "coverage": "coverage.png",
+  "uncertainty": "uncertainty.png",
+  "sourceIndex": "source-index.png",
+  "sourceSession": {
+    "scanId": "stoneham-20261114-originals",
+    "gymId": "stoneham-crg",
+    "wallId": "spray-wall-1",
+    "referenceVersion": "2026-11-v7",
+    "candidateVersion": "2026-11-v8",
+    "referenceImageSha256": "6fb57bee42af9b5b51283d79502968466cf7d25eaf0f5a6a64b3c92c22e4e72b",
+    "referenceHoldsSha256": "24ba37e849c7575571d6d723d4f5b6c165c74042a894bea3bc581f87ef9d665d",
+    "registeredImageSha256": "be434e5ca6c33b9c8f126fbf6950eb8fb1e8df00ff3130eda47ff2da6b98f1f1",
+    "coordinateFrame": {
+      "size": [
+        7292,
+        5514
+      ],
+      "orientation": "v7 canonical frame; EXIF-prepared source photos"
+    },
+    "sourceContents": [
+      {
+        "id": "IMG20261114133704.jpg",
+        "imageSha256": "55132c4fd79e4c5f0501942bf3188f6b23cad1c34edc1c2d5e0d3a0929468758"
+      },
+      {
+        "id": "IMG20261114133713.jpg",
+        "imageSha256": "b6de2e4d323cdd34a7c207d817fbe180492a11d6481db8077e4fb1156d39dbf1"
+      },
+      {
+        "id": "IMG20261114133726.jpg",
+        "imageSha256": "54fd2f5e95a6a341561ec7ba6adcf886a1e7d8ead1a24bd28d01f878400ebed2"
+      },
+      {
+        "id": "IMG20261114133728.jpg",
+        "imageSha256": "468859a2bd99fa298719d1484feb91de9aaecbfbeb38c724aa0e784472a50ab5"
+      },
+      {
+        "id": "IMG20261114144544.jpg",
+        "imageSha256": "63539bbd01324a2650ed4bb9ed6b07d710288a7bba7131c6bd53ab00fe931328"
+      }
+    ],
+    "compositionManifestSha256": "d832320e89c8f09e727bd7c9fa2cfdc7024b1404d7cbd57c57badee121757bff",
+    "sessionId": "2a48f57e32ded1e49f39423edc19be490b5ff68ffee8963e96b52863bf7603dd"
+  },
+  "referenceImageSha256": "6fb57bee42af9b5b51283d79502968466cf7d25eaf0f5a6a64b3c92c22e4e72b",
+  "referenceHoldsSha256": "24ba37e849c7575571d6d723d4f5b6c165c74042a894bea3bc581f87ef9d665d",
+  "referenceFilledFraction": 0.010419893629361337,
+  "qaFailures": [
+    "new-image-needs-human-review",
+    "changed-positions-need-identity-review",
+    "unannotated-bottom-footholds"
+  ],
+  "reviewPriority": {
+    "status": "planning-only",
+    "referenceVersion": "2026-11-v7",
+    "candidateImageSHA256": "be434e5ca6c33b9c8f126fbf6950eb8fb1e8df00ff3130eda47ff2da6b98f1f1",
+    "candidateImage": "wall.jpg",
+    "referenceImageSHA256": "6fb57bee42af9b5b51283d79502968466cf7d25eaf0f5a6a64b3c92c22e4e72b",
+    "all797OldPositionsObservedInNewPhotos": true,
+    "priorityChangedOldHoldIds": [
+      "scan-cb8662fd-90c4-4f5f-98c7-416aaf2228b3",
+      "manual-65dbb8961b36",
+      "sam2-auto-0262",
+      "scan-3d03fe67-21c0-4ff4-af5c-31e25b77e011",
+      "manual-71dd227dbab7",
+      "manual-aff744c86d42",
+      "manual-cffef2e03e11",
+      "sam2-auto-0240",
+      "scan-84c01ed7-d763-408d-b625-720fa12e2fbc",
+      "sam2-auto-0247"
+    ],
+    "additionalPriorityRegions": [
+      "bottom foothold strip: orientation differences and previously unannotated small footholds",
+      "photo seams and protruding volumes"
+    ],
+    "reviewStatus": "all inherited outlines require verification against this candidate image; no confirmations transferred",
+    "idRule": "Do not treat a moved/replaced position as compatible solely because a similar physical hold still exists elsewhere. Keep old IDs only for verified unchanged positions.",
+    "nextSteps": [
+      "Inspect candidate and toggle GIFs",
+      "Create a versioned unreviewed annotation session bound to the candidate image hash",
+      "Run SAM2 outline proposals against this image, then review changed positions, new footholds, and inherited outlines",
+      "Publish only the accepted wall version and run route compatibility migration"
+    ],
+    "newUnannotatedPositionCandidates": [
+      {
+        "centerApprox": [
+          0.315,
+          0.982
+        ],
+        "appearance": "small red foothold",
+        "status": "needs-segmentation-and-review"
+      },
+      {
+        "centerApprox": [
+          0.547,
+          0.982
+        ],
+        "appearance": "small green foothold",
+        "status": "needs-segmentation-and-review"
+      },
+      {
+        "centerApprox": [
+          0.889,
+          0.978
+        ],
+        "appearance": "small blue foothold",
+        "status": "needs-segmentation-and-review"
+      }
+    ]
+  },
+  "imageSha256": "be434e5ca6c33b9c8f126fbf6950eb8fb1e8df00ff3130eda47ff2da6b98f1f1",
+  "coverageSha256": "5f555a10da8725678151fd650af235fcec69dc295b267d2540ad0053c289510a",
+  "uncertaintySha256": "8b159fbae0459f2d380d250a95bd6969614bc2f2a6deb2f41b7fa2da255717b5",
+  "sourceIndexSha256": "3e9b69bbdf01223683509e00704121fd5d6a062971504b30649d536b39907907"
+}
