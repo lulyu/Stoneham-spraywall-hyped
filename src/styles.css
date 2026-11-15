@@ -227,3 +227,10 @@ body:has(.public-profile-dialog[open]) { overflow: hidden; }
 .explore-filters .valid-only { grid-column: 2; grid-row: 1; }
 
 .explore-filters > button { grid-column: 1 / -1; justify-self: start; white-space: nowrap; }
+
+.filter-toggle { margin-left: auto; position: relative; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; }
+.filter-toggle.has-filters { color: #c9ff53; border: 1px solid #6e7b59; }
+.filter-toggle:focus-visible { outline: 2px solid #c9ff53; outline-offset: 3px; }
+.filter-active-dot { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: #c9ff53; top: 6px; right: 6px; }
+.explore-filters { padding: 14px; border: 1px solid #34382e; border-radius: 14px; background: #171b14; }
+.explore-filters[hidden] { display: none; }

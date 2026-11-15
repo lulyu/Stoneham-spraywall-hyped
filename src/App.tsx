@@ -371,6 +371,7 @@ function App() {
   const [problems, setProblems] = useState<Problem[]>([])
   const [nextCursor, setNextCursor] = useState<string | undefined>()
   const [loadingMore, setLoadingMore] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [exploreQuery, setExploreQuery] = useState<ExploreQuery>(defaultExploreQuery)
   const starSort = isStarSort(exploreQuery.sort)
   const allRoutesNeeded = needsAllRoutes(exploreQuery)
@@ -522,7 +523,7 @@ function App() {
   }
   const openExplore = () => {
     selectionSequence.current++; setOpeningId(null); setLinkLoading(false)
-    pushScreen({screen: 'explore', routeId: activeProblem?.id}); setRoutesOpen(true)
+    pushScreen({screen: 'explore', routeId: activeProblem?.id}); setFiltersOpen(false); setRoutesOpen(true)
   }
   const openProfile = () => {
     selectionSequence.current++; closeAccount(); setOpeningId(null); setLinkLoading(false)
@@ -966,10 +967,14 @@ function App() {
 
           <div className="problem-tools">
             <button className="ghost small" disabled={busy || loading} onClick={() => { routeRatings.refresh(); void refreshProblems() }}>{loading ? 'Loading…' : 'Refresh'}</button>
-
+            <button className={`ghost small filter-toggle ${allRoutesNeeded ? 'has-filters' : ''}`} aria-label="Filters" title="Filters"
+              aria-expanded={filtersOpen} aria-controls="explore-filter-panel" onClick={() => setFiltersOpen(open => !open)}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 4h16l-6 7v7l-4 2v-9z" /></svg>
+              {allRoutesNeeded && <span className="filter-active-dot" aria-hidden="true" />}
+            </button>
           </div>
 
-          <div className="explore-filters" role="group" aria-label="Filter and sort routes">
+          <div id="explore-filter-panel" className="explore-filters" role="group" aria-label="Filter and sort routes" hidden={!filtersOpen}>
             <label>Grade<select aria-label="Grade" value={exploreQuery.grade} onChange={event => setExploreQuery(query => ({...query, grade: event.target.value}))}>
               <option value="">All grades</option>{filterGrades.map(value => <option key={value}>{value}</option>)}
             </select></label>
