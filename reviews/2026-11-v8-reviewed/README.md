@@ -31,6 +31,9 @@ old IDs in this export:
 - `sam2-auto-0240`: the former mint-green position now occupied by a purple hold.
 - `scan-3d03fe67-21c0-4ff4-af5c-31e25b77e011`: the former purple position now occupied by an orange hold.
 
+See [numbered old/new comparison](identity-checks.jpg): previous v7 on the left,
+reviewed v8 on the right. Numbers 1 and 2 follow the list above.
+
 The raw checkpoint and derived geometry are intentionally unchanged. Review these
 identity decisions before publishing/migrating routes, since retaining an ID can
 make a route appear compatible. Details and duplicate-screening results are in
