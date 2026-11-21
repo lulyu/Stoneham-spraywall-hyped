@@ -43,6 +43,7 @@ Wall preparation is a maintainer workflow: compose/register photos, generate
 SAM2 suggestions, review the outlines, archive the completed review, deploy the
 versioned catalog, and run the compatibility sweep before releasing the frontend.
 See [the standard wall-update workflow](docs/wall-update-workflow.md),
+[the detailed photo-to-review runbook (中文)](docs/wall-update-runbook.zh-CN.md),
 [wall publication and Upgrade](docs/wall-publication.md) and
 [the v7 image/review workflow](docs/wall-v7-seam-trial.md).
 
@@ -170,6 +171,7 @@ physical holds. Experimental SAM2 suggestions are not accepted geometry.
 - [Profile route list and pagination](docs/profile-routes.md)
 - [Authentication, creator names, and permissions](docs/auth.md)
 - [Wall publication, route compatibility, and Upgrade](docs/wall-publication.md)
+- [Photo stitching, SAM2 annotation, and review runbook (中文)](docs/wall-update-runbook.zh-CN.md)
 - [Review progress storage and recovery](docs/review-storage.md)
 - [Full-wall SAM2 annotation](docs/sam2-full-wall-annotator.md)
 - [Backend architecture](docs/infra.md) and [deployment](infra/cloudformation/README.md)

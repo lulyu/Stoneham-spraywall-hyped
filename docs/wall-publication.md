@@ -9,8 +9,10 @@ the two user-confirmed replacement IDs separately from the unchanged raw review.
 
 ## Publication gate
 
-1. Archive and replay-validate the human review; register the immutable image,
-   hold map and version in the frontend and backend catalogs.
+1. Archive and replay-validate the completed review; register the immutable image,
+   hold map and version in the frontend and backend catalogs. If the user explicitly
+   delegated review to the assistant, preserve its assistant attribution rather
+   than claiming human approvals. See the [review runbook](wall-update-runbook.zh-CN.md#10-人工审核和-assistant-审核如何落地).
 2. Mark exactly one backend wall version active and set the frontend current
    version to the same ID. Build/test both applications and deploy the backend.
 3. Run the publication sweep in dry-run mode, then apply it:
