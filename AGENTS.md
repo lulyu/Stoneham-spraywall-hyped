@@ -1,3 +1,8 @@
+# Repository language
+
+Write repository documentation and new code comments in English, even when the
+conversation with the user is in Chinese.
+
 # Stoneham wall updates
 
 When the user supplies a new set of wall photographs, use their preferred

@@ -1,7 +1,7 @@
 # Standard wall-update workflow
 
 For implementation details, commands, review decisions and troubleshooting, use
-the [detailed Chinese runbook](wall-update-runbook.zh-CN.md). It documents the
+the [detailed runbook](wall-update-runbook.md). It documents the
 November 21 run and distinguishes reusable tools from run-specific scripts.
 
 This is the user's preferred workflow for future wall-photo updates:
