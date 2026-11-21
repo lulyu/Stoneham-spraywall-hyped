@@ -1,0 +1,10 @@
+{
+  "sessionId": "8fd105e35392b2ec374ec5cc208d6c33fde16b0817d31ea318d43cc1343af092",
+  "publishable": false,
+  "status": "needs-review",
+  "qaFailures": [
+    "assistant-identity-review-pending",
+    "assistant-boundary-review-pending",
+    "new-hold-search-pending"
+  ]
+}

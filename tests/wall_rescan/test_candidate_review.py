@@ -9,6 +9,22 @@ from tools.wall_rescan.review_bundle import ReviewBundle
 
 
 class CandidateReviewTests(unittest.TestCase):
+    def test_explicit_assistant_review_has_a_distinct_attributed_pending_session(self):
+        manifest = ROOT / 'public/wall/versions/2026-11-v5/manifest.json'
+        proposals = ROOT / 'src/data/experiments/wall-v5-sam2-refresh.json'
+        with tempfile.TemporaryDirectory() as tmp:
+            human = prepare(manifest, proposals, Path(tmp) / 'human')
+            assistant = prepare(manifest, proposals, Path(tmp) / 'assistant', reviewer_kind='assistant')
+            self.assertNotEqual(human['sessionId'], assistant['sessionId'])
+            self.assertEqual(assistant['reviewerKind'], 'assistant')
+            bundle = ReviewBundle(Path(tmp) / 'assistant', ROOT)
+            queue = json.loads(bundle.file('review_queue.json').read_text())
+            self.assertFalse(queue['publishable'])
+            self.assertTrue(all(e['status'] == 'inherited-unreviewed' and
+                                e['reasonCodes'] == ['assistant-review-required'] for e in queue['entries']))
+            with self.assertRaisesRegex(ValueError, 'Reviewer kind'):
+                prepare(manifest, proposals, Path(tmp) / 'invalid', reviewer_kind='robot')
+
     def test_supplied_review_references_are_bundled_without_replacing_production(self):
         manifest = ROOT / 'public/wall/versions/2026-11-v5/manifest.json'
         proposals = ROOT / 'src/data/experiments/wall-v5-sam2-refresh.json'

@@ -1,0 +1,156 @@
+{
+  "status": "unreviewed-image-preview",
+  "referenceVersion": "2026-11-v8",
+  "referenceSHA256": "be434e5ca6c33b9c8f126fbf6950eb8fb1e8df00ff3130eda47ff2da6b98f1f1",
+  "candidateWallVersion": null,
+  "size": [
+    7292,
+    5514
+  ],
+  "newObservationFraction": 0.9872504755759588,
+  "referenceFallbackFraction": 0.012749524424041253,
+  "fallback": "previous v8 image only where no new photo was sampled; source index 0",
+  "protectedHoldGroups": 546,
+  "selection": "graph-cut seam selection plus whole-hold and changed-region source guards; no RGB blending",
+  "alignment": "saved global homographies plus smooth bounded inverse corrections from unchanged inlier features; changed regions and uncertain bottom footholds excluded",
+  "localCorrectionMaxNativePixels": 12,
+  "sources": [
+    {
+      "sourceIndex": 1,
+      "file": "IMG20261121161026.jpg",
+      "sha256": "746c2f543576bce8d75cdc9898ed7a28354d60e48b3b5738e8ef5716e22317bd",
+      "sourceSize": [
+        3072,
+        4096
+      ],
+      "sourceToReference": [
+        [
+          1.1741548489881284,
+          -0.1121258817590758,
+          72.74979692869614
+        ],
+        [
+          0.012641867475128682,
+          1.0166344153981477,
+          68.80176347751143
+        ],
+        [
+          5.563014566664661e-06,
+          -6.24162305065284e-05,
+          1.0
+        ]
+      ],
+      "localCorrectionEnabled": true,
+      "correctionFitPoints": 490,
+      "correctionCheckPoints": 122,
+      "checkMedianBeforePx": 3.6771205742183204,
+      "checkMedianAfterPx": 2.3121363221941236,
+      "checkP95BeforePx": 9.95627834508669,
+      "checkP95AfterPx": 7.077643633140594,
+      "exposureGainRGB": [
+        1.030612244897959,
+        1.0470588235294118,
+        1.072289156626506
+      ]
+    },
+    {
+      "sourceIndex": 2,
+      "file": "IMG20261121161034.jpg",
+      "sha256": "8ca28431b75b55fd5a4291c9d6bdbdef88a6fe9cb5dc9597b9dcd86b7e386b8b",
+      "sourceSize": [
+        3072,
+        4096
+      ],
+      "sourceToReference": [
+        [
+          1.1589472593800993,
+          -0.25787621105607306,
+          1900.6188491559874
+        ],
+        [
+          0.019248886946271797,
+          0.9967207378883226,
+          87.55900016552805
+        ],
+        [
+          3.4203622665163153e-06,
+          -6.574803557435323e-05,
+          1.0
+        ]
+      ],
+      "localCorrectionEnabled": true,
+      "correctionFitPoints": 354,
+      "correctionCheckPoints": 89,
+      "checkMedianBeforePx": 5.507408271953252,
+      "checkMedianAfterPx": 2.8335081984989783,
+      "checkP95BeforePx": 10.956214028514047,
+      "checkP95AfterPx": 9.631884975310548,
+      "exposureGainRGB": [
+        1.027972027972028,
+        1.04093567251462,
+        1.0533333333333332
+      ]
+    },
+    {
+      "sourceIndex": 3,
+      "file": "IMG20261121161043.jpg",
+      "sha256": "a5dd7c15f1437879be36c94ad09e6d80c7ff61db02ee30b7ac154d16842e960d",
+      "sourceSize": [
+        3072,
+        4096
+      ],
+      "sourceToReference": [
+        [
+          1.2425737198280584,
+          -0.3390627923186786,
+          3613.920634104176
+        ],
+        [
+          0.026623081788950533,
+          1.047420521692564,
+          -61.44145498451627
+        ],
+        [
+          1.1391707729281135e-05,
+          -5.924488068300961e-05,
+          1.0
+        ]
+      ],
+      "localCorrectionEnabled": true,
+      "correctionFitPoints": 288,
+      "correctionCheckPoints": 72,
+      "checkMedianBeforePx": 4.405775563956573,
+      "checkMedianAfterPx": 3.5038936133825693,
+      "checkP95BeforePx": 13.690056554357815,
+      "checkP95AfterPx": 12.436914000597955,
+      "exposureGainRGB": [
+        1.0432692307692308,
+        1.0471698113207548,
+        1.0436893203883495
+      ]
+    }
+  ],
+  "wallSHA256": "3b74b1d9a016255072d6641823a84076d7574e14591da7f59da06d08ad6a586b",
+  "elapsedSeconds": 72.27,
+  "limitations": [
+    "Local alignment checks use descriptor correspondences, not independent surveyed landmarks.",
+    "Protruding holds retain some viewpoint/parallax differences.",
+    "The old 801 polygons are reference geometry only, not approved geometry for this preview.",
+    "Physical changes were not warped away or filled with old wall pixels.",
+    "Source-index 0 is old edge fill, not a new observation."
+  ],
+  "kickboardSourcePolicy": {
+    "startY": 0.925,
+    "xBoundaries": [
+      0.35,
+      0.68
+    ],
+    "sourceIndices": [
+      1,
+      2,
+      3
+    ],
+    "reason": "contiguous single-photo kickboard segments, with seams in blank gaps; old silhouette guards caused clipping under kickboard parallax"
+  },
+  "supersedesImageSHA256": "6a3233eabd6ed93e1249992e978e63fbbc06baf0983f81f2b98328d908065c30"
+}

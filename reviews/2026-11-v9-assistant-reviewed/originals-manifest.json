@@ -1,0 +1,29 @@
+[
+  {
+    "file": "IMG20261121161026.jpg",
+    "size": [
+      3072,
+      4096
+    ],
+    "bytes": 5889770,
+    "sha256": "746c2f543576bce8d75cdc9898ed7a28354d60e48b3b5738e8ef5716e22317bd"
+  },
+  {
+    "file": "IMG20261121161034.jpg",
+    "size": [
+      3072,
+      4096
+    ],
+    "bytes": 5979283,
+    "sha256": "8ca28431b75b55fd5a4291c9d6bdbdef88a6fe9cb5dc9597b9dcd86b7e386b8b"
+  },
+  {
+    "file": "IMG20261121161043.jpg",
+    "size": [
+      3072,
+      4096
+    ],
+    "bytes": 5717907,
+    "sha256": "a5dd7c15f1437879be36c94ad09e6d80c7ff61db02ee30b7ac154d16842e960d"
+  }
+]

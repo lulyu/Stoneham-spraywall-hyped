@@ -13,10 +13,12 @@ def digest(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
-def prepare(manifest_path, proposals_path, output, root=ROOT, old_holds=None, reference_image=None):
+def prepare(manifest_path, proposals_path, output, root=ROOT, old_holds=None, reference_image=None, reviewer_kind='human'):
     from tools.wall_rescan.sam2_refresh import coverage_fraction
     import numpy as np
     from PIL import Image
+    if reviewer_kind not in ('human', 'assistant'):
+        raise ValueError('Reviewer kind must be human or assistant.')
     manifest_path, proposals_path, output = map(Path, (manifest_path, proposals_path, output))
     m = json.loads(manifest_path.read_text())
     model = json.loads(proposals_path.read_text())
@@ -46,6 +48,8 @@ def prepare(manifest_path, proposals_path, output, root=ROOT, old_holds=None, re
                'coverageSha256': expected['coverage'], 'uncertaintySha256': expected['uncertainty'],
                'proposalsSha256': digest(proposals_path),
                'referenceFilledFraction': m.get('referenceFilledFraction', 0)}
+    if reviewer_kind == 'assistant':
+        session['reviewerKind'] = 'assistant'
     session.pop('sessionId')
     session['sessionId'] = hashlib.sha256(json.dumps(session, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
     coverage = np.asarray(Image.open(paths['coverage.png']).convert('L'))
@@ -55,7 +59,7 @@ def prepare(manifest_path, proposals_path, output, root=ROOT, old_holds=None, re
     for hold in old:
         fraction = coverage_fraction(hold['polygon'], coverage, (7292, 5514))
         queue.append(dict(oldHoldId=hold['id'], candidateHoldId=hold['id'], status='inherited-unreviewed',
-                          observed=fraction > 0, coverage_fraction=fraction, reasonCodes=['human-review-required']))
+                          observed=fraction > 0, coverage_fraction=fraction, reasonCodes=[reviewer_kind+'-review-required']))
     output = output.resolve()
     if output == root.resolve() or any(output.is_relative_to((root / p).resolve()) for p in ('public', 'src', 'backend', 'tools', 'infra', '.git')):
         raise ValueError('Review output must be outside source/production directories.')
@@ -87,6 +91,7 @@ if __name__ == '__main__':
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--old-holds', type=Path)
     parser.add_argument('--reference', type=Path)
+    parser.add_argument('--reviewer-kind', choices=('human', 'assistant'), default='human')
     args = parser.parse_args()
-    session = prepare(args.manifest, args.proposals, args.output, old_holds=args.old_holds, reference_image=args.reference)
+    session = prepare(args.manifest, args.proposals, args.output, old_holds=args.old_holds, reference_image=args.reference, reviewer_kind=args.reviewer_kind)
     print(f"Review bundle ready: {args.output} (session {session['sessionId']})")

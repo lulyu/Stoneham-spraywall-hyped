@@ -8,12 +8,14 @@ export type ScanSession = {
   [key: string]: unknown
 }
 export type ReviewStatus = 'inherited-unreviewed' | 'verified-unchanged' | 'verified-refined' | 'removed' | 'new' | 'dismissed'
+export type ReviewerKind = 'human' | 'assistant'
 export type ReviewEntry = {
   hold: PolygonHoldCandidate; oldHoldId: string | null; status: ReviewStatus
   observed: boolean; coverageFraction: number; reasonCodes: string[]
   reviewer: string | null; decisionTime: string | null
+  reviewerKind?: ReviewerKind
 }
-export type ReviewEvent = { revision: number; id: string; action: string; reviewer: string; time: string; before: ReviewEntry | null; after: ReviewEntry }
+export type ReviewEvent = { revision: number; id: string; action: string; reviewer: string; reviewerKind?: ReviewerKind; time: string; before: ReviewEntry | null; after: ReviewEntry }
 export type WallReview = {
   format: 'stoneham-wall-review-v1'; session: ScanSession; publishable: false
   reviewRevision: number; entries: ReviewEntry[]; history: ReviewEvent[]
@@ -82,15 +84,21 @@ export function initializeReview(manifest: unknown, prelabels: unknown, queue: u
   })
   return {format:'stoneham-wall-review-v1',session,publishable:false,reviewRevision:0,entries,history:[]}
 }
-export function applyReview(current: WallReview, action: ReviewAction, reviewer: string, time=new Date().toISOString()): WallReview {
+export function applyReview(current: WallReview, action: ReviewAction, reviewer: string, time=new Date().toISOString(), reviewerKind?: ReviewerKind): WallReview {
   check(text(reviewer), 'Enter your reviewer name before confirming a decision.')
+  check(reviewerKind===undefined || reviewerKind==='human' || reviewerKind==='assistant', 'Invalid reviewer kind.')
   const next=structuredClone(current), revision=current.reviewRevision+1
   const measurement=(value:number|undefined,fallback:number)=>{const fraction=value??fallback;check(finite(fraction)&&fraction>=0&&fraction<=1,'Invalid coverage measurement.');return fraction}
-  const manualReasons=(reasons:string[],fraction:number)=>fraction<.99?[...new Set([...reasons,'manual-confirmation-with-partial-coverage'])]:reasons
+  const manualReasons=(reasons:string[],fraction:number)=>fraction<.99?[...new Set([...reasons,`${reviewerKind==='assistant'?'assistant':'manual'}-confirmation-with-partial-coverage`])]:reasons
   const record=(before: ReviewEntry|null, after: ReviewEntry, name: string) => {
+    // Keep legacy checkpoints byte-for-byte replayable; explicitly attributed
+    // assistant decisions must never masquerade as the user's manual review.
+    after={...after}
+    delete after.reviewerKind
+    if(reviewerKind!==undefined)after.reviewerKind=reviewerKind
     const index=next.entries.findIndex(e=>e.hold.id===after.hold.id)
     if (index<0) next.entries.push(after); else next.entries[index]=after
-    next.history.push({revision,id:after.hold.id,action:name,reviewer:reviewer.trim(),time,before:before ? structuredClone(before):null,after:structuredClone(after)})
+    next.history.push({revision,id:after.hold.id,action:name,reviewer:reviewer.trim(),...(reviewerKind!==undefined?{reviewerKind}:{}),time,before:before ? structuredClone(before):null,after:structuredClone(after)})
   }
   const entry='id' in action ? next.entries.find(e=>e.hold.id===action.id) : undefined
   if (action.type==='add') {
@@ -104,7 +112,8 @@ export function applyReview(current: WallReview, action: ReviewAction, reviewer:
       record(old,{...old,status:'removed',reviewer:reviewer.trim(),decisionTime:time},'replace-old')
     }
     const fraction=measurement(action.coverageFraction,1)
-    record(null,{hold,oldHoldId:old?.oldHoldId??null,status:'new',observed:fraction>0,coverageFraction:fraction,reasonCodes:manualReasons(old?['human-confirmed-replacement']:['human-added'],fraction),reviewer:reviewer.trim(),decisionTime:time},old?'replacement':'add')
+    const actor=reviewerKind==='assistant'?'assistant':'human'
+    record(null,{hold,oldHoldId:old?.oldHoldId??null,status:'new',observed:fraction>0,coverageFraction:fraction,reasonCodes:manualReasons(old?[`${actor}-confirmed-replacement`]:[`${actor}-added`],fraction),reviewer:reviewer.trim(),decisionTime:time},old?'replacement':'add')
   } else {
     check(entry, 'Hold is missing. Reload the workspace.')
     if (action.type==='remove') check(entry.observed && entry.coverageFraction>=.99, 'This region lacks observation coverage. Inspect or recapture it; do not approve absence from a gap.')
@@ -146,7 +155,7 @@ export function validateProgress(value: unknown, baseline: WallReview): WallRevi
       action={type:'add',hold:added.after.hold,replaces:event.id,coverageFraction:added.after.coverageFraction}
     } else if(event.action==='add') action={type:'add',hold:after.hold,coverageFraction:after.coverageFraction}
     else { check(['confirm','remove','reset','refine'].includes(event.action), 'Unknown review action.'); action=event.action==='refine'?{type:'refine',id:event.id,hold:after.hold,coverageFraction:after.coverageFraction}:{type:event.action,id:event.id} }
-    const next=applyReview(replay,action,event.reviewer,event.time), count=next.history.length-replay.history.length
+    const next=applyReview(replay,action,event.reviewer,event.time,event.reviewerKind), count=next.history.length-replay.history.length
     check(stable(next.history.slice(-count))===stable(v.history.slice(cursor,cursor+count)), 'Decision history was changed or does not match its geometry.')
     replay=next;cursor+=count
   }
