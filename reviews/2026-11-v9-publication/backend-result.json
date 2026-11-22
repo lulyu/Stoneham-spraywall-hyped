@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-11-22T15:18:03.879225+00:00",
+  "recordedAt": "2026-11-22T15:25:59.486396+00:00",
   "wallVersionId": "2026-11-v9",
   "sourceCommit": "33c9e0da3385d8736ec58cabbb02f1118ebea4b6",
   "backend": {
@@ -45,5 +45,14 @@
     "allStoredCompatibilityFlags": "verified against exact v9 hold ID set",
     "scope": "complete consistent-read DynamoDB route/activity snapshots, not just public API"
   },
-  "frontendStatus": "awaiting PR #39 merge"
+  "frontendStatus": "published and verified",
+  "frontend": {
+    "deploymentId": "dpl_Gt8uCGLxdzi4kEHVTvHikvqGnFQy",
+    "commit": "a38b6dfb735120b1362b64862a68473a60c2c273",
+    "target": "production",
+    "status": "READY",
+    "site": "https://stoneham-spraywall-project.vercel.app",
+    "pullRequest": "https://github.com/lulyu/Stoneham-spraywall-hyped/pull/39",
+    "browserVerification": "passed"
+  }
 }

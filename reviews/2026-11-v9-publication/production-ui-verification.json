@@ -1,0 +1,22 @@
+{
+  "checkedAt": "2026-11-22T15:25:42.245Z",
+  "site": "https://stoneham-spraywall-project.vercel.app",
+  "imageSha256": "3b74b1d9a016255072d6641823a84076d7574e14591da7f59da06d08ad6a586b",
+  "imageBytes": 12811749,
+  "defaultWall": "2026-11-v9",
+  "selectedRoutePolygons": 10,
+  "publicRouteRecords": 11,
+  "currentRouteOnV9": true,
+  "historicalRouteOnV7": true,
+  "historicalWarning": true,
+  "activityPanelSingleAndLoaded": true,
+  "mobileWidths": [
+    320,
+    390,
+    980
+  ],
+  "pageErrors": [],
+  "duplicateKeyWarnings": [],
+  "unexpectedWrites": [],
+  "failedRequests": []
+}

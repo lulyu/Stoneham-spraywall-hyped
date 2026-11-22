@@ -11,8 +11,9 @@ v4, v7, and v8 remain available for historical routes and wall history.
 
 ## Release status
 
-**Backend deployed and route migration complete; frontend release awaits PR #39
-merge.** CloudFormation reached `UPDATE_COMPLETE`; only Lambda code and its API
+**Published and verified on November 22, 2026.** [PR #39](https://github.com/lulyu/Stoneham-spraywall-hyped/pull/39)
+was merged, and the [production site](https://stoneham-spraywall-project.vercel.app/)
+now defaults to v9. CloudFormation reached `UPDATE_COMPLETE`; only Lambda code and its API
 integration were updated, with no resource replacements. The deployed Lambda
 checksum matches the tested ZIP.
 
@@ -28,18 +29,25 @@ and the dry-run/migration/convergence records for the evidence.
 The sweep adds v9 to `supportedWallVersionIds` when every route hold survives,
 including foot-only holds. It preserves route IDs, content, owners, ratings,
 comments, sends, and Upgrade lineage; it does not create V2/V3 route copies.
-Routes already missing holds remain historical. Publication must scan all pages,
-not only the public route list. Preserve dry-run/apply/convergence results and
-production verification here when the release completes.
+Routes already missing holds remain historical. The publication sweep covered all
+pages, including records not exposed by the public listing.
 
 ## Preparation verification
 
 See [validation.json](validation.json) for the completed review replay, 16 frontend
 test files, 9 backend test files, 45 rescan tests, builds/typecheck, and mobile
 lifecycle/Upgrade checks. [prepared-artifact.json](prepared-artifact.json) identifies
-the built Lambda ZIP and checksum. It is prepared locally, not uploaded.
+the uploaded and deployed Lambda ZIP and checksum.
 
 The earlier connection failure was resolved before any AWS mutations. The
 backend used the existing CloudFormation template with previous parameters,
-changing only the immutable code artifact key. Frontend deployment and its
-production verification are recorded separately when the release completes.
+changing only the immutable code artifact key. Frontend deployment `dpl_Gt8uCGLxdzi4kEHVTvHikvqGnFQy` reached `READY`
+on merge commit `a38b6dfb735120b1362b64862a68473a60c2c273`.
+
+[Production browser verification](production-ui-verification.json) used live
+public API responses and production assets without writing records. It verified
+the exact published image hash, the default v9 wall, selected route polygons,
+a single loaded activity panel with existing comments, and historical routes
+with the old-wall warning and v7 image. Layout checks passed at 320, 390, and
+980 pixels, with no page errors, duplicate-key warnings, or failed requests.
+The adjacent screenshots record the mobile home, current route, and old route.

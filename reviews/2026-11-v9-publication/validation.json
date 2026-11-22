@@ -1,6 +1,6 @@
 {
-  "checkedAt": "2026-11-22T15:18:03.879225+00:00",
-  "releaseStatus": "backend deployed and migration verified; frontend awaiting PR merge",
+  "checkedAt": "2026-11-22T15:25:59.486396+00:00",
+  "releaseStatus": "published; backend, migration, and production frontend verified",
   "productionChanged": true,
   "reviewReplay": {
     "revisions": 854,
@@ -30,8 +30,17 @@
   "backendDeployment": "UPDATE_COMPLETE; exact artifact CodeSha256 verified",
   "migrationDryRun": "passed: 11 records, 10 compatible, 1 historical",
   "migrationApply": "complete without conflicts",
-  "frontendProductionRelease": "awaiting PR #39 merge",
+  "frontendProductionRelease": {
+    "deploymentId": "dpl_Gt8uCGLxdzi4kEHVTvHikvqGnFQy",
+    "commit": "a38b6dfb735120b1362b64862a68473a60c2c273",
+    "target": "production",
+    "status": "READY",
+    "site": "https://stoneham-spraywall-project.vercel.app",
+    "pullRequest": "https://github.com/lulyu/Stoneham-spraywall-hyped/pull/39",
+    "browserVerification": "passed"
+  },
   "migrationConvergence": "3 pages; changed=0; no conflicts",
   "dataPreservation": "all 11 route contents and all 19 activity records unchanged",
-  "publicApiSmoke": "passed without creating records"
+  "publicApiSmoke": "passed without creating records",
+  "productionBrowser": "passed against live API and production assets; no production writes"
 }
