@@ -1,0 +1,17 @@
+{
+  "/problems": {
+    "count": 11,
+    "nextCursor": null,
+    "compatibleWithV9": 10
+  },
+  "/versions/2026-11-v9/problems": {
+    "count": 10,
+    "nextCursor": null,
+    "compatibleWithV9": 10
+  },
+  "/versions/2026-11-v8/problems": {
+    "count": 10,
+    "nextCursor": null,
+    "compatibleWithV9": 10
+  }
+}

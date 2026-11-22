@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-11-22T02:03:38.512942+00:00",
-  "releaseStatus": "prepared; blocked on AWS connector availability",
-  "productionChanged": false,
+  "checkedAt": "2026-11-22T15:18:03.879225+00:00",
+  "releaseStatus": "backend deployed and migration verified; frontend awaiting PR merge",
+  "productionChanged": true,
   "reviewReplay": {
     "revisions": 854,
     "activeHolds": 852,
@@ -26,9 +26,12 @@
   "frontendBuild": "passed",
   "backendBuild": "passed",
   "browserLifecycle": "passed: v9 default, historical walls, author-only Upgrade, V2/V3, source preservation, missing Start validation, mobile layout",
-  "awsConnector": "Read-only identity and no-API runtime checks did not return usable results; execution runtime replaced. No AWS mutation submitted.",
-  "backendDeployment": "not performed",
-  "migrationDryRun": "not performed",
-  "migrationApply": "not performed",
-  "frontendProductionRelease": "not performed"
+  "awsConnector": "restored; account 010257981603 and deployed function verified",
+  "backendDeployment": "UPDATE_COMPLETE; exact artifact CodeSha256 verified",
+  "migrationDryRun": "passed: 11 records, 10 compatible, 1 historical",
+  "migrationApply": "complete without conflicts",
+  "frontendProductionRelease": "awaiting PR #39 merge",
+  "migrationConvergence": "3 pages; changed=0; no conflicts",
+  "dataPreservation": "all 11 route contents and all 19 activity records unchanged",
+  "publicApiSmoke": "passed without creating records"
 }

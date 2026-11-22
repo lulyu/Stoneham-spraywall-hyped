@@ -11,12 +11,19 @@ v4, v7, and v8 remain available for historical routes and wall history.
 
 ## Release status
 
-**Prepared and locally verified; blocked on AWS connector availability. Production
-deployment and route migration have not run.**
-The version catalogs in this branch target v9. Do not merge the frontend release
-until the backend has been deployed and the paginated compatibility sweep has
-completed without unresolved conflicts. This file records preparation, not proof
-that the live site or database has changed.
+**Backend deployed and route migration complete; frontend release awaits PR #39
+merge.** CloudFormation reached `UPDATE_COMPLETE`; only Lambda code and its API
+integration were updated, with no resource replacements. The deployed Lambda
+checksum matches the tested ZIP.
+
+The migration scanned all pages: 11 route records, 10 compatible with v9, and one
+already historical route. A separate three-page dry-run converged with zero
+changes and no conflicts. Before/after consistent-read snapshots verified that
+all route content, roles, owners, timestamps, and Upgrade lineage were retained,
+and all 19 activity rows were byte-equivalent after normalized comparison.
+
+See [backend-result.json](backend-result.json), [data-verification.json](data-verification.json),
+and the dry-run/migration/convergence records for the evidence.
 
 The sweep adds v9 to `supportedWallVersionIds` when every route hold survives,
 including foot-only holds. It preserves route IDs, content, owners, ratings,
@@ -32,7 +39,7 @@ test files, 9 backend test files, 45 rescan tests, builds/typecheck, and mobile
 lifecycle/Upgrade checks. [prepared-artifact.json](prepared-artifact.json) identifies
 the built Lambda ZIP and checksum. It is prepared locally, not uploaded.
 
-The AWS connector returned no usable response for read-only checks, including a
-runtime check that makes no AWS API calls. The execution runtime was replaced. No
-AWS mutation was submitted; restore the connection before deployment. Keep PR #39
-unmerged until the backend deployment, migration, and convergence checks pass.
+The earlier connection failure was resolved before any AWS mutations. The
+backend used the existing CloudFormation template with previous parameters,
+changing only the immutable code artifact key. Frontend deployment and its
+production verification are recorded separately when the release completes.
