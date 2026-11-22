@@ -1,0 +1,83 @@
+{
+  "changeSetId": "arn:aws:cloudformation:us-east-1:010257981603:changeSet/publish-wall-v9-20261122-33c9e0d/ff089280-adb6-4876-91e2-afc45307c1c4",
+  "status": "CREATE_COMPLETE",
+  "executionStatus": "AVAILABLE",
+  "changes": [
+    {
+      "Action": "Modify",
+      "LogicalResourceId": "Function",
+      "PhysicalResourceId": "stoneham-spraywall-prod-api",
+      "ResourceType": "AWS::Lambda::Function",
+      "Replacement": "False",
+      "Scope": [
+        "Properties"
+      ],
+      "Details": [
+        {
+          "Target": {
+            "Attribute": "Properties",
+            "Name": "Code",
+            "RequiresRecreation": "Never"
+          },
+          "Evaluation": "Dynamic",
+          "ChangeSource": "DirectModification"
+        },
+        {
+          "Target": {
+            "Attribute": "Properties",
+            "Name": "Code",
+            "RequiresRecreation": "Never"
+          },
+          "Evaluation": "Static",
+          "ChangeSource": "ParameterReference",
+          "CausingEntity": "ArtifactKey"
+        }
+      ]
+    },
+    {
+      "Action": "Modify",
+      "LogicalResourceId": "Integration",
+      "PhysicalResourceId": "9ekypr9",
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "Replacement": "False",
+      "Scope": [
+        "Properties"
+      ],
+      "Details": [
+        {
+          "Target": {
+            "Attribute": "Properties",
+            "Name": "IntegrationUri",
+            "RequiresRecreation": "Never"
+          },
+          "Evaluation": "Dynamic",
+          "ChangeSource": "ResourceAttribute",
+          "CausingEntity": "Function.Arn"
+        }
+      ]
+    }
+  ],
+  "validationEvents": [
+    {
+      "EventId": "66fdc8f4-0b61-4ddb-893c-c4214f6477c4",
+      "StackId": "arn:aws:cloudformation:us-east-1:010257981603:stack/stoneham-spraywall-prod/b2c428d0-d625-11f1-937d-0ee5243a34af",
+      "OperationId": "ff089280-adb6-4876-91e2-afc45307c1c4",
+      "OperationType": "CREATE_CHANGESET",
+      "OperationStatus": "SUCCEEDED",
+      "EventType": "STACK_EVENT",
+      "Timestamp": "2026-11-22T15:09:40.084000+00:00",
+      "StartTime": "2026-11-22T15:09:30.441000+00:00",
+      "EndTime": "2026-11-22T15:09:40.084000+00:00"
+    },
+    {
+      "EventId": "c8da9ef7-0c81-4e6d-b051-3c97c1970622",
+      "StackId": "arn:aws:cloudformation:us-east-1:010257981603:stack/stoneham-spraywall-prod/b2c428d0-d625-11f1-937d-0ee5243a34af",
+      "OperationId": "ff089280-adb6-4876-91e2-afc45307c1c4",
+      "OperationType": "CREATE_CHANGESET",
+      "OperationStatus": "IN_PROGRESS",
+      "EventType": "STACK_EVENT",
+      "Timestamp": "2026-11-22T15:09:30.441000+00:00",
+      "StartTime": "2026-11-22T15:09:30.441000+00:00"
+    }
+  ]
+}

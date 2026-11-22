@@ -1,0 +1,10 @@
+{
+  "holdCount": 852,
+  "uniqueIds": 852,
+  "retainedOldIds": 801,
+  "newIds": 51,
+  "minimumNewPhotoCoverage": 1.0,
+  "holdsBelow99PercentCoverage": 0,
+  "nearIdenticalPolygons": [],
+  "allowedOverlap": "Small holds mounted on macro volumes retain separate IDs; containment alone is not a duplicate."
+}

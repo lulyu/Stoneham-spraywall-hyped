@@ -1,0 +1,37 @@
+{
+  "checkedAt": "2026-11-22T15:18:03.879225+00:00",
+  "releaseStatus": "backend deployed and migration verified; frontend awaiting PR merge",
+  "productionChanged": true,
+  "reviewReplay": {
+    "revisions": 854,
+    "activeHolds": 852,
+    "pending": 0,
+    "retainedV8Ids": 801,
+    "newIds": 51,
+    "result": "passed"
+  },
+  "frontendTests": {
+    "files": 16,
+    "passed": 16
+  },
+  "backendTests": {
+    "files": 9,
+    "passed": 9
+  },
+  "rescanTests": {
+    "tests": 45,
+    "passed": 45
+  },
+  "backendTypecheck": "passed",
+  "frontendBuild": "passed",
+  "backendBuild": "passed",
+  "browserLifecycle": "passed: v9 default, historical walls, author-only Upgrade, V2/V3, source preservation, missing Start validation, mobile layout",
+  "awsConnector": "restored; account 010257981603 and deployed function verified",
+  "backendDeployment": "UPDATE_COMPLETE; exact artifact CodeSha256 verified",
+  "migrationDryRun": "passed: 11 records, 10 compatible, 1 historical",
+  "migrationApply": "complete without conflicts",
+  "frontendProductionRelease": "awaiting PR #39 merge",
+  "migrationConvergence": "3 pages; changed=0; no conflicts",
+  "dataPreservation": "all 11 route contents and all 19 activity records unchanged",
+  "publicApiSmoke": "passed without creating records"
+}

@@ -1,5 +1,9 @@
 # Standard wall-update workflow
 
+For implementation details, commands, review decisions and troubleshooting, use
+the [detailed runbook](wall-update-runbook.md). It documents the
+November 21 run and distinguishes reusable tools from run-specific scripts.
+
 This is the user's preferred workflow for future wall-photo updates:
 
 **Original photos → stitch and register to the previous wall → new image and
@@ -78,6 +82,17 @@ even when SAM2's mask score is high. Check duplicate/merged prompts and no-mask
 cases rather than treating them as accepted results.
 
 ## 6. Human review and missing-hold check
+
+When the user explicitly requests assistant review, the assistant may perform
+this stage and record its own visual decisions. Use a separate review session
+prepared with `candidate_review --reviewer-kind assistant`, and pass `'assistant'`
+as the fifth argument when recording decisions with `applyReview`. Keep the
+reviewer name, comparison images, per-hold decisions and
+unresolved cases. Never attribute these decisions to the user, infer physical
+identity from a model score, or silently approve ambiguous cases. Such a
+checkpoint remains non-publishable until the normal publication step is requested.
+Historical human checkpoints replay without alteration; the user can resume an
+assistant checkpoint and make further decisions in the existing editor.
 
 Open the matching image-bound review bundle in the existing annotation tool.
 Next pending hold loads its saved SAM2 suggestion. Keep Next, Confirm, Mark

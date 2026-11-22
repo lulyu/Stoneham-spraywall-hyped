@@ -1,0 +1,126 @@
+[
+  {
+    "id": "manual-60a23a83b3ca",
+    "reviewerKind": "assistant",
+    "method": "visual boundary correction; retain white cube body and exclude kickboard shadow; pink hold excludes cast shadow",
+    "cropVertices": [
+      [
+        152,
+        141
+      ],
+      [
+        228,
+        139
+      ],
+      [
+        249,
+        160
+      ],
+      [
+        249,
+        248
+      ],
+      [
+        233,
+        290
+      ],
+      [
+        208,
+        313
+      ],
+      [
+        178,
+        288
+      ],
+      [
+        132,
+        250
+      ],
+      [
+        137,
+        207
+      ]
+    ],
+    "cropBox": [
+      3194,
+      5134,
+      3424,
+      5334
+    ],
+    "evidence": "manual-old-foot-boundaries.jpg"
+  },
+  {
+    "id": "scan-75b8a71e-1ce5-4413-a479-d66735c7ad78",
+    "reviewerKind": "assistant",
+    "method": "visual boundary correction; retain white cube body and exclude kickboard shadow; pink hold excludes cast shadow",
+    "cropVertices": [
+      [
+        173,
+        212
+      ],
+      [
+        185,
+        170
+      ],
+      [
+        200,
+        128
+      ],
+      [
+        226,
+        112
+      ],
+      [
+        255,
+        113
+      ],
+      [
+        286,
+        121
+      ],
+      [
+        311,
+        139
+      ],
+      [
+        323,
+        165
+      ],
+      [
+        319,
+        199
+      ],
+      [
+        300,
+        247
+      ],
+      [
+        280,
+        280
+      ],
+      [
+        251,
+        294
+      ],
+      [
+        220,
+        293
+      ],
+      [
+        193,
+        280
+      ],
+      [
+        179,
+        252
+      ]
+    ],
+    "cropBox": [
+      4102,
+      5136,
+      4332,
+      5336
+    ],
+    "evidence": "manual-old-foot-boundaries.jpg"
+  }
+]

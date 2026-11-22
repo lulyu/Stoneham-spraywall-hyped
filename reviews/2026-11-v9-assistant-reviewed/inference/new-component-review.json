@@ -1,0 +1,133 @@
+{
+  "reviewer": "Codex (assistant visual review)",
+  "evidence": [
+    "new-candidates-1.jpg",
+    "new-candidates-2.jpg",
+    "new-candidates-3.jpg",
+    "split-new-hints.jpg"
+  ],
+  "acceptedComponents": [
+    7,
+    10,
+    12,
+    15,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    57,
+    58,
+    59,
+    60,
+    61,
+    65
+  ],
+  "splitComponents": {
+    "10": 3
+  },
+  "dismissed": [
+    {
+      "index": 1,
+      "reason": "existing outline/viewpoint edge, static wall fixtures, or chalk; no separate new hold"
+    },
+    {
+      "index": 2,
+      "reason": "existing outline/viewpoint edge, static wall fixtures, or chalk; no separate new hold"
+    },
+    {
+      "index": 3,
+      "reason": "existing outline/viewpoint edge, static wall fixtures, or chalk; no separate new hold"
+    },
+    {
+      "index": 4,
+      "reason": "existing outline/viewpoint edge, static wall fixtures, or chalk; no separate new hold"
+    },
+    {
+      "index": 5,
+      "reason": "existing outline/viewpoint edge, static wall fixtures, or chalk; no separate new hold"
+    },
+    {
+      "index": 6,
+      "reason": "existing outline/viewpoint edge, static wall fixtures, or chalk; no separate new hold"
+    },
+    {
+      "index": 8,
+      "reason": "existing outline/viewpoint edge, static wall fixtures, or chalk; no separate new hold"
+    },
+    {
+      "index": 9,
+      "reason": "existing outline/viewpoint edge, static wall fixtures, or chalk; no separate new hold"
+    },
+    {
+      "index": 11,
+      "reason": "existing outline/viewpoint edge, static wall fixtures, or chalk; no separate new hold"
+    },
+    {
+      "index": 13,
+      "reason": "existing outline/viewpoint edge, static wall fixtures, or chalk; no separate new hold"
+    },
+    {
+      "index": 14,
+      "reason": "existing outline/viewpoint edge, static wall fixtures, or chalk; no separate new hold"
+    },
+    {
+      "index": 16,
+      "reason": "existing outline/viewpoint edge, static wall fixtures, or chalk; no separate new hold"
+    },
+    {
+      "index": 56,
+      "reason": "existing outline/viewpoint edge, static wall fixtures, or chalk; no separate new hold"
+    },
+    {
+      "index": 62,
+      "reason": "existing outline/viewpoint edge, static wall fixtures, or chalk; no separate new hold"
+    },
+    {
+      "index": 63,
+      "reason": "existing outline/viewpoint edge, static wall fixtures, or chalk; no separate new hold"
+    },
+    {
+      "index": 64,
+      "reason": "existing outline/viewpoint edge, static wall fixtures, or chalk; no separate new hold"
+    },
+    {
+      "index": 66,
+      "reason": "existing outline/viewpoint edge, static wall fixtures, or chalk; no separate new hold"
+    }
+  ]
+}

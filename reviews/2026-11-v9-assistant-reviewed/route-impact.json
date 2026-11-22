@@ -1,0 +1,9 @@
+{
+  "mode": "read-only-impact-assessment; no database writes",
+  "observedAt": "2026-11-21T21:42:06.007583+00:00",
+  "listedRouteRecords": 11,
+  "wouldSupportV9": 10,
+  "wouldRemainHistorical": 1,
+  "newlyOutdatedComparedWithV8": 0,
+  "scope": "Public wall route-list snapshot, not an admin publication sweep; re-scan all stored routes during actual publication."
+}

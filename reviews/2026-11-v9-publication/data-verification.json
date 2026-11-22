@@ -1,0 +1,12 @@
+{
+  "routeCount": 11,
+  "compatible": 10,
+  "outdated": 1,
+  "routeIdsContentRolesOwnersTimestampsAndUpgradeLineage": "unchanged",
+  "activityRows": 19,
+  "activityPreservedExactly": true,
+  "activitySHA256Before": "8d0e1fd55d4b7152c99fce50a826b24949d266c0dd4dec4216ae2dac86dcce31",
+  "activitySHA256After": "8d0e1fd55d4b7152c99fce50a826b24949d266c0dd4dec4216ae2dac86dcce31",
+  "allStoredCompatibilityFlags": "verified against exact v9 hold ID set",
+  "scope": "complete consistent-read DynamoDB route/activity snapshots, not just public API"
+}

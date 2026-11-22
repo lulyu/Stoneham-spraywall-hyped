@@ -1,6 +1,6 @@
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright')
 const fs=require('node:fs'),assert=require('node:assert/strict')
-const old=require('../src/data/polygons/holds.json'),fresh=require('../src/data/walls/2026-11-v8/holds.json')
+const old=require('../src/data/polygons/holds.json'),fresh=require('../src/data/walls/2026-11-v9/holds.json')
 const ids=new Set(fresh.map(h=>h.id)),shared=old.filter(h=>ids.has(h.id)),missing=old.find(h=>!ids.has(h.id)&&!require('../src/data/walls/2026-11-v7/holds.json').some(p=>p.id===h.id))
 const api='https://kurd8a9bz9.execute-api.us-east-1.amazonaws.com'
 const app=process.env.APP_URL||'http://127.0.0.1:5181'
@@ -28,9 +28,9 @@ async function main(){
    const source=records.find(r=>r.id===match[1]);assert(source)
    if(!match[2]){if(method!=='GET')throw Error('Upgrade must not PATCH the original');return send(200,source)}
    assert.equal(req.headers().authorization,'Bearer lifecycle-test-token')
-   if(method==='GET') {gets.push(source.id);return send(200,{sourceId:source.id,sourceRevision:source.revision,targetWallVersionId:'2026-11-v8',name:source.name+' V'+(number+1),grade:source.grade,setter:source.setter,holds:source.holds.filter(h=>ids.has(h.holdId)),removedHoldIds:source.holds.filter(h=>!ids.has(h.holdId)).map(h=>h.holdId)})}
+   if(method==='GET') {gets.push(source.id);return send(200,{sourceId:source.id,sourceRevision:source.revision,targetWallVersionId:'2026-11-v9',name:source.name+' V'+(number+1),grade:source.grade,setter:source.setter,holds:source.holds.filter(h=>ids.has(h.holdId)),removedHoldIds:source.holds.filter(h=>!ids.has(h.holdId)).map(h=>h.holdId)})}
    const body=req.postDataJSON();writes.push({path,body});number++
-   const created={...source,...body,id:'upgrade-'+number,name:source.name+' V'+number,wallVersionId:'2026-11-v8',upgradedFromId:source.id,revision:1}
+   const created={...source,...body,id:'upgrade-'+number,name:source.name+' V'+number,wallVersionId:'2026-11-v9',upgradedFromId:source.id,revision:1}
    records.push(created);return send(201,created)
   })
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message))
@@ -39,11 +39,11 @@ async function main(){
   const open=async name=>{await explore();await page.locator('.problem-card').filter({has:page.getByText(name,{exact:true})}).click();await page.getByRole('heading',{name,exact:true,level:2}).waitFor()}
   await page.goto(app);await page.getByRole('button',{name:'＋ Set',exact:true}).waitFor()
   assert.equal(await page.getByRole('combobox',{name:'Wall version',exact:true}).count(),0)
-  await imageIs('/wall/versions/2026-11-v8/wall.jpg')
+  await imageIs('/wall/versions/2026-11-v9/wall.jpg')
   await explore();assert.equal(await page.locator('.problem-card').count(),4);assert.equal(await page.locator('.problem-card.outdated').count(),3)
   assert(!await page.locator('.problem-card.outdated').first().isDisabled())
   await page.locator('.problem-card').filter({hasText:'Valid original'}).click()
-  await page.getByRole('heading',{name:'Valid original',exact:true,level:2}).waitFor();await imageIs('/wall/versions/2026-11-v8/wall.jpg')
+  await page.getByRole('heading',{name:'Valid original',exact:true,level:2}).waitFor();await imageIs('/wall/versions/2026-11-v9/wall.jpg')
   assert.equal(await page.getByText('Route only available on old version wall',{exact:true}).count(),0)
   await open('Other creator');await imageIs('/wall/stoneham-spraywall-canonical.jpg');assert.equal(await page.getByRole('button',{name:'Upgrade',exact:true}).count(),0)
   await open('Outdated original');await imageIs('/wall/stoneham-spraywall-canonical.jpg')
@@ -52,7 +52,7 @@ async function main(){
   assert((await warning.boundingBox()).y>=(await page.getByRole('heading',{name:'Outdated original',exact:true,level:2}).boundingBox()).y)
   fs.mkdirSync('artifacts',{recursive:true});await page.screenshot({path:'artifacts/outdated-route-mobile.png',fullPage:true})
   await page.getByRole('button',{name:'Upgrade',exact:true}).click();await page.getByRole('button',{name:'Save upgraded route',exact:true}).waitFor()
-  await imageIs('/wall/versions/2026-11-v8/wall.jpg')
+  await imageIs('/wall/versions/2026-11-v9/wall.jpg')
   assert.equal(await page.getByLabel('Problem name',{exact:true}).inputValue(),'Outdated original V2')
   assert.equal(await page.locator('.hold-hit-polygon.is-selected').count(),2)
   assert.equal(await page.locator('.hold-hit-polygon[data-hold-id="'+missing.id+'"]').count(),0)
@@ -66,7 +66,7 @@ async function main(){
   await page.getByText('Browse wall history',{exact:true}).click();await page.getByRole('link',{name:'Original wall · v4',exact:true}).click()
   await page.waitForURL(/wallVersion=2026-10-v4/);await imageIs('/wall/stoneham-spraywall-canonical.jpg')
   await page.getByRole('link',{name:'Back to current wall',exact:true}).click();await page.waitForURL(url=>!url.searchParams.has('wallVersion'))
-  await imageIs('/wall/versions/2026-11-v8/wall.jpg')
+  await imageIs('/wall/versions/2026-11-v9/wall.jpg')
   for(const width of [320,390,980]){await page.setViewportSize({width,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))}
   assert.deepEqual(errors,[])
   console.log('PASS: latest wall default, all routes, clickable gray outdated cards, old-wall warning, author-only Upgrade, mapped seed, V2/V3, source untouched, missing Start validation, history links and mobile layout.')

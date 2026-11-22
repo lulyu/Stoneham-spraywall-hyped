@@ -11,6 +11,26 @@ function baseline(fraction=1) {
 const time='2026-11-05T00:00:00Z'
 const decide=(state,action)=>applyReview(state,action,'Lu',time)
 const memory=()=>{const map=new Map();return {getItem:key=>map.get(key)??null,setItem:(key,value)=>map.set(key,value)}}
+test('assistant decisions retain explicit attribution through replay and human takeover',()=>{
+ const base=baseline(.5),reviewer='Codex (assistant visual review)'
+ let state=applyReview(base,{type:'refine',id:hold.id,hold},reviewer,time,'assistant')
+ state=applyReview(state,{type:'add',hold:{...hold,id:'new-ai'}},reviewer,time,'assistant')
+ assert(state.entries.every(e=>e.reviewerKind==='assistant'))
+ assert(state.history.every(e=>e.reviewerKind==='assistant'))
+ assert(state.entries[0].reasonCodes.includes('assistant-confirmation-with-partial-coverage'))
+ assert.deepEqual(state.entries[1].reasonCodes,['assistant-added'])
+ assert.deepEqual(validateProgress(state,base),state)
+ const forged=structuredClone(state);delete forged.history[0].reviewerKind
+ assert.throws(()=>validateProgress(forged,base),/history/)
+ const human=decide(state,{type:'refine',id:hold.id,hold})
+ assert.equal(human.entries[0].reviewer,'Lu');assert.equal(human.entries[0].reviewerKind,undefined)
+ assert.equal(human.history[0].reviewerKind,'assistant')
+ assert.deepEqual(validateProgress(human,base),human)
+ assert.throws(()=>applyReview(base,{type:'confirm',id:hold.id},reviewer,time,'robot'),/reviewer kind/)
+ const replacement=applyReview(baseline(),{type:'add',hold:{...hold,id:'ai-replacement'},replaces:hold.id},reviewer,time,'assistant')
+ assert.deepEqual(replacement.entries[1].reasonCodes,['assistant-confirmed-replacement'])
+ assert.deepEqual(validateProgress(replacement,baseline()),replacement)
+})
 test('loading never approves geometry; even high model scores leave all inherited entries pending',()=>{
  const state=baseline();assert.equal(state.entries[0].status,'inherited-unreviewed');assert.equal(state.publishable,false)
  assert.deepEqual(validateProgress(state,state),state)

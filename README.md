@@ -28,8 +28,8 @@ A mobile-first route-setting app for the Stoneham CRG spray wall.
 
 ## Current wall and updates
 
-The current wall is **2026-11-v8**, with **801 human-reviewed holds** and a
-7292 × 5514 image. Previous v7 (797 holds) and original v4 (677 holds) maps remain
+The current wall is **2026-11-v9**, with **852 reviewed holds** and a
+7292 × 5514 image. Previous v8 (801 holds), v7 (797 holds), and original v4 (677 holds) maps remain
 available for historical routes. The app opens the current physical wall by default. Explore and My routes show
 only the latest version in each Upgrade family; Other versions below a route
 opens its earlier versions with their original activity.
@@ -43,6 +43,7 @@ Wall preparation is a maintainer workflow: compose/register photos, generate
 SAM2 suggestions, review the outlines, archive the completed review, deploy the
 versioned catalog, and run the compatibility sweep before releasing the frontend.
 See [the standard wall-update workflow](docs/wall-update-workflow.md),
+[the detailed photo-to-review runbook](docs/wall-update-runbook.md),
 [wall publication and Upgrade](docs/wall-publication.md) and
 [the v7 image/review workflow](docs/wall-v7-seam-trial.md).
 
@@ -170,6 +171,7 @@ physical holds. Experimental SAM2 suggestions are not accepted geometry.
 - [Profile route list and pagination](docs/profile-routes.md)
 - [Authentication, creator names, and permissions](docs/auth.md)
 - [Wall publication, route compatibility, and Upgrade](docs/wall-publication.md)
+- [Photo stitching, SAM2 annotation, and review runbook](docs/wall-update-runbook.md)
 - [Review progress storage and recovery](docs/review-storage.md)
 - [Full-wall SAM2 annotation](docs/sam2-full-wall-annotator.md)
 - [Backend architecture](docs/infra.md) and [deployment](infra/cloudformation/README.md)

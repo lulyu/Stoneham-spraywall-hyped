@@ -1,0 +1,45 @@
+{
+  "session": {
+    "scanId": "2026-11-v9-sam2-review",
+    "gymId": "stoneham-crg",
+    "wallId": "spray-wall-1",
+    "referenceVersion": "2026-11-v8",
+    "candidateVersion": "2026-11-v9",
+    "referenceImageSha256": "be434e5ca6c33b9c8f126fbf6950eb8fb1e8df00ff3130eda47ff2da6b98f1f1",
+    "referenceHoldsSha256": "c6f1d57090d9123ce9f50d61f4aa6399bc3b7705b62567aea572db54cbec045f",
+    "registeredImageSha256": "3b74b1d9a016255072d6641823a84076d7574e14591da7f59da06d08ad6a586b",
+    "coordinateFrame": {
+      "size": [
+        7292,
+        5514
+      ],
+      "orientation": "v8 canonical frame; EXIF-prepared source photos"
+    },
+    "sourceContents": [
+      {
+        "id": "IMG20261121161026.jpg",
+        "imageSha256": "746c2f543576bce8d75cdc9898ed7a28354d60e48b3b5738e8ef5716e22317bd"
+      },
+      {
+        "id": "IMG20261121161034.jpg",
+        "imageSha256": "8ca28431b75b55fd5a4291c9d6bdbdef88a6fe9cb5dc9597b9dcd86b7e386b8b"
+      },
+      {
+        "id": "IMG20261121161043.jpg",
+        "imageSha256": "a5dd7c15f1437879be36c94ad09e6d80c7ff61db02ee30b7ac154d16842e960d"
+      }
+    ],
+    "compositionManifestSha256": "e0324d62532dd8aab7e7fdda14bb2c05e0c90d61d4f584a6c40f4d9a670bc83f",
+    "sourceSessionId": "3fbe8f0d68417d6c81b00cec7722c6724c48dd54baade691c8745fbc3205f81d",
+    "candidateManifestSha256": "cf88a2677e8084e1fae2806d7b3b31871035720b6ce31e4a7f5a066c55712bd8",
+    "coverageSha256": "d84eabfd92510732e27fd2387ed455e8b6c0ab9770119e4b9def122c97b565b9",
+    "uncertaintySha256": "3982ef66877bff7185e04844c7542f8f6c55d4d48ed4f742c4acfcf706a5d73c",
+    "proposalsSha256": "7946dddcba5bc1239bbdeb1c75fee2bf43e209526323fd637918b257d9645b11",
+    "referenceFilledFraction": 0.012749524424041253,
+    "reviewerKind": "assistant",
+    "sessionId": "8fd105e35392b2ec374ec5cc208d6c33fde16b0817d31ea318d43cc1343af092"
+  },
+  "publishable": false,
+  "inputKind": "real-captures",
+  "imageFile": "wall_registered.jpg"
+}

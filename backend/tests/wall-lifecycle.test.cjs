@@ -1,5 +1,5 @@
 const {test,beforeEach}=require('node:test'),assert=require('node:assert/strict')
-const sdk=require('@aws-sdk/lib-dynamodb'),old=require('../../src/data/polygons/holds.json'),fresh=require('../../src/data/walls/2026-11-v8/holds.json')
+const sdk=require('@aws-sdk/lib-dynamodb'),old=require('../../src/data/polygons/holds.json'),fresh=require('../../src/data/walls/2026-11-v9/holds.json')
 const current=new Set(fresh.map(h=>h.id)),shared=old.filter(h=>current.has(h.id)),missing=old.find(h=>!current.has(h.id))
 process.env.DYNAMODB_TABLE='lifecycle-test'
 let rows,transactions,scanCalls,injectConflict
@@ -41,7 +41,7 @@ sdk.DynamoDBDocumentClient.from=()=>({send:async command=>{
  throw Error('Unexpected '+kind)
 }})
 const {handler}=require('../dist/test-handler.cjs')
-const path='/v1/admin/gyms/stoneham-crg/walls/spray-wall-1/versions/2026-11-v8/publish'
+const path='/v1/admin/gyms/stoneham-crg/walls/spray-wall-1/versions/2026-11-v9/publish'
 const request=(method,path,body,user='alice',admin=false)=>handler({rawPath:path,body:body===undefined?undefined:JSON.stringify(body),requestContext:{requestId:'test',http:{method,path},...(user?{authorizer:{jwt:{claims:{sub:user,...(admin?{'cognito:groups':'["admins"]'}:{})}}}}:{})}})
 const json=r=>JSON.parse(r.body)
 const seed=(id,holds)=>({id,pk:'PROBLEM#'+id,sk:'META',entityType:'problem',gymId:'stoneham-crg',wallId:'spray-wall-1',wallVersionId:'2026-10-v4',name:'Original',grade:'V3',setter:'Alice',ownerId:'alice',revision:1,createdAt:'2026-01-01',updatedAt:'2026-01-01',holds,gsi1pk:'GYM#stoneham-crg#WALL#spray-wall-1#VERSION#2026-10-v4',gsi1sk:'PROBLEM#2026-01-01#'+id})
@@ -57,7 +57,7 @@ test('publish scans every page, includes foot-only holds, and preserves route id
  const comment=structuredClone(rows.get('PROBLEM#outdated|COMMENT#1'))
  assert.equal(await migrate(),2);assert(scanCalls>1)
  const valid=rows.get('PROBLEM#valid|META'),outdated=rows.get('PROBLEM#outdated|META')
- assert.deepEqual(valid.supportedWallVersionIds,['2026-10-v4','2026-11-v7','2026-11-v8']);assert.equal(valid.outdated,false)
+ assert.deepEqual(valid.supportedWallVersionIds,['2026-10-v4','2026-11-v7','2026-11-v8','2026-11-v9']);assert.equal(valid.outdated,false)
  assert.deepEqual(outdated.supportedWallVersionIds,['2026-10-v4']);assert.equal(outdated.outdated,true)
  assert.deepEqual(outdated.missingHoldIds,[missing.id]);assert.deepEqual(outdated.holds,[...validHolds,{holdId:missing.id,role:'foot-only'}])
  assert.deepEqual(rows.get('PROBLEM#outdated|COMMENT#1'),comment)
@@ -65,7 +65,7 @@ test('publish scans every page, includes foot-only holds, and preserves route id
  assert.equal(rows.get('PROBLEM#outdated|OWNER').gsi1pk,'USER#alice#ROUTES')
  const all=json(await request('GET','/v1/gyms/stoneham-crg/walls/spray-wall-1/problems')).items
  assert.deepEqual(new Set(all.map(p=>p.id)),new Set(['valid','outdated']))
- const latest=json(await request('GET','/v1/gyms/stoneham-crg/walls/spray-wall-1/versions/2026-11-v8/problems')).items
+ const latest=json(await request('GET','/v1/gyms/stoneham-crg/walls/spray-wall-1/versions/2026-11-v9/problems')).items
  assert.deepEqual(latest.map(p=>p.id),['valid'])
  const revision=valid.revision;await migrate();assert.equal(rows.get('PROBLEM#valid|META').revision,revision)
 })
@@ -91,7 +91,7 @@ test('Upgrade is author-only, seeds surviving holds, creates V2/V3 with new IDs,
  const two=await request('POST',url,input);assert.equal(two.statusCode,201)
  assert.equal(json(one).name,'Original V2');assert.equal(json(two).name,'Original V3')
  assert.notEqual(json(one).id,json(two).id);assert.notEqual(json(one).id,original.id)
- assert.equal(json(one).wallVersionId,'2026-11-v8');assert.equal(json(one).upgradedFromId,original.id)
+ assert.equal(json(one).wallVersionId,'2026-11-v9');assert.equal(json(one).upgradedFromId,original.id)
  assert.equal(rows.get('PROBLEM#'+json(one).id+'|OWNER').gsi1pk,'USER#alice#ROUTES')
  assert.deepEqual(rows.get('PROBLEM#outdated|META'),original)
  assert.equal(rows.get('PROBLEM#outdated|COMMENT#1').text,'Keep history')
@@ -114,7 +114,7 @@ test('both user-confirmed replacements retire old IDs and make former v7 routes 
  for(const [index,resolution] of resolutions.entries()){
   const route=rows.get('PROBLEM#replacement-'+index+'|META')
   assert.equal(route.outdated,true);assert.deepEqual(route.missingHoldIds,[resolution.oldHoldId])
-  assert(route.supportedWallVersionIds.includes('2026-11-v7'));assert(!route.supportedWallVersionIds.includes('2026-11-v8'))
+  assert(route.supportedWallVersionIds.includes('2026-11-v7'));assert(!route.supportedWallVersionIds.includes('2026-11-v9'))
   assert.equal(route.holds.at(-1).holdId,resolution.oldHoldId)
  }
 })

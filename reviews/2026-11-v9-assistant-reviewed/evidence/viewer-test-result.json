@@ -1,0 +1,26 @@
+[
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "status": 200,
+    "holds": 852,
+    "newHolds": 51,
+    "filterAndToggle": "passed",
+    "focusAndFit": "passed",
+    "pageErrors": []
+  },
+  {
+    "viewport": {
+      "width": 1365,
+      "height": 1000
+    },
+    "status": 200,
+    "holds": 852,
+    "newHolds": 51,
+    "filterAndToggle": "passed",
+    "focusAndFit": "passed",
+    "pageErrors": []
+  }
+]
