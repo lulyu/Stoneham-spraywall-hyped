@@ -28,8 +28,8 @@ A mobile-first route-setting app for the Stoneham CRG spray wall.
 
 ## Current wall and updates
 
-The current wall is **2026-11-v8**, with **801 human-reviewed holds** and a
-7292 × 5514 image. Previous v7 (797 holds) and original v4 (677 holds) maps remain
+The current wall is **2026-11-v9**, with **852 reviewed holds** and a
+7292 × 5514 image. Previous v8 (801 holds), v7 (797 holds), and original v4 (677 holds) maps remain
 available for historical routes. The app opens the current physical wall by default. Explore and My routes show
 only the latest version in each Upgrade family; Other versions below a route
 opens its earlier versions with their original activity.

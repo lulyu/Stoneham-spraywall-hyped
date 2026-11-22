@@ -20,7 +20,15 @@
     "wallId": "spray-wall-1",
     "wallVersionId": "2026-11-v8",
     "displayName": "Stoneham Spray Wall \u00b7 v8",
-    "active": true,
+    "active": false,
     "holdSource": "src/data/walls/2026-11-v8/holds.json"
+  },
+  {
+    "gymId": "stoneham-crg",
+    "wallId": "spray-wall-1",
+    "wallVersionId": "2026-11-v9",
+    "displayName": "Stoneham Spray Wall \u00b7 v9",
+    "active": true,
+    "holdSource": "src/data/walls/2026-11-v9/holds.json"
   }
 ]

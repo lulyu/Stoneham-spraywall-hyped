@@ -1,0 +1,34 @@
+{
+  "checkedAt": "2026-11-22T02:03:38.512942+00:00",
+  "releaseStatus": "prepared; blocked on AWS connector availability",
+  "productionChanged": false,
+  "reviewReplay": {
+    "revisions": 854,
+    "activeHolds": 852,
+    "pending": 0,
+    "retainedV8Ids": 801,
+    "newIds": 51,
+    "result": "passed"
+  },
+  "frontendTests": {
+    "files": 16,
+    "passed": 16
+  },
+  "backendTests": {
+    "files": 9,
+    "passed": 9
+  },
+  "rescanTests": {
+    "tests": 45,
+    "passed": 45
+  },
+  "backendTypecheck": "passed",
+  "frontendBuild": "passed",
+  "backendBuild": "passed",
+  "browserLifecycle": "passed: v9 default, historical walls, author-only Upgrade, V2/V3, source preservation, missing Start validation, mobile layout",
+  "awsConnector": "Read-only identity and no-API runtime checks did not return usable results; execution runtime replaced. No AWS mutation submitted.",
+  "backendDeployment": "not performed",
+  "migrationDryRun": "not performed",
+  "migrationApply": "not performed",
+  "frontendProductionRelease": "not performed"
+}

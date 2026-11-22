@@ -9,10 +9,11 @@ and [wall publication](wall-publication.md) for release and route compatibility.
 images → rerun SAM2 for every inherited hold → find additions → review identity
 and outlines → check for omissions → replay, validate, and archive → publish.**
 
-As of November 21, 2026, production remains **v8 / 801 holds**. The **v9 / 852-hold**
-update is an assistant-reviewed candidate, not a published version. Recheck the
-active version at the start of each update; dates, versions, counts, and example
-parameters in this document are historical, not automatically current.
+The November 21, 2026 preparation started from **v8 / 801 holds** and produced a
+**v9 / 852-hold** assistant-reviewed candidate. Publication status is recorded
+separately in the [v9 publication record](../reviews/2026-11-v9-publication/README.md).
+Recheck the active version before each update; example dates, counts, and
+parameters here describe that preparation run, not automatically current state.
 
 Quick links: [tools and directories](#2-environment-directories-and-tool-boundaries) ·
 [registration](#4-register-each-photo-before-composing-the-wall) ·
@@ -616,7 +617,7 @@ and historical wall images/maps.
 See the [v9 README](../reviews/2026-11-v9-assistant-reviewed/README.md) for the actual
 artifacts: three originals, 801 inherited prompts, 51 additions, 854 assistant
 revisions, 852 active holds, zero pending, and 100% new-photo coverage for final
-polygons. The candidate remains unpublished.
+polygons. This describes the preparation archive; see the separate publication record for release status.
 
 Read the scripts in **dependency order**:
 

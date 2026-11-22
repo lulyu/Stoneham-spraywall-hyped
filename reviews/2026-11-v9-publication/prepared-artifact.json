@@ -1,0 +1,10 @@
+{
+  "artifactFile": "v9-backend-26fd1d6816a47291.zip",
+  "artifactKey": "backend/v9-backend-26fd1d6816a47291.zip",
+  "zipBytes": 295329,
+  "zipSha256": "717f2d902871bbc35b473af55acdbd454b96a8cebd3e2113134911aa3601cd3d",
+  "lambdaCodeSha256": "cX8tkChxu8NbRzr1Ws29RUuWqM69PiETE0kRqjYBzT0=",
+  "reviewCheckpointSha256": "80404e67159351cf9c4b81acb1b30a3a11160849f876f1dab28b982603006411",
+  "deploymentStatus": "prepared-only; not uploaded or deployed",
+  "migrationStatus": "not run"
+}

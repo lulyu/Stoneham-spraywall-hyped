@@ -1,6 +1,6 @@
 const {test,beforeEach}=require('node:test'),assert=require('node:assert/strict')
 const sdk=require('@aws-sdk/lib-dynamodb'),{Memory,key}=require('./helpers/memory.cjs')
-const old=require('../../src/data/walls/2026-11-v7/holds.json'),fresh=require('../../src/data/walls/2026-11-v8/holds.json')
+const old=require('../../src/data/walls/2026-11-v7/holds.json'),fresh=require('../../src/data/walls/2026-11-v9/holds.json')
 const ids=new Set(fresh.map(h=>h.id)),shared=old.filter(h=>ids.has(h.id)).slice(0,2),missing=old.find(h=>!ids.has(h.id))
 process.env.DYNAMODB_TABLE='route-versions-removal-test'
 let memory
@@ -17,7 +17,7 @@ const seed=(id='root',extra={})=>{
 }
 const familyIndex=route=>memory.put({pk:route.pk,sk:'FAMILY',problemId:route.id,gsi1pk:'GYM#stoneham-crg#WALL#spray-wall-1#FAMILY#'+(route.upgradeRootId??route.id),gsi1sk:'VERSION#'+String(route.upgradeNumber??1).padStart(16,'0')+'#'+route.createdAt+'#'+route.id,entityType:'problem-listing'})
 beforeEach(()=>{memory=new Memory();seed()})
-async function migrate(){let cursor,total=0;do{const r=await request('POST','/v1/admin/gyms/stoneham-crg/walls/spray-wall-1/versions/2026-11-v8/publish',{...(cursor?{cursor}:{}),dryRun:false},'admin',true);assert.equal(r.statusCode,200,r.body);const page=body(r);total+=page.processed;cursor=page.nextCursor}while(cursor);return total}
+async function migrate(){let cursor,total=0;do{const r=await request('POST','/v1/admin/gyms/stoneham-crg/walls/spray-wall-1/versions/2026-11-v9/publish',{...(cursor?{cursor}:{}),dryRun:false},'admin',true);assert.equal(r.statusCode,200,r.body);const page=body(r);total+=page.processed;cursor=page.nextCursor}while(cursor);return total}
 test('existing compatibility sweep backfills version indexes without changing canonical route content or activity',async()=>{
  const read=body(await request('GET','/v1/problems/root',undefined,null)),raw=memory.get('PROBLEM#root','META')
  for(const field of ['supportedWallVersionIds','outdated','compatibilityWallVersionId','missingHoldIds'])raw[field]=read[field]
@@ -122,5 +122,5 @@ test('local wall storage keeps version history and never reuses a removed Upgrad
  assert.equal(v3.upgradeNumber,3)
  assert.deepEqual((await store.listVersions(v3.id)).items.map(p=>p.id),[v3.id,root.id])
  await store.remove(root);assert.equal((await store.listVersions(v3.id)).items.length,1)
- assert(JSON.parse(storage.getItem(localWallKey('2026-11-v8'))).some(p=>p.id===v2.id&&p.hidden))
+ assert(JSON.parse(storage.getItem(localWallKey('2026-11-v9'))).some(p=>p.id===v2.id&&p.hidden))
 })
