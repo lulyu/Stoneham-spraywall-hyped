@@ -1,0 +1,43 @@
+{
+  "backend": {
+    "stackStatus": "UPDATE_COMPLETE",
+    "function": {
+      "CodeSha256": "agvnUxwb4t2QXwWCrPlghLtt6YWfPaiXyNZD/Z0lFc4=",
+      "LastUpdateStatus": "Successful",
+      "LastModified": "2026-11-27T20:59:22.000+0000"
+    }
+  },
+  "dryRun": {
+    "wallVersionId": "2026-11-v10",
+    "dryRun": true,
+    "complete": true,
+    "pages": 3,
+    "scanned": 135,
+    "processed": 15,
+    "compatible": 12,
+    "outdated": 3,
+    "changed": 15
+  },
+  "applied": {
+    "wallVersionId": "2026-11-v10",
+    "dryRun": false,
+    "complete": true,
+    "pages": 3,
+    "scanned": 137,
+    "processed": 15,
+    "compatible": 12,
+    "outdated": 3,
+    "changed": 15
+  },
+  "convergence": {
+    "wallVersionId": "2026-11-v10",
+    "dryRun": true,
+    "complete": true,
+    "pages": 3,
+    "scanned": 149,
+    "processed": 15,
+    "compatible": 12,
+    "outdated": 3,
+    "changed": 0
+  }
+}
