@@ -45,4 +45,17 @@ Private raw database snapshots are excluded from Git. See
 - Public API smoke passes; anonymous/forged writes are rejected and no test
   records are created in production.
 
-Frontend production verification will be recorded after the PR is merged.
+## Frontend production
+
+PR #40 merged as `cbcb33d0eb4edee8b52aa8f0b4d768a2b643c056`.
+Vercel production deployment `dpl_2wyYr5KQ7rpZHm2SGZBpz7BpVAUf` is READY.
+The live site serves the exact accepted image hash and defaults to v10.
+Read-only browser checks verified a current route on v10, an outdated route on
+its retained v7 wall with the historical warning, one loaded activity panel,
+selected-hold overlays and responsive layout at 320/390/980 pixels. No page
+errors, duplicate-key warnings, failed requests or production writes occurred.
+Both main-branch CI checks pass. See
+[frontend-verification.json](frontend-verification.json).
+
+Site: https://stoneham-spraywall-project.vercel.app/
+
