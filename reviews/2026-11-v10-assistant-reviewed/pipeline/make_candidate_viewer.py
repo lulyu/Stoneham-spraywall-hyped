@@ -1,0 +1,8 @@
+from pathlib import Path
+import json,shutil
+r=Path('/workspace/wall-comparison-2026-11-27');repo=Path('/workspace/Stoneham-spraywall-project');archive=repo/'reviews/2026-11-v10-assistant-reviewed';public=repo/'public/wall/candidates/2026-11-v10';public.mkdir(parents=True,exist_ok=True);summary=json.loads((archive/'summary.json').read_text());holds=json.loads((archive/'confirmed-geometry.json').read_text())['holds'];old=json.loads((r/'reference-holds.json').read_text());oldids={h['id'] for h in old};ids={h['id'] for h in holds};html=(r/'viewer-template.html').read_text()
+for key,obj in [('__HOLDS__',holds),('__OLD_HOLDS__',old),('__SUMMARY__',{'pendingCount':summary['pendingCount']}),('__NEW_IDS__',sorted(ids-oldids)),('__REMOVED_IDS__',sorted(oldids-ids))]:html=html.replace(key,json.dumps(obj,separators=(',',':')).replace('<','\\u003c'))
+(archive/'review.html').write_text(html.replace('__IMAGE__','wall.jpg').replace('__REFERENCE__','../../public/wall/versions/2026-11-v9/wall.jpg').replace('__GIF__','comparisons/previous-vs-new.gif').replace('__PREVIEW__','comparisons/preview.jpg'))
+(public/'index.html').write_text(html.replace('__IMAGE__','wall.jpg').replace('__REFERENCE__','/wall/versions/2026-11-v9/wall.jpg').replace('__GIF__','previous-vs-new.gif').replace('__PREVIEW__','preview.jpg'))
+for name,src in [('wall.jpg',archive/'wall.jpg'),('preview.jpg',archive/'comparisons/preview.jpg'),('previous-vs-new.gif',archive/'comparisons/previous-vs-new.gif')]:shutil.copyfile(src,public/name)
+(r/'viewer-offline.html').write_text(html.replace('__IMAGE__','wall_registered.jpg').replace('__REFERENCE__','reference.jpg').replace('__GIF__','previous-vs-new.gif').replace('__PREVIEW__','preview.jpg'));print('Candidate viewers generated')

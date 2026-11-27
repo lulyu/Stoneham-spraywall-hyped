@@ -1,0 +1,9 @@
+{
+  "checkedAt": "2026-11-27T19:36:12.200742+00:00",
+  "reviewReplay": "passed: 861 actions, 891 history records, assistant attribution, exact session/image/model/reference bindings",
+  "geometry": "passed: 858 unique holds, no near-identical duplicates, all 100% new-photo coverage",
+  "frontendBuild": "passed",
+  "browser": "passed: 858 polygons, image toggle, changed/removed filters, per-hold focus, fit, mobile/desktop widths, zero errors or writes",
+  "editableZip": "passed: every baseline, image, mask, model and checkpoint matches exact archive bytes",
+  "productionChanged": false
+}

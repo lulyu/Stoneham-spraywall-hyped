@@ -1,0 +1,38 @@
+[
+  {
+    "name": "IMG20261127140432.jpg",
+    "sha256": "08b2f8e0b85cdede36d6677cd5b1a6f3f3ab32195943eb0c4a2bd2f4732aae22",
+    "bytes": 5887699,
+    "nativeSize": [
+      3072,
+      4096
+    ],
+    "orientation": 1,
+    "driveId": "1zxA8RYgufiC2ZiBMYzFdcOpcL0Lbhdok",
+    "folderId": "1-fzLloRbL0e7W5pZiiDZkKKoXhocGFkC"
+  },
+  {
+    "name": "IMG20261127140419.jpg",
+    "sha256": "803558a15c95d4cadc117cf0c3162a7dd63871584df7ea831a9c5676901f114f",
+    "bytes": 5614878,
+    "nativeSize": [
+      3072,
+      4096
+    ],
+    "orientation": 1,
+    "driveId": "1doDj4r3KXEzzso3s1XgDfuuqNj1_tfFU",
+    "folderId": "1-fzLloRbL0e7W5pZiiDZkKKoXhocGFkC"
+  },
+  {
+    "name": "IMG20261127140449.jpg",
+    "sha256": "13f836aa2a1d3ff690a184c124481f8ac642b148e8933ce05136c5e687348d0c",
+    "bytes": 6092136,
+    "nativeSize": [
+      3072,
+      4096
+    ],
+    "orientation": 1,
+    "driveId": "1v9X6hRWOJnNEZ6htAU8O6td2taf6c8s8",
+    "folderId": "1-fzLloRbL0e7W5pZiiDZkKKoXhocGFkC"
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "mode": "read-only public API impact assessment; no database writes",
+  "observedAt": "2026-11-27T19:33:37.842765+00:00",
+  "listedRouteRecords": 14,
+  "wouldSupportV10": 10,
+  "wouldBeHistorical": 4,
+  "newlyOutdatedComparedWithV9": 3,
+  "scope": "Public route-list snapshot only; actual publication must scan every stored route and cursor."
+}

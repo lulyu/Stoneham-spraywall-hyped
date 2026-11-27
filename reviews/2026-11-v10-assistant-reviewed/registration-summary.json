@@ -1,0 +1,29 @@
+[
+  {
+    "index": 0,
+    "photo": "IMG20261127140449.jpg",
+    "matches": 3754,
+    "inliers": 3585,
+    "medianNativePixels": 3.4518154841618642,
+    "p95NativePixels": 9.872044511342681,
+    "coverageFrame": 0.5216114580782105
+  },
+  {
+    "index": 1,
+    "photo": "IMG20261127140432.jpg",
+    "matches": 2819,
+    "inliers": 2463,
+    "medianNativePixels": 4.339876802434502,
+    "p95NativePixels": 12.602176884019261,
+    "coverageFrame": 0.5510790676789942
+  },
+  {
+    "index": 2,
+    "photo": "IMG20261127140419.jpg",
+    "matches": 2948,
+    "inliers": 2659,
+    "medianNativePixels": 3.625592511681084,
+    "p95NativePixels": 11.41864339278728,
+    "coverageFrame": 0.5556975059188505
+  }
+]

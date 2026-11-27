@@ -1,0 +1,137 @@
+{
+  "reviewerKind": "assistant",
+  "groups": {
+    "N01": [
+      1
+    ],
+    "N03-06": [
+      3,
+      6
+    ],
+    "N02": [
+      2
+    ],
+    "N04-05": [
+      4,
+      5
+    ],
+    "N07": [
+      7
+    ],
+    "N08": [
+      8
+    ],
+    "N09-green": [
+      9
+    ],
+    "R06": [
+      9
+    ],
+    "N13-15": [
+      13,
+      15
+    ],
+    "N14-17": [
+      14,
+      17
+    ],
+    "N16": [
+      16
+    ],
+    "N18-19": [
+      18,
+      19
+    ],
+    "N20-21": [
+      20,
+      21
+    ],
+    "N23": [
+      23
+    ],
+    "N24": [
+      24
+    ],
+    "N25-26": [
+      25,
+      26
+    ],
+    "N27": [
+      27
+    ],
+    "N30": [
+      30
+    ],
+    "N31": [
+      31
+    ],
+    "N33": [
+      33
+    ],
+    "N35": [
+      35
+    ],
+    "N37": [
+      37
+    ],
+    "N39": [
+      39
+    ],
+    "N40": [
+      40
+    ],
+    "N41": [
+      41
+    ]
+  },
+  "poseChanges": [
+    11,
+    12,
+    22,
+    34
+  ],
+  "dismissed": [
+    {
+      "index": 10,
+      "decision": "existing hold outline/chalk/viewpoint residual; no separate new hold",
+      "evidence": "new-candidates-1..2.jpg"
+    },
+    {
+      "index": 28,
+      "decision": "existing hold outline/chalk/viewpoint residual; no separate new hold",
+      "evidence": "new-candidates-1..2.jpg"
+    },
+    {
+      "index": 29,
+      "decision": "existing hold outline/chalk/viewpoint residual; no separate new hold",
+      "evidence": "new-candidates-1..2.jpg"
+    },
+    {
+      "index": 32,
+      "decision": "existing hold outline/chalk/viewpoint residual; no separate new hold",
+      "evidence": "new-candidates-1..2.jpg"
+    },
+    {
+      "index": 36,
+      "decision": "existing hold outline/chalk/viewpoint residual; no separate new hold",
+      "evidence": "new-candidates-1..2.jpg"
+    },
+    {
+      "index": 38,
+      "decision": "existing hold outline/chalk/viewpoint residual; no separate new hold",
+      "evidence": "new-candidates-1..2.jpg"
+    },
+    {
+      "index": 42,
+      "decision": "existing hold outline/chalk/viewpoint residual; no separate new hold",
+      "evidence": "new-candidates-1..2.jpg"
+    }
+  ],
+  "extraPositionsFoundByIdentityComparison": [
+    "R04",
+    "R10",
+    "R08",
+    "R19",
+    "R18"
+  ]
+}
