@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-11-27T20:04:09.500Z",
+  "base": "https://sb-6eyxa9ojb7l8.vercel.run",
+  "startingRevision": 861,
+  "startingActiveHolds": 858,
+  "newerBrowserRevisionPreserved": 862,
+  "assistantHistoryPreserved": 891,
+  "humanReviewerRestored": true,
+  "serverCheckpointUnchanged": true,
+  "manualDrawConfirmExportPreviouslyVerified": true,
+  "realSam2ResponsePreviouslyVerified": 200,
+  "isolatedTestOnly": true,
+  "pageErrors": [],
+  "postPaths": [],
+  "conflictPolicy": "Unrelated histories and newer imported checkpoints require explicit resume; no implicit overwrite."
+}

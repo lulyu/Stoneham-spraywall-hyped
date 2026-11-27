@@ -35,3 +35,14 @@ browser IndexedDB and must be exported before archiving or publication.
 Production remains v9. No route migration or database writes are part of this
 handoff. Validation uses an isolated browser profile; test decisions are never
 part of the user's session or the server checkpoint.
+
+## Validation
+
+Five review-bundle Python tests and the review unit tests passed; local and remote
+frontend builds passed. An isolated mobile browser restored all 858 reviewed
+holds and 891 assistant history records, returned a real SAM2 prediction, drew
+and confirmed a new hold, and exported it. A separate reopen check seeded a valid
+human continuation at revision 862 and verified that the server checkpoint at
+revision 861 did not overwrite it. The human reviewer name and original assistant
+history were retained. See `verification.json`; test edits never enter the server
+bundle or the user's browser.
