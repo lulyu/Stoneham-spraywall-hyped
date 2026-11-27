@@ -1,0 +1,88 @@
+{
+  "reviewer": "Codex (identity reconciliation)",
+  "reviewerKind": "assistant",
+  "reason": "The distinct striped blue hold below the replaced blue/green hold is unchanged between v9 and v10. Its published v9 polygon already belongs to this small striped hold. The assistant incorrectly removed it; the human correctly restored its outline under a fresh provisional ID.",
+  "evidence": "blue-id-lineage.jpg",
+  "fromHumanAddedId": "scan-02808c24-d928-46b5-9966-49eb0d67debb",
+  "restoredV9Id": "new-v9-a6cbb66522e512",
+  "geometryChanged": false,
+  "actions": [
+    {
+      "type": "reset",
+      "id": "new-v9-a6cbb66522e512"
+    },
+    {
+      "type": "refine",
+      "id": "new-v9-a6cbb66522e512",
+      "hold": {
+        "id": "new-v9-a6cbb66522e512",
+        "kind": "hold",
+        "center": [
+          0.5224046900713111,
+          0.5931296722067941
+        ],
+        "polygon": [
+          [
+            0.5261930883159627,
+            0.5817918026840769
+          ],
+          [
+            0.5241360394953374,
+            0.5812477330431629
+          ],
+          [
+            0.5223532638507954,
+            0.582879941965905
+          ],
+          [
+            0.5139879319802523,
+            0.5968443960826986
+          ],
+          [
+            0.5139879319802523,
+            0.5984766050054406
+          ],
+          [
+            0.5153592978606693,
+            0.6002901704751542
+          ],
+          [
+            0.519884805266045,
+            0.6019223793978963
+          ],
+          [
+            0.5239989029072957,
+            0.6019223793978963
+          ],
+          [
+            0.5257816785518377,
+            0.6013783097569823
+          ],
+          [
+            0.5271530444322545,
+            0.5999274573812114
+          ],
+          [
+            0.5289358200767965,
+            0.592310482408415
+          ],
+          [
+            0.5271530444322545,
+            0.5832426550598476
+          ]
+        ]
+      },
+      "coverageFraction": 1
+    },
+    {
+      "type": "remove",
+      "id": "scan-02808c24-d928-46b5-9966-49eb0d67debb"
+    }
+  ],
+  "rawHumanExportUnchanged": true,
+  "humanCheckpointSha256": "18b0e41de52819ca5731888f1cc2699dafb02087821f4de3bd7d6b89dd9b4e0e",
+  "reconciledCheckpointSha256": "c253561fc41a3ae1b60994252bbfaf9d5baeda4c7bfd97f489aedb38591e772e",
+  "reconciledRevision": 874,
+  "historyRecords": 904,
+  "publishable": false
+}

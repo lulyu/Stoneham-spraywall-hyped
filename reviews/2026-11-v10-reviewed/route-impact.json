@@ -1,0 +1,9 @@
+{
+  "mode": "read-only impact assessment of retained preparation snapshot; no database writes",
+  "scope": "Public route-list snapshot from November 27 preparation; not a current full database migration. Scan all stored routes/cursors again at publication.",
+  "snapshotSha256": "7d5656bfb9ecf04c809eb9e30ad0b1681f1f2ee1c5b79f1c3acb210cba5f0cfe",
+  "records": 14,
+  "compatibleWithReconciledV10": 10,
+  "historicalWithReconciledV10": 4,
+  "routesRetainedByRestoringBlueId": 0
+}

@@ -1,0 +1,9 @@
+{
+  "file": "v10-human-reviewed.zip",
+  "bytes": 33331021,
+  "sha256": "a853cde04e75ac371a25908571119d1c0d3eaeaea890729d402422f3e54cc999",
+  "rawHumanExportEntry": "human-original-review-progress.json",
+  "activeCheckpointEntry": "review-progress.json",
+  "activeCheckpoint": "identity-reconciled-progress.json",
+  "bothCheckpointsVerifiedExactly": true
+}

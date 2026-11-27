@@ -1,0 +1,272 @@
+[
+  {
+    "id": "scan-bf3d43a5-ff82-41f5-8b0a-ffb49475ad58",
+    "center": [
+      0.8585700196456304,
+      0.3120413480414768
+    ],
+    "cropBounds": [
+      6174,
+      1632,
+      6339,
+      1797
+    ],
+    "previousHoldsNearby": [
+      {
+        "id": "manual-89a0b3b95e11",
+        "distance": 109.64766616637529
+      },
+      {
+        "id": "manual-8fba52ba4fd5",
+        "distance": 112.37410899584032
+      },
+      {
+        "id": "sam2-auto-0052",
+        "distance": 166.0895757513445
+      }
+    ]
+  },
+  {
+    "id": "scan-b26022bf-c768-498f-80ea-06eb162d46bf",
+    "center": [
+      0.6987220790506907,
+      0.6928546767709305
+    ],
+    "cropBounds": [
+      4996,
+      3707,
+      5207,
+      3918
+    ],
+    "previousHoldsNearby": [
+      {
+        "id": "sam2-auto-0235",
+        "distance": 109.61577163317591
+      },
+      {
+        "id": "manual-dd529e427587",
+        "distance": 110.29729133819802
+      },
+      {
+        "id": "sam2-auto-0245",
+        "distance": 149.42866247500675
+      }
+    ]
+  },
+  {
+    "id": "scan-02808c24-d928-46b5-9966-49eb0d67debb",
+    "center": [
+      0.5224046900713111,
+      0.5931296722067941
+    ],
+    "cropBounds": [
+      3715,
+      3175,
+      3889,
+      3349
+    ],
+    "previousHoldsNearby": [
+      {
+        "id": "new-v9-a6cbb66522e512",
+        "distance": 21.603042312134825
+      },
+      {
+        "id": "sam2-auto-0204",
+        "distance": 92.8157025083635
+      },
+      {
+        "id": "manual-15c8a31184d1",
+        "distance": 113.76469584179672
+      }
+    ]
+  },
+  {
+    "id": "scan-4d65186a-3f15-4a3e-972e-fd4e62a0fe9b",
+    "center": [
+      0.5116726095452978,
+      0.683778463733409
+    ],
+    "cropBounds": [
+      3632,
+      3679,
+      3826,
+      3872
+    ],
+    "previousHoldsNearby": [
+      {
+        "id": "new-v9-63e6e2c7b0b279",
+        "distance": 100.2187009849193
+      },
+      {
+        "id": "manual-e21b277c4ab3",
+        "distance": 103.06115289827406
+      },
+      {
+        "id": "scan-084e3d4a-60c6-4521-8dba-18d951bd102c",
+        "distance": 121.23531972261964
+      }
+    ]
+  },
+  {
+    "id": "sam2-auto-0110",
+    "center": [
+      0.7271688539248495,
+      0.4413311446655767
+    ],
+    "cropBounds": [
+      5079,
+      2134,
+      5597,
+      2652
+    ],
+    "previousHoldsNearby": [
+      {
+        "id": "sam2-auto-0110",
+        "distance": 1.2084856454740744
+      },
+      {
+        "id": "scan-5f4acbc5-8ae4-49b9-bd7f-e34c6fb0fec9",
+        "distance": 235.11627137876653
+      },
+      {
+        "id": "manual-3fb30fe278c2",
+        "distance": 260.0014753987378
+      }
+    ]
+  },
+  {
+    "id": "manual-234454fdbf1d",
+    "center": [
+      0.4220985120562133,
+      0.30957718876835283
+    ],
+    "cropBounds": [
+      2601,
+      1270,
+      3401,
+      2070
+    ],
+    "previousHoldsNearby": [
+      {
+        "id": "manual-234454fdbf1d",
+        "distance": 3.6220832683043236
+      },
+      {
+        "id": "scan-ee1f4842-dd3f-4383-89d1-8df02f7a3900",
+        "distance": 230.38837284310296
+      },
+      {
+        "id": "sam2-auto-0050",
+        "distance": 236.0497249063914
+      }
+    ]
+  },
+  {
+    "id": "manual-d90c35df1c87",
+    "center": [
+      0.6001776054747101,
+      0.24712516575455631
+    ],
+    "cropBounds": [
+      3945,
+      935,
+      4745,
+      1735
+    ],
+    "previousHoldsNearby": [
+      {
+        "id": "manual-d90c35df1c87",
+        "distance": 4.022978575525205
+      },
+      {
+        "id": "manual-11ae4deac47a",
+        "distance": 329.49634542878863
+      },
+      {
+        "id": "scan-407422a7-db95-447e-84a8-6c41bb60d525",
+        "distance": 336.6051220594454
+      }
+    ]
+  },
+  {
+    "id": "manual-8fba52ba4fd5",
+    "center": [
+      0.8645458062166361,
+      0.33138581661824357
+    ],
+    "cropBounds": [
+      6219,
+      1737,
+      6389,
+      1907
+    ],
+    "previousHoldsNearby": [
+      {
+        "id": "manual-8fba52ba4fd5",
+        "distance": 3.7960828923927803
+      },
+      {
+        "id": "scan-91cd9613-965a-4a56-ae6f-377717f766e8",
+        "distance": 178.11915786387635
+      },
+      {
+        "id": "new-v9-31e96a5bc2535e",
+        "distance": 179.06228803787593
+      }
+    ]
+  },
+  {
+    "id": "manual-7185dac719d2",
+    "center": [
+      0.7601912874833467,
+      0.38837734958954895
+    ],
+    "cropBounds": [
+      5206,
+      1721,
+      5959,
+      2475
+    ],
+    "previousHoldsNearby": [
+      {
+        "id": "manual-7185dac719d2",
+        "distance": 7.115992897519209
+      },
+      {
+        "id": "manual-fe6f9e6d46f2",
+        "distance": 75.20579693600587
+      },
+      {
+        "id": "sam2-auto-0077",
+        "distance": 276.17802829139544
+      }
+    ]
+  },
+  {
+    "id": "scan-7b827644-3d27-46cb-8892-f5134903eb9c",
+    "center": [
+      0.451223974869557,
+      0.6435978453576273
+    ],
+    "cropBounds": [
+      3201,
+      3462,
+      3378,
+      3639
+    ],
+    "previousHoldsNearby": [
+      {
+        "id": "scan-7b827644-3d27-46cb-8892-f5134903eb9c",
+        "distance": 2.255222436837884
+      },
+      {
+        "id": "sam2-auto-0219",
+        "distance": 144.30636142212063
+      },
+      {
+        "id": "manual-f6b7610c3f53",
+        "distance": 150.4388899966966
+      }
+    ]
+  }
+]

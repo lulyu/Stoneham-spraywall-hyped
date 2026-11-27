@@ -1,0 +1,9 @@
+{
+  "holdCount": 862,
+  "uniqueIds": 862,
+  "retainedV9Ids": 819,
+  "freshIds": 43,
+  "minimumNewPhotoCoverage": 1.0,
+  "holdsBelow99PercentCoverage": 0,
+  "nearIdenticalPolygons": []
+}
