@@ -46,6 +46,16 @@ class ReviewBundleTests(unittest.TestCase):
             (scan/'coverage.png').unlink()
             with self.assertRaisesRegex(ValueError,'folder needs'):ReviewBundle(scan,root)
 
+    def test_optional_checkpoint_is_served_without_changing_the_baseline(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);scan,_=self.make_bundle(root)
+            checkpoint=scan/'review-progress.json';checkpoint.write_text('{"reviewRevision":861}')
+            bundle=ReviewBundle(scan,root)
+            self.assertEqual(bundle.file('review-progress.json'),checkpoint)
+            self.assertEqual(json.loads((scan/'review_queue.json').read_text())['reviewRevision'],0)
+            checkpoint.write_text('{"reviewRevision":862}')
+            with self.assertRaisesRegex(ValueError,'changed on disk'):bundle.file('review-progress.json')
+
     def test_supplied_references_are_hash_bound_and_do_not_change_production(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);scan,session=self.make_bundle(root)

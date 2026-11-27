@@ -10,7 +10,7 @@ from pathlib import Path
 FILES = ('manifest.json', 'holds_prelabels.json', 'review_queue.json', 'report.json',
          'wall_registered.png', 'coverage.png', 'uncertainty.png',
          'source-index-preview.png', 'qa-overlay.jpg', 'wall_registered.jpg', 'sam2-proposals.json',
-         'reference.jpg', 'reference-holds.json')
+         'reference.jpg', 'reference-holds.json', 'review-progress.json')
 REQUIRED = FILES[:7]
 
 
