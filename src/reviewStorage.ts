@@ -1,4 +1,4 @@
-import { reviewKey, resumeReview, saveReview, validateProgress } from './wallReview'
+import { reviewKey, resumeReview, saveReview, stable, validateProgress } from './wallReview'
 import type { WallReview } from './wallReview'
 
 export const REVIEW_DATABASE = 'stoneham-wall-reviews'
@@ -49,9 +49,10 @@ async function transaction<T>(key:string, legacy:LegacyStorage, raw:string|null,
 export async function loadStoredReview(baseline:WallReview, initial:WallReview, legacy:LegacyStorage=localStorage) {
   const key=reviewKey(baseline.session), raw=legacy.getItem(key), hash=await fingerprint(raw)
   return transaction(key,legacy,raw,stored=> {
-    if((stored||raw!==null) && initial.reviewRevision>0)
-      throw new Error('This folder includes a checkpoint and this browser already has progress. Open the original folder, then use Resume progress explicitly.')
     let review=stored?validateProgress(stored.review,baseline):raw!==null?validateProgress(JSON.parse(raw),baseline):initial
+    if((stored||raw!==null) && initial.reviewRevision>0 &&
+      (review.reviewRevision<initial.reviewRevision || stable(review.history.slice(0,initial.history.length))!==stable(initial.history)))
+      throw new Error('This checkpoint conflicts with this browser’s progress or is newer. Keep both exports and use Resume progress explicitly.')
     if(stored && stored.legacyFingerprint===hash)return {value:review}
     if(stored && stored.legacyFingerprint!==hash) {
       if(raw===null)throw new Error('An older tab changed the saved checkpoint. Keep your exports and reopen the matching scan.')
