@@ -1,0 +1,66 @@
+{
+  "format": "stoneham-wall-candidate-v1",
+  "wallId": "spray-wall-1",
+  "wallVersionId": "2026-11-v10",
+  "referenceVersion": "2026-11-v9",
+  "status": "candidate-needs-review",
+  "publishable": false,
+  "imageSize": [
+    7292,
+    5514
+  ],
+  "image": "wall.jpg",
+  "coverage": "coverage.png",
+  "uncertainty": "uncertainty.png",
+  "sourceIndex": "source-index.png",
+  "sourceSession": {
+    "scanId": "stoneham-20261127-originals",
+    "gymId": "stoneham-crg",
+    "wallId": "spray-wall-1",
+    "referenceVersion": "2026-11-v9",
+    "candidateVersion": "2026-11-v10",
+    "referenceImageSha256": "3b74b1d9a016255072d6641823a84076d7574e14591da7f59da06d08ad6a586b",
+    "referenceHoldsSha256": "cafd89019a9dc5595482dfb59646611c1db7fd2fda3b4e8ebb1cb6dd2edeecdc",
+    "registeredImageSha256": "ab074cd9e5d0b20c9e6ecb7bf77a005f845c216623197e23ce9d3ab9300165af",
+    "coordinateFrame": {
+      "size": [
+        7292,
+        5514
+      ],
+      "orientation": "v9 canonical frame; EXIF-prepared source photos"
+    },
+    "sourceContents": [
+      {
+        "id": "IMG20261127140449.jpg",
+        "imageSha256": "13f836aa2a1d3ff690a184c124481f8ac642b148e8933ce05136c5e687348d0c"
+      },
+      {
+        "id": "IMG20261127140432.jpg",
+        "imageSha256": "08b2f8e0b85cdede36d6677cd5b1a6f3f3ab32195943eb0c4a2bd2f4732aae22"
+      },
+      {
+        "id": "IMG20261127140419.jpg",
+        "imageSha256": "803558a15c95d4cadc117cf0c3162a7dd63871584df7ea831a9c5676901f114f"
+      }
+    ],
+    "compositionManifestSha256": "f432431cdab97d5ee7227b25918701e7f0d868805fe9a9a4abb06ba09f65500d",
+    "sessionId": "d3500994770d98fb0d034760ef6620bab1317eba28a07258ee4e8bb5b8fbb761"
+  },
+  "referenceImageSha256": "3b74b1d9a016255072d6641823a84076d7574e14591da7f59da06d08ad6a586b",
+  "referenceHoldsSha256": "cafd89019a9dc5595482dfb59646611c1db7fd2fda3b4e8ebb1cb6dd2edeecdc",
+  "referenceFilledFraction": 0.020861300343353806,
+  "qaFailures": [
+    "assistant-identity-review-pending",
+    "assistant-boundary-review-pending",
+    "new-hold-search-pending"
+  ],
+  "reviewPriority": {
+    "reviewer": "assistant, as requested by user",
+    "allInheritedHolds": true,
+    "newHoldSearch": true
+  },
+  "imageSha256": "ab074cd9e5d0b20c9e6ecb7bf77a005f845c216623197e23ce9d3ab9300165af",
+  "coverageSha256": "4087ead4e155d884fe36a8d2400420e834a871d41aa9762bc6e47e53e5703628",
+  "uncertaintySha256": "5f046f8be5544f5c37b2618c7d1afad32acbeaf4ebd3c1a14b145ecbc7d9607d",
+  "sourceIndexSha256": "d5b86364a66c47f1a96a0c4cb5e2e9424b1e59ce6aee60a3587fecc65c51be4c"
+}

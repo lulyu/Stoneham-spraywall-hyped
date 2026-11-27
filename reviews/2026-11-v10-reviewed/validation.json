@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-11-27T20:48:27.825668+00:00",
+  "rawExportPreservedByteForByte": true,
+  "rawExportSha256": "18b0e41de52819ca5731888f1cc2699dafb02087821f4de3bd7d6b89dd9b4e0e",
+  "rawHumanReplay": "passed: revision871, 901 history records, 862 active, zero pending",
+  "attributedIdentityReconciliationReplay": "passed: revision874, 904 history records, unchanged boundaries, one old ID restored",
+  "geometryQA": "passed: unique IDs, no near-identical polygons, all accepted polygons 100% new-photo coverage",
+  "frontendBuild": "passed",
+  "candidateHtml": "passed: 862 holds, 820 retained IDs, 42 fresh IDs, 32 removed old positions",
+  "editablePackage": "verified both raw human and active reconciled checkpoint entries exactly",
+  "productionChanged": false
+}

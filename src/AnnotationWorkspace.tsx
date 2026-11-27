@@ -32,7 +32,7 @@ export default function AnnotationWorkspace() {
       const loaded=next
       const restored=await navigator.locks.request(reviewKey(loaded.baseline.session),()=>loadStoredReview(loaded.baseline,loaded.initial))
       if(id!==loadId.current){next.dispose();return}
-      active.current?.dispose();active.current=next;setAssets(next);setData(restored);setReviewer(name=>name || restored.history.at(-1)?.reviewer || '');setEpoch(e=>e+1)
+      active.current?.dispose();active.current=next;setAssets(next);setData(restored);setReviewer(name=>name || (restored.history.at(-1)?.reviewerKind==='assistant'?'':restored.history.at(-1)?.reviewer) || '');setEpoch(e=>e+1)
     } catch(problem) {next?.dispose();setError(String(problem))}
     finally {if(id===loadId.current)setLoading(false)}
   }

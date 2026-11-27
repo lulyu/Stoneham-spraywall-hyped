@@ -18,7 +18,7 @@ test('historical v7 wall is exactly the completed human review and retains the h
   assert.deepEqual(holds,snapshot.holds)
   assert.deepEqual(holds,checkpoint.entries.map(e=>e.hold))
   holds.forEach(validateHold);assert.equal(new Set(holds.map(h=>h.id)).size,797)
-  assert.deepEqual(catalog.filter(wall=>wall.active).map(wall=>wall.wallVersionId),['2026-11-v9'])
+  assert.deepEqual(catalog.filter(wall=>wall.active).map(wall=>wall.wallVersionId),['2026-11-v10'])
   assert.equal(catalog.find(wall=>wall.wallVersionId==='2026-11-v7').holdSource,'src/data/walls/2026-11-v7/holds.json')
   assert.equal(manifest.routeMigration,'hold-id-compatibility')
 })

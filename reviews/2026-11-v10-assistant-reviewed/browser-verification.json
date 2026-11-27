@@ -1,0 +1,26 @@
+{
+  "checkedAt": "2026-11-27T19:34:56.805Z",
+  "target": "local candidate using exact preview assets",
+  "activePolygons": 858,
+  "freshPolygons": 39,
+  "removedPositions": 33,
+  "defaultImage": "2026-11-v10",
+  "nativeImageSize": [
+    7292,
+    5514
+  ],
+  "oldNewToggle": true,
+  "changesFilter": true,
+  "removedToggle": true,
+  "individualChangedHoldFocus": true,
+  "fit": true,
+  "outlinesToggle": true,
+  "widths": [
+    320,
+    390,
+    1280
+  ],
+  "pageErrors": [],
+  "writeRequests": [],
+  "failedRequests": []
+}

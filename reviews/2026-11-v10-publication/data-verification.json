@@ -1,0 +1,11 @@
+{
+  "routeCount": 15,
+  "compatible": 12,
+  "outdated": 3,
+  "routeIdsContentRolesOwnersTimestampsAndUpgradeLineage": "unchanged",
+  "protectedRows": 37,
+  "ratingsCommentsSendsSummariesProfilesAndUpgradeCounters": "unchanged",
+  "compatibility": "all route records verified against exact v10 hold ID set",
+  "activitySha256": "c91898b4487880409dc5880f98463947691e8e8e27f773cf7dd4ba187ceabe1e",
+  "scope": "complete consistent-read table snapshots; private source snapshots excluded from repository"
+}

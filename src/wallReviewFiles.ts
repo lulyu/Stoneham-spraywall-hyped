@@ -109,7 +109,7 @@ export async function loadServerReview():Promise<ReviewAssets> {
   if(!response.ok || !response.headers.get('content-type')?.includes('application/json')) throw new Error('No local rescan server. Import a scan folder, or start the server with --rescan-session.')
   const bundle=await response.json()
   if(!Array.isArray(bundle.files))throw new Error('Invalid review bundle.')
-  const allowed=['manifest.json','holds_prelabels.json','review_queue.json','report.json','wall_registered.png','coverage.png','uncertainty.png','source-index-preview.png','qa-overlay.jpg','wall_registered.jpg','sam2-proposals.json','reference.jpg','reference-holds.json']
+  const allowed=['manifest.json','holds_prelabels.json','review_queue.json','report.json','wall_registered.png','coverage.png','uncertainty.png','source-index-preview.png','qa-overlay.jpg','wall_registered.jpg','sam2-proposals.json','reference.jpg','reference-holds.json','review-progress.json']
   const files:File[]=[]
   // Sequential fetch bounds peak memory while handling full-resolution images.
   for(const name of allowed.filter(n=>bundle.files.includes(n))) {

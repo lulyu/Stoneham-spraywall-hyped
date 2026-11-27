@@ -1,0 +1,133 @@
+{
+  "format": "stoneham-wall-human-review-archive-v1",
+  "publishable": false,
+  "assistantArchive": "reviews/2026-11-v10-assistant-reviewed",
+  "sourceFiles": [
+    {
+      "path": "reviews/2026-11-v10-assistant-reviewed/review-progress.json",
+      "sha256": "c197c9d2cdc3e40ccfd4cf3ac3e142e58543d2f1bda240f628a55155caeaff0f"
+    },
+    {
+      "path": "reviews/2026-11-v10-assistant-reviewed/archive-manifest.json",
+      "sha256": "c2bf37f736ad30da285f3c723d8f2870566af0823a2186be93b00159d7367fba"
+    },
+    {
+      "path": "reviews/2026-11-v10-assistant-reviewed/candidate-manifest.json",
+      "sha256": "ccb36ccb962c5b8a7986ad2fa7624482f91a0f7529be383d841585847a439b71"
+    },
+    {
+      "path": "reviews/2026-11-v10-assistant-reviewed/wall.jpg",
+      "sha256": "ab074cd9e5d0b20c9e6ecb7bf77a005f845c216623197e23ce9d3ab9300165af"
+    },
+    {
+      "path": "reviews/2026-11-v10-assistant-reviewed/coverage.png",
+      "sha256": "4087ead4e155d884fe36a8d2400420e834a871d41aa9762bc6e47e53e5703628"
+    },
+    {
+      "path": "reviews/2026-11-v10-assistant-reviewed/uncertainty.png",
+      "sha256": "5f046f8be5544f5c37b2618c7d1afad32acbeaf4ebd3c1a14b145ecbc7d9607d"
+    },
+    {
+      "path": "reviews/2026-11-v10-assistant-reviewed/baseline/manifest.json",
+      "sha256": "7b17ce5949e6f4a52d77b73dddc102a4ae20d48a769ed09efdaf99c817a31f48"
+    },
+    {
+      "path": "reviews/2026-11-v10-assistant-reviewed/baseline/holds_prelabels.json",
+      "sha256": "8554a1926ec5264657cd794ef758632da9a33fea61eefc128f04ea722d445a03"
+    },
+    {
+      "path": "reviews/2026-11-v10-assistant-reviewed/baseline/review_queue.json",
+      "sha256": "d9b47027200b9e069ea4f8f6099ce94c84a970af6d0bdba3f5d524d3b894432e"
+    },
+    {
+      "path": "reviews/2026-11-v10-assistant-reviewed/baseline/sam2-proposals.json",
+      "sha256": "8f2d239712d840eca76e656b6969db97545bd09f6df3d536a5a5a9edd16ca90b"
+    },
+    {
+      "path": "src/data/walls/2026-11-v9/holds.json",
+      "sha256": "cafd89019a9dc5595482dfb59646611c1db7fd2fda3b4e8ebb1cb6dd2edeecdc"
+    },
+    {
+      "path": "public/wall/versions/2026-11-v9/wall.jpg",
+      "sha256": "3b74b1d9a016255072d6641823a84076d7574e14591da7f59da06d08ad6a586b"
+    }
+  ],
+  "assets": {
+    "README.md": {
+      "sha256": "3492c78924025931fe8ad7ed94569297241d52cd72614b25632abea0a9b88d53",
+      "bytes": 3913
+    },
+    "blue-id-lineage.jpg": {
+      "sha256": "d0625774146626355eff06e6973a7208646962e3f49f7b7d00c545f6b5038bf6",
+      "bytes": 271101
+    },
+    "confirmed-geometry.json": {
+      "sha256": "6c0955f1d1d7bdd85027a15857ad9f76955d67cd489c8298c10abacecca152f6",
+      "bytes": 1205550
+    },
+    "confirmed-overlay.jpg": {
+      "sha256": "5079008b217d8decece5542ade87cba4d200ad76bf67e5ad2382c423225af9e7",
+      "bytes": 2148939
+    },
+    "geometry-qa.json": {
+      "sha256": "8f6caa6e59f91e7d7477efbc19e6e8ec0e726956431ea61c65077c54516c9976",
+      "bytes": 186
+    },
+    "human-change-evidence.json": {
+      "sha256": "020579d934cd6399c3038ec9e06a06272a10b0d308f70b7d46f20072daccb834",
+      "bytes": 5225
+    },
+    "human-changes.jpg": {
+      "sha256": "d3459b8f7443ffb7ee9a88d105f7540428480ec465691d5ea143024d5be1e7f1",
+      "bytes": 487294
+    },
+    "identity-reconciled-progress.json": {
+      "sha256": "c253561fc41a3ae1b60994252bbfaf9d5baeda4c7bfd97f489aedb38591e772e",
+      "bytes": 5484449
+    },
+    "identity-reconciliation.json": {
+      "sha256": "b3f8a64e217b25231af84b6849d0a616277c566fdc2539e3ea2e631a102176ed",
+      "bytes": 2405
+    },
+    "package.json": {
+      "sha256": "4604b4fd223ce888b1ede36fd88bf75c6850a8d3e256d92d95a6ad7e273af08b",
+      "bytes": 356
+    },
+    "pipeline/reconcile_identity.mjs": {
+      "sha256": "fd3f738ccd55c96a355a8d3421996acd681b4c5408207d784e4d07e6e86a53eb",
+      "bytes": 2534
+    },
+    "publication-geometry.json": {
+      "sha256": "027a2ac2e76bb77827b646e49499a9c45728097a3fa1e594f979d01d2876e8fe",
+      "bytes": 1205631
+    },
+    "publication-overlay.jpg": {
+      "sha256": "2459d4d0592d8e13c0f781f5cf13e824cedc64af7b0ba623b0bc0584b260a64d",
+      "bytes": 2148710
+    },
+    "review-progress.json": {
+      "sha256": "18b0e41de52819ca5731888f1cc2699dafb02087821f4de3bd7d6b89dd9b4e0e",
+      "bytes": 5472414
+    },
+    "review.html": {
+      "sha256": "33ac75714b687dfc06276182c4032d65734d38d2a2010fac189cc973e1d149dd",
+      "bytes": 1237359
+    },
+    "route-impact.json": {
+      "sha256": "4a5ab68e7f04b66bccd6e608f1e8a7b42b9740cf9fabacf39a737b693ee28c75",
+      "bytes": 478
+    },
+    "summary.json": {
+      "sha256": "e0b7ecbd00ff69397c096c475d937fe0565a1b36aec797876377c3320152095d",
+      "bytes": 2635
+    },
+    "validate.mjs": {
+      "sha256": "c49bd4910fedf131f00824e0c265a3dd6c91334ba764ad19a92200aa41892579",
+      "bytes": 4638
+    },
+    "validation.json": {
+      "sha256": "f8191e8961a07331fad95ec5fab96540df8cbc3274a6aa6f5f03af9fc2874abc",
+      "bytes": 772
+    }
+  }
+}
